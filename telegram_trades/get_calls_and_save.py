@@ -1,7 +1,6 @@
 from constants import TGRM
 from dataclasses import dataclass
 from typing import Dict
-from login import get_broker
 
 
 def save_entry(order):
@@ -38,18 +37,9 @@ def classify_call(call: Dict) -> Dict:
     pass
 
 
-def order_place(brkr, dct_order):
-    """
-        place order
-    """
-    brkr.order_place(**dct_order)
-
-
-brkr = get_broker()
 while True:
     call = read_calls()
     dct_order = classify_call(call)
-    order_place(brkr, dct_order)
     if any(dct_order):
         # creater an order object that stores order
         Order(**dct_order)
