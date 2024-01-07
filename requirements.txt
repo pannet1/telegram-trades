@@ -1,0 +1,3 @@
+git+https://github.com/pannet1/toolkit
+pya3
+telethon
