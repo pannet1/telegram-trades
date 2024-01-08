@@ -1,6 +1,9 @@
 # ignore data folder
 data/
 
+# ignore telegram session files
+*.session
+*.session-journal
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
