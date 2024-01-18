@@ -49,7 +49,7 @@ def filter_by_keys(keys: List, lst: List[Dict]) -> List[Dict]:
         print(e)
 
 
-def modify_order(order: dict, updates: dict) -> dict:
+def modify_order(order: Dict, updates: Dict) -> Dict:
     order["symbol"] = order["exchange"] + ":" + order["symbol"]
     order.update(updates)
     return order

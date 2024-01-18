@@ -1,0 +1,17 @@
+[
+    {
+        "id": "1",
+        "symbol": "NFO:BANKNIFTY",
+        "fn": "is_target2"
+    },
+    {
+        "id": "2",
+        "symbol": "NFO:BANKNIFTY",
+        "fn": "is_target2"
+    },
+    {
+        "id": "3",
+        "symbol": "NFO:NIFTY",
+        "fn": "is_target2"
+    }
+]

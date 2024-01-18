@@ -1,9 +1,13 @@
-from toolkit.fileutils import Fileutils 
+from toolkit.fileutils import Fileutils
+from toolkit.logger import Logger
+from toolkit.utilities import Utilities
 
-
-DIRP = "../../" 
-SETG = Fileutils().get_lst_fm_yml(DIRP + "ravikanth.yml")
+logging = Logger(30)
+DIRP = "../../"
+FUTL = Fileutils()
+SETG = FUTL.get_lst_fm_yml(DIRP + "ravikanth.yml")
 BRKR = SETG["aliceblue"]
-print(BRKR)
+logging.debug(BRKR)
 TGRM = SETG["telegram"]
-print(TGRM)
+logging.debug(TGRM)
+UTIL = Utilities()
