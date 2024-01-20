@@ -2,32 +2,49 @@ from constants import DIRP, BRKR, FUTL, UTIL, logging
 from login import get_broker
 from rich import print
 import os
+import traceback
+import pandas as pd
 
 
-api = get_broker(BRKR)
-exchanges = ["NFO", "BFO"]
-for exchange in exchanges:
-    if FUTL.is_file_not_2day(f"./{exchange}.csv"):
-        api.broker.get_contract_master(exchange)
-        try:
-            os.rename(f"./{exchange}.csv", f"{DIRP}{exchange}.csv")
-        except Exception as e:
-            logging.warning(e)
+def download_masters(broker):
+    exchanges = ["NFO", "BFO"]
+    for exchange in exchanges:
+        if FUTL.is_file_not_2day(f"{DIRP}{exchange}.csv"):
+            broker.get_contract_master(exchange)
+            try:
+                os.rename(f"./{exchange}.csv", f"{DIRP}{exchange}.csv")
+            except Exception as e:
+                logging.warning(e)
 
 
-def str_to_callable(str_func: str, task=None):
-    fn = eval(str_func)
+def str_to_callable(fn: str, task=None):
+    """
+    converts string to callable function
+    does not work if imported
+    """
+    func = eval(fn)
     if isinstance(task, dict):
-        return fn(**task)
-    else:
-        return fn()
+        return func(**task)
+    return func()
 
 
 def entry(**task):
     """
     place order on broker terminal
     input: task details
+    {'symbol': 'BANKNIFTY 47300 CE', 
+    'ltp_range': '570', 
+    'target_range': '30 | 70 | 100 | 200 | 250', 
+    'sl': '540 | 570 | 610'}
     """
+    obj_inst = task["api"]().broker.get_instrumemnt_by_symbol("NSE", "SBIN")
+    info = task["api"]().broker.scripinfo(obj_inst)
+    print(info)
+    args = dict(
+        symbol=task["symbol"],
+        side=task["side"],
+    )
+    task["api"]().order_place(**args)
     task["fn"] = "is_entry"
     update_task(task)
 
@@ -66,17 +83,29 @@ def read_tasks():
 
 
 def update_task(updated_task):
-    tasks = FUTL.json_fm_file("fake_tasks")
+    updated_task.pop("api", None)
     logging.debug(f'Updating task: {updated_task}')
+    tasks = FUTL.json_fm_file("fake_tasks")
     [task.update(updated_task)
      for task in tasks if task["id"] == updated_task["id"]]
     FUTL.save_file(tasks, "./fake_tasks")
 
 
-while True:
-    tasks = read_tasks()
-    UTIL.slp_til_nxt_sec()
-    for task in tasks:
-        fn = task.pop("fn", None)
-        print(task)
-        str_to_callable(fn, task)
+def run():
+    try:
+        api = get_broker(BRKR)
+        download_masters(api.broker)
+        while True:
+            tasks = read_tasks()
+            print(pd.DataFrame(tasks).set_index("id"))
+            UTIL.slp_til_nxt_sec()
+            for task in tasks:
+                task["api"] = api
+                fn: str = task.pop("fn")
+                str_to_callable(fn, task)
+    except Exception as e:
+        logging.error(e)
+        print(traceback.print_exc())
+
+
+run()

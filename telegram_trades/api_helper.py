@@ -35,18 +35,15 @@ order_keys = [
 
 
 def filter_by_keys(keys: List, lst: List[Dict]) -> List[Dict]:
-    try:
-        new_lst = [{}]
-        if lst and any(lst):
-            for dct in lst:
-                new_dct = {}
-                for key in keys:
-                    if dct.get(key, None):
-                        new_dct[key] = dct[key]
-                new_lst.append(new_dct)
-        return new_lst
-    except Exception as e:
-        print(e)
+    new_lst = [{}]
+    if lst and any(lst):
+        for dct in lst:
+            new_dct = {}
+            for key in keys:
+                if dct.get(key, None):
+                    new_dct[key] = dct[key]
+            new_lst.append(new_dct)
+    return new_lst
 
 
 def modify_order(order: Dict, updates: Dict) -> Dict:

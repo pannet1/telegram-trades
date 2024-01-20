@@ -2,16 +2,16 @@
     {
         "id": "1",
         "symbol": "NFO:BANKNIFTY",
-        "fn": "is_target2"
+        "fn": "entry"
     },
     {
         "id": "2",
         "symbol": "NFO:BANKNIFTY",
-        "fn": "is_target2"
+        "fn": "entry"
     },
     {
         "id": "3",
         "symbol": "NFO:NIFTY",
-        "fn": "is_target2"
+        "fn": "entry"
     }
 ]
