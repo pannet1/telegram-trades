@@ -30,7 +30,8 @@ order_keys = [
     "exchange",
     "order_id",
     "broker_timestamp",
-    "product"
+    "product",
+    "order_type"
 ]
 
 
@@ -53,19 +54,26 @@ def modify_order(order: Dict, updates: Dict) -> Dict:
 
 
 if __name__ == "__main__":
-    from constants import BRKR
+    from constants import BRKR, UTIL
     from login import get_broker
+    import pandas as pd
+    from rich import print
 
     api = get_broker(BRKR)
     lst = filter_by_keys(order_keys, api.orders)
+    print(lst)
     updates = {
         "order_type": "SL-L",
-        "price": float("0.05")
+        "price": float("0.05"),
+        "trigger_price": float("0.05"),
     }
     for order in lst:
-        details = modify_order(order, updates)
-        resp = api.order_modify(**details)
-        if not isinstance(resp, dict):
-            print("something is wrong")
-        elif isinstance(resp, dict) and resp.get("status", "Not_Ok") == "Not_Ok":
-            print(resp)
+        UTIL.slp_til_nxt_sec()
+        if any(order):
+            resp = api.order_modify(**order)
+            if not isinstance(resp, dict):
+                print("something is wrong")
+            elif isinstance(resp, dict) and resp.get("status", "Not_Ok") == "Not_Ok":
+                print(resp)
+    print(pd.DataFrame(lst).set_index("order_id"))
+    print(pd.DataFrame(api.positions).set_index("symbol"))

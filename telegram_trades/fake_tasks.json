@@ -1,17 +1,13 @@
 [
     {
         "id": "1",
-        "symbol": "NFO:BANKNIFTY",
-        "fn": "entry"
-    },
-    {
-        "id": "2",
-        "symbol": "NFO:BANKNIFTY",
-        "fn": "entry"
-    },
-    {
-        "id": "3",
-        "symbol": "NFO:NIFTY",
-        "fn": "entry"
+        "symbol": "NSE:TRIDENT",
+        "side": "Buy",
+        "quantity": "1",
+        "product": "MIS",
+        "ltp_range": "40.05|40.50",
+        "target_range": "30 | 70 | 100 | 200 | 250",
+        "sl": "540 | 570 | 610",
+        "fn": "is_target2"
     }
 ]

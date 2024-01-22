@@ -1,7 +1,6 @@
 from constants import DIRP, BRKR, FUTL, UTIL, logging
 from login import get_broker
 from rich import print
-import os
 import traceback
 import pandas as pd
 
@@ -9,12 +8,8 @@ import pandas as pd
 def download_masters(broker):
     exchanges = ["NFO", "BFO"]
     for exchange in exchanges:
-        if FUTL.is_file_not_2day(f"{DIRP}{exchange}.csv"):
+        if FUTL.is_file_not_2day(f"./{exchange}.csv"):
             broker.get_contract_master(exchange)
-            try:
-                os.rename(f"./{exchange}.csv", f"{DIRP}{exchange}.csv")
-            except Exception as e:
-                logging.warning(e)
 
 
 def str_to_callable(fn: str, task=None):
@@ -28,53 +23,93 @@ def str_to_callable(fn: str, task=None):
     return func()
 
 
+def get_ltp(broker, exchange, symbol):
+    obj_inst = broker.get_instrument_by_symbol(exchange, symbol)
+    return float(broker.get_scrip_info(obj_inst)["Ltp"])
+
+
 def entry(**task):
     """
     place order on broker terminal
     input: task details
-    {'symbol': 'BANKNIFTY 47300 CE', 
-    'ltp_range': '570', 
-    'target_range': '30 | 70 | 100 | 200 | 250', 
+    {'symbol': 'BANKNIFTY 47300 CE',
+    'ltp_range': '570',
+    'target_range': '30 | 70 | 100 | 200 | 250',
     'sl': '540 | 570 | 610'}
     """
-    obj_inst = task["api"]().broker.get_instrumemnt_by_symbol("NSE", "SBIN")
-    info = task["api"]().broker.scripinfo(obj_inst)
-    print(info)
+    lst_symbol = task["symbol"].split(":")
+    last_price = get_ltp(task["api"].broker, lst_symbol[0], lst_symbol[1])
+    lst_ltp = list(map(float, task["ltp_range"].split("|")))
+    if task["side"][0].upper() == "B":
+        if max(lst_ltp) < last_price:
+            price = max(lst_ltp)
+            order_type = "LMT"
+        elif min(lst_ltp) > last_price:
+            price = min(lst_ltp)
+            trigger_price = price - 0.05
+            order_type = "SL-L"
+    else:
+        if min(lst_ltp) > last_price:
+            price = min(lst_ltp)
+            order_type = "LMT"
+        elif max(lst_ltp) < last_price:
+            price = max(lst_ltp)
+            trigger_price = price + 0.05
+            order_type = "SL-L"
     args = dict(
         symbol=task["symbol"],
         side=task["side"],
+        quantity=int(task["quantity"]),
+        price=price,
+        order_type=order_type,
+        product=task["product"]
     )
-    task["api"]().order_place(**args)
-    task["fn"] = "is_entry"
-    update_task(task)
+    if "trigger_price" in locals() and trigger_price is not None:
+        args["trigger_price"] = trigger_price
+    resp = task["api"].order_place(**args)
+    if resp and resp.get("order_id", None):
+        task["orders"] = [resp]
+        task["fn"] = "is_entry"
+        update_task(task)
 
 
 def is_entry(**task):
-    task["fn"] = "stop1"
-    update_task(task)
+    lst_order_ids = [order["order_id"] for order in task["orders"]]
+    lst_orders = [order for order in task["api"].orders if any(order)]
+    if any(lst_order_ids) and all(order["status"] == "COMPLETE"
+                                  for order in lst_orders
+                                  if order["order_id"] in lst_order_ids):
+        task["fn"] = "stop1"
+        update_task(task)
 
 
 def stop1(**task):
-    task["fn"] = "target1"
+    task["fn"] = "is_stop1_or_target1"
     update_task(task)
 
 
-def target1(**task):
-    task["fn"] = "is_target1"
+def is_stop1_or_target1(**task):
+    ltp = get_ltp(task["api"].broker, task["symbol"].split(
+        ":")[0], task["symbol"].split(":")[1])
+    is_true = (task['side'].upper() == "B" and ltp < float(task["sl"])) or (
+        task['side'].upper() != "B" and ltp > float(task["sl"]))
+    if is_true:
+        task["fn"] = "modify_stop1_to_target1"
+        update_task(task)
+
+
+def modify_stop1_to_target1(**task):
+    task["fn"] = "trail_stop1_to_entry"
     update_task(task)
 
 
-def is_target1(**task):
-    task["fn"] = "is_stop2"
+def trail_stop1_to_cost(**task):
+    task["fn"] = "is_cost_or_target2"
     update_task(task)
 
 
-def is_stop2(**task):
-    task["fn"] = "is_target2"
-    update_task(task)
-
-
-def is_target2(**task):
+def is_cost_or_target2(**task):
+    task["fn"] = "COMPLETE"
     update_task(task)
 
 
@@ -92,6 +127,7 @@ def update_task(updated_task):
 
 
 def run():
+    lst_ignore = ["COMPLETED", "CANCELED"]
     try:
         api = get_broker(BRKR)
         download_masters(api.broker)
@@ -102,7 +138,8 @@ def run():
             for task in tasks:
                 task["api"] = api
                 fn: str = task.pop("fn")
-                str_to_callable(fn, task)
+                if fn not in lst_ignore:
+                    str_to_callable(fn, task)
     except Exception as e:
         logging.error(e)
         print(traceback.print_exc())
