@@ -2,7 +2,7 @@ from telethon.sync import TelegramClient, events
 import csv
 from datetime import datetime
 from constants import TGRM
-
+from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallPut
 
 api_id = TGRM['api_id']
 api_hash = TGRM['api_hash']
@@ -17,11 +17,23 @@ async def my_event_handler(event):
     chat = await event.get_chat()
     with open(TGRM["output_file"], 'a', encoding='utf-8',  newline='') as csv_file:
         csv_writer = csv.writer(csv_file)
+        now = datetime.now()
         if event.reply_to_msg_id is not None:
             original_message = await client.get_messages(chat.id, ids=event.reply_to_msg_id)
-            csv_writer.writerow([datetime.now(), chat.title, replace_non_ascii(original_message.raw_text) +" "+ replace_non_ascii(event.raw_text)])
+            msg = replace_non_ascii(original_message.raw_text) +" "+ replace_non_ascii(event.raw_text)
+            csv_writer.writerow([now, chat.title, msg,])
         else:
-            csv_writer.writerow([datetime.now(), chat.title, replace_non_ascii(event.raw_text)])
+            msg = replace_non_ascii(event.raw_text)
+            csv_writer.writerow([now, chat.title, msg])
+        if chat.title == "PREMIUM JACKPOT":
+            i = PremiumJackpot(now, msg)
+            i.get_signal()
+        elif chat.title == "SMS Options Premium":
+            i = SmsOptionsPremium(now, msg)
+            i.get_signal()
+        elif chat.title == "Paid - CALL & PUT":
+            i = PaidCallPut(now, msg)
+            i.get_signal()
 
 client.start(phone=TGRM["phone_number"])
 client.run_until_disconnected()
