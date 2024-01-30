@@ -8,7 +8,7 @@ from datetime import datetime
 from login import get_broker
 from constants import BRKR, FUTL
 signals_csv_filename = 'signals.csv'
-signals_csv_file_headers = ['channel_name', 'timestamp', 'symbol', 'ltp_range', 'target_range', 'sl', 'product_type']
+signals_csv_file_headers = ['channel_name', 'timestamp', 'symbol', 'ltp_range', 'target_range', 'sl', 'product_type', 'action']
 failure_csv_filename = 'failures.csv'
 failure_csv_file_headers = ['channel_name', 'timestamp', 'message', 'exception']
 
@@ -103,7 +103,8 @@ class PremiumJackpot():
                 "ltp_range": " | ".join(re.findall(r'\d+\.\d+|\d+', parts[2])),
                 "target_range" : " | ".join(re.findall(r'\d+\.\d+|\d+', parts[3].split('SL')[0])),
                 "sl": re.findall(r"SL-(\d+)?", parts[3])[0],
-                "product": "MIS" if sym.upper() in PremiumJackpot.index_options else "NRML"
+                "product": "MIS" if sym.upper() in PremiumJackpot.index_options else "NRML",
+                "action": "Cancel" if not any([word in self.message.upper() for word in ('CANCEL', 'EXIT', 'BOOK')]) else 'Buy'
             }
             write_signals_to_csv(signal_details)
         except:
@@ -148,6 +149,7 @@ class SmsOptionsPremium():
                 "ltp_range": " | ".join(re.findall(r'\d+\.\d+|\d+', parts[2])),
                 "target_range" : " | ".join(self.get_float_values(self.message.strip().upper(), "TARGET")),
                 "sl": sl,
+                "action": "Cancel" if not any([word in self.message.upper() for word in ('CANCEL', 'EXIT', 'BOOK')]) else 'Buy'
             }
             write_signals_to_csv(signal_details)
         except:
@@ -248,6 +250,7 @@ class PaidCallPut():
                 "ltp_range": " | ".join(ltp_range),
                 "target_range" : " | ".join(targets),
                 "sl": sl,
+                "action": 'Buy'
             }
             write_signals_to_csv(signal_details)
         except:
