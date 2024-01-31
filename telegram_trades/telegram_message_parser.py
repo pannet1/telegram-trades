@@ -5,7 +5,7 @@ import difflib
 import csv
 import traceback
 from datetime import datetime
-from pya3 import Aliceblue
+from login import get_broker
 from constants import BRKR, FUTL
 
 signals_csv_filename = "signals.csv"
@@ -71,7 +71,7 @@ def write_failure_to_csv(failure_details):
         )
 
 
-api = Aliceblue(user_id=BRKR["username"], api_key=BRKR["api_secret"])
+api = get_broker(BRKR)
 download_masters(api)
 scrip_info_df = get_all_contract_details()
 all_symbols = set(scrip_info_df["Symbol"].to_list())
