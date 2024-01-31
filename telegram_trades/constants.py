@@ -4,6 +4,7 @@ from toolkit.utilities import Utilities
 
 logging = Logger(30)
 DIRP = "../../"
+DATA = "../data"
 FUTL = Fileutils()
 SETG = FUTL.get_lst_fm_yml(DIRP + "ravikanth.yml")
 BRKR = SETG["aliceblue"]

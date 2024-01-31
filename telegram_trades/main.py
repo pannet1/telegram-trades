@@ -1,4 +1,4 @@
-from constants import DIRP, BRKR, FUTL, UTIL, logging
+from constants import DATA, BRKR, FUTL, UTIL, logging
 from login import get_broker
 from rich import print
 import traceback
@@ -113,7 +113,12 @@ def is_cost_or_target2(**task):
     update_task(task)
 
 
-def read_tasks():
+def read_tasks(columns):
+    df = FUTL.get_df_fm_csv(DATA,
+                            "signals",
+                            columns,
+                            )
+    print(df)
     return FUTL.json_fm_file("fake_tasks")
 
 
@@ -128,11 +133,12 @@ def update_task(updated_task):
 
 def run():
     lst_ignore = ["COMPLETED", "CANCELED"]
+    columns = ['channel', 'symbol', 'ltp_range', 'target_range', 'sl']
     try:
         api = get_broker(BRKR)
         download_masters(api.broker)
         while True:
-            tasks = read_tasks()
+            tasks = read_tasks(columns)
             print(pd.DataFrame(tasks).set_index("id"))
             UTIL.slp_til_nxt_sec()
             for task in tasks:

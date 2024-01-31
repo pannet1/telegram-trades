@@ -31,7 +31,8 @@ order_keys = [
     "order_id",
     "broker_timestamp",
     "product",
-    "order_type"
+    "order_type",
+    "Status",
 ]
 
 
@@ -60,13 +61,29 @@ if __name__ == "__main__":
     from rich import print
 
     api = get_broker(BRKR)
-    lst = filter_by_keys(order_keys, api.orders)
-    print(lst)
+
+    def positions(api):
+        lst = filter_by_keys(position_keys, api.positions)
+        return lst
+
+    lst = positions(api)
+    print(pd.DataFrame(lst).set_index("symbol"))
+
+    def orders(api):
+        lst = filter_by_keys(order_keys, api.orders)
+        lst = [order for order in lst if order.get(
+            'symbol', "") == "TRIDENT-EQ"]
+        return lst
+
+    lst = orders(api)
+    print(pd.DataFrame(lst).set_index("order_id"))
+
     updates = {
-        "order_type": "SL-L",
-        "price": float("0.05"),
-        "trigger_price": float("0.05"),
+        "order_type": "MKT",
     }
+
+    """
+    print(lst)
     for order in lst:
         UTIL.slp_til_nxt_sec()
         if any(order):
@@ -75,5 +92,38 @@ if __name__ == "__main__":
                 print("something is wrong")
             elif isinstance(resp, dict) and resp.get("status", "Not_Ok") == "Not_Ok":
                 print(resp)
-    print(pd.DataFrame(lst).set_index("order_id"))
-    print(pd.DataFrame(api.positions).set_index("symbol"))
+    args = dict(
+        symbol="NSE:TRIDENT",
+        side="Sell",
+        quantity=1,
+        price=40.00,
+        trigger_price=40.05,
+        order_type="SL",
+        product="MIS"
+    )
+    resp = api.order_place(**args)
+    if resp and resp.get("NOrdNo", None):
+        print(f"{resp['NOrdNo']} successfully placed")
+    else:
+        print(f"{resp=}")
+
+    order_cancelled = api.order_cancel("24012400365338")
+    print(f"{order_cancelled=}")
+    """
+    def order_modify(lst, order_id):
+        order = {}
+        for order in lst:
+            if order.get("order_id", None) == order_id:
+                return order
+
+    order_id = "24012400368866"
+    norder = order_modify(lst, order_id)
+    if any(norder):
+        print(norder)
+        norder["symbol"] = norder["exchange"] + ":" + norder["symbol"]
+        norder["quantity"] = 2
+        norder["order_type"] = "MKT"
+        norder.pop("price", None)
+        norder.pop("trigger_price", None)
+        modified_order = api.order_modify(**norder)
+        print(f"{modified_order=}")
