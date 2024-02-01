@@ -123,9 +123,9 @@ class PremiumJackpot:
             signal_details = {
                 "channel_name": "Premium jackpot",
                 "timestamp": self.msg_received_timestamp,
-                "symbol": symbol_dict["Trading Symbol"],
-                "ltp_range": " | ".join(re.findall(r"\d+\.\d+|\d+", parts[2])),
-                "target_range": " | ".join(
+                "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                "ltp_range": "|".join(re.findall(r"\d+\.\d+|\d+", parts[2])),
+                "target_range": "|".join(
                     re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
                 ),
                 "sl": re.findall(r"SL-(\d+)?", parts[3])[0],
@@ -158,7 +158,35 @@ class SmsOptionsPremium:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
-
+    
+    def get_instrument_name(self, symbol_from_tg):
+        # FinNifty 9 Jan 21450 PE
+        try:
+            sym, date, month, strike, option_type = symbol_from_tg.split()
+            pos = re.findall(r"\d+", date)
+            if pos:
+                date = f"{pos[0]:02d}"
+            else:
+                raise
+            try:
+                date_obj = datetime.strptime(month.strip(), "%b")
+                month = f"{date_obj.month:02d}"
+            except:
+                raise
+            sym = self.get_closest_match(sym)
+            exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
+            filtered_df = scrip_info_df[
+                (scrip_info_df["Exch"] == exch)
+                & (scrip_info_df["Symbol"] == sym)
+                & (scrip_info_df["Strike Price"] == float(strike))
+                & (scrip_info_df["Option Type"] == option_type)
+                & (scrip_info_df["Expiry Date"] == f"2024-{month}-{date}")
+            ]
+            first_row = filtered_df.head(1)
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+        except:
+            raise 
+    
     def get_float_values(self, string_val, start_val):
         float_values = []
         v = string_val.split(start_val)
@@ -178,17 +206,18 @@ class SmsOptionsPremium:
             sl = re.findall(r"(\d+)?", parts[4])[0]
             if not sl:
                 raise
+            symbol_dict = self.get_instrument_name(parts[1].strip())          
             signal_details = {
                 "channel_name": "SmsOptionsPremium",
                 "timestamp": self.msg_received_timestamp,
-                "symbol": parts[1].strip(),
-                "ltp_range": " | ".join(re.findall(r"\d+\.\d+|\d+", parts[2])),
-                "target_range": " | ".join(
+                "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                "ltp_range": "|".join(re.findall(r"\d+\.\d+|\d+", parts[2])),
+                "target_range": "|".join(
                     self.get_float_values(self.message.strip().upper(), "TARGET")
                 ),
                 "sl": sl,
                 "action": "Cancel"
-                if not any(
+                if any(
                     [
                         word in self.message.upper()
                         for word in ("CANCEL", "EXIT", "BOOK")
@@ -267,7 +296,7 @@ class PaidCallPut:
             if len(req_content_list) >= 2:
                 pos = re.findall(r"\d+", req_content_list[-2])
                 if pos:
-                    date = pos[0]
+                    date = f"{pos[0]:02d}"
                 else:
                     raise
                 try:
@@ -296,16 +325,15 @@ class PaidCallPut:
             symbol_dict = self.coin_option_name(
                 scrip_info_df, symbol, date, month, strike, option
             )
-            symbol = symbol_dict["Trading Symbol"]
             ltp_range = self.get_target_values(self.message, "ABV")
             if not ltp_range:
                 raise
             signal_details = {
                 "channel_name": "PaidCallPut",
                 "timestamp": self.msg_received_timestamp,
-                "symbol": symbol,
-                "ltp_range": " | ".join(ltp_range),
-                "target_range": " | ".join(targets),
+                "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                "ltp_range": "|".join(ltp_range),
+                "target_range": "|".join(targets),
                 "sl": sl,
                 "action": "Buy",
             }

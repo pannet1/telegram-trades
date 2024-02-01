@@ -17,7 +17,7 @@ async def my_event_handler(event):
     chat = await event.get_chat()
     with open(TGRM["output_file"], 'a', encoding='utf-8',  newline='') as csv_file:
         csv_writer = csv.writer(csv_file)
-        now = datetime.now()
+        now = int(datetime.now().timestamp())
         if event.reply_to_msg_id is not None:
             original_message = await client.get_messages(chat.id, ids=event.reply_to_msg_id)
             msg = replace_non_ascii(original_message.raw_text) +" "+ replace_non_ascii(event.raw_text)
