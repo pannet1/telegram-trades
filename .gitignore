@@ -1,6 +1,6 @@
 # ignore data folder
 data/
-*.csv
+telegram_trades/*.csv
 
 # ignore telegram session files
 *.session

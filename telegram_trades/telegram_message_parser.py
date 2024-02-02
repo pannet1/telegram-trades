@@ -72,7 +72,7 @@ def write_failure_to_csv(failure_details):
 
 
 api = get_broker(BRKR)
-download_masters(api)
+download_masters(api.broker)
 scrip_info_df = get_all_contract_details()
 all_symbols = set(scrip_info_df["Symbol"].to_list())
 
