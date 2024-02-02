@@ -113,13 +113,35 @@ def is_cost_or_target2(**task):
     update_task(task)
 
 
-def read_tasks(columns):
-    df = FUTL.get_df_fm_csv(DATA,
-                            "signals",
-                            columns,
-                            )
-    print(df)
-    return FUTL.json_fm_file("fake_tasks")
+def init_tasks(task_file):
+    if FUTL.is_file_not_2day(task_file):
+        empty_lst = "[{}]"
+        FUTL.save_file(empty_lst, task_file)
+    return FUTL.json_fm_file(task_file)
+
+
+def read_tasks():
+    # input file
+    lst_of_dct = [{}]
+    if FUTL.is_file_not_2day(DATA + "signals.csv") is False:
+        return lst_of_dct
+
+    # output file
+    current_tasks = FUTL.json_fm_file("./fake_tasks")
+    ids = [task["id"] for task in current_tasks]
+
+    # input file
+    columns = ['channel', 'id', 'symbol',
+               'entry_range', 'target_range', 'sl', 'action']
+    df = FUTL.get_df_fm_csv(DATA, "signals", columns)
+    df = df[~df['id'].isin(ids) & df['action'] == 'Buy']
+    if not df.empty:
+        lst_of_dct = df.to_dict(orient="records")
+        for task in lst_of_dct:
+            task.pop("action")
+            task.pop("channel")
+            task["fn"] = "entry"
+    return lst_of_dct
 
 
 def update_task(updated_task):
@@ -133,19 +155,21 @@ def update_task(updated_task):
 
 def run():
     lst_ignore = ["COMPLETED", "CANCELED"]
-    columns = ['channel', 'symbol', 'ltp_range', 'target_range', 'sl']
+    task_file = "./fake_tasks.json"
+    tasks = init_tasks(task_file)
     try:
         api = get_broker(BRKR)
-        download_masters(api.broker)
+        # download_masters(api.broker)
         while True:
-            tasks = read_tasks(columns)
-            print(pd.DataFrame(tasks).set_index("id"))
+            tasks = read_tasks()
             UTIL.slp_til_nxt_sec()
-            for task in tasks:
-                task["api"] = api
-                fn: str = task.pop("fn")
-                if fn not in lst_ignore:
-                    str_to_callable(fn, task)
+            if any(tasks):
+                print(pd.DataFrame(tasks).set_index("id"))
+                for task in tasks:
+                    task["api"] = api
+                    fn: str = task.pop("fn")
+                    if fn not in lst_ignore:
+                        str_to_callable(fn, task)
     except Exception as e:
         logging.error(e)
         print(traceback.print_exc())

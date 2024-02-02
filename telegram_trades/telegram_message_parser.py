@@ -8,7 +8,7 @@ from datetime import datetime
 from login import get_broker
 from constants import BRKR, FUTL
 
-signals_csv_filename = "data/signals.csv"
+signals_csv_filename = "signals.csv"
 signals_csv_file_headers = [
     "channel_name",
     "timestamp",
@@ -19,7 +19,7 @@ signals_csv_file_headers = [
     "product_type",
     "action",
 ]
-failure_csv_filename = "data/failures.csv"
+failure_csv_filename = "failures.csv"
 failure_csv_file_headers = ["channel_name", "timestamp", "message", "exception"]
 
 
@@ -72,7 +72,7 @@ def write_failure_to_csv(failure_details):
 
 
 api = get_broker(BRKR)
-download_masters(api.broker)
+download_masters(api)
 scrip_info_df = get_all_contract_details()
 all_symbols = set(scrip_info_df["Symbol"].to_list())
 
