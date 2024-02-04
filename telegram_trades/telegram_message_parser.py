@@ -18,10 +18,13 @@ signals_csv_file_headers = [
     "sl",
     "product_type",
     "action",
+    "normal_timestamp",
 ]
 failure_csv_filename = "data/failures.csv"
-failure_csv_file_headers = ["channel_name", "timestamp", "message", "exception"]
+failure_csv_file_headers = ["channel_name", "timestamp", "message", "exception", "normal_timestamp",]
 
+class CustomError(Exception):
+    pass
 
 def download_masters(broker):
     exchanges = ["NFO", "BFO"]
@@ -66,6 +69,7 @@ def write_signals_to_csv(signal_details):
 def write_failure_to_csv(failure_details):
     with open(failure_csv_filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=failure_csv_file_headers)
+        failure_details["normal_timestamp"] = datetime.utcfromtimestamp(failure_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
             {k: failure_details.get(k, "") for k in failure_csv_file_headers}
         )
@@ -79,8 +83,9 @@ all_symbols = set(scrip_info_df["Symbol"].to_list())
 
 class PremiumJackpot:
     index_options = ["NIFTY", "BANKNIFTY", "MIDCPNIFTY", "FINNIFTY", "SENSEX", "BANKEX"]
-    split_words = ["BUY", "ABOVE", "NEAR", "TARGET", "TARGE"]
-
+    split_words = ["BUY", "ABOVE", "NEAR", "TARGET", "TARGE", "$$$$"]
+    close_words =  ("CANCEL", "EXIT", "BOOK", "HIT")
+    
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
@@ -92,7 +97,7 @@ class PremiumJackpot:
         if closest_match:
             return closest_match[0]
         else:
-            raise
+            raise CustomError(traceback.format_exc())
 
     def get_instrument_name(self, symbol_from_tg):
         try:
@@ -109,11 +114,31 @@ class PremiumJackpot:
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
-            raise
+            raise CustomError(traceback.format_exc())
 
     def get_signal(self):
         try:
             statement = self.message
+            is_reply_msg = '$$$$' in statement
+            new_msg = self.message.upper().split('$$$$')[-1]
+            is_close_msg = any([word in new_msg for word in PremiumJackpot.close_words])
+            if is_reply_msg and is_close_msg:
+                # is a reply message and has close words in it:
+                pass
+            elif not is_reply_msg:
+                # is not a reply message 
+                pass
+            elif is_reply_msg and not is_close_msg:
+                # is a reply message but not having close words
+                # duplicate or junk
+                failure_details = {
+                    "channel_name": "Premium jackpot",
+                    "timestamp": self.msg_received_timestamp,
+                    "message": statement,
+                    "exception": "is a reply message but not having close words. Possible duplicate or junk",
+                }
+                write_failure_to_csv(failure_details)
+
             for word in PremiumJackpot.split_words:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
@@ -133,12 +158,7 @@ class PremiumJackpot:
                 if sym.upper() in PremiumJackpot.index_options
                 else "NRML",
                 "action": "Cancel"
-                if any(
-                    [
-                        word in self.message.upper()
-                        for word in ("CANCEL", "EXIT", "BOOK")
-                    ]
-                )
+                if is_close_msg
                 else "Buy",
             }
             write_signals_to_csv(signal_details)
@@ -153,7 +173,8 @@ class PremiumJackpot:
 
 
 class SmsOptionsPremium:
-    split_words = ["BUY", "ONLY IN RANGE @", "TARGET", "SL FOR TRADE @ "]
+    split_words = ["BUY", "ONLY IN RANGE @", "TARGET", "$$$$" ,"SL FOR TRADE @ "]
+    close_words = ("CANCEL", "EXIT", "BOOK", "HIT")
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
@@ -165,14 +186,15 @@ class SmsOptionsPremium:
             sym, date, month, strike, option_type = symbol_from_tg.split()
             pos = re.findall(r"\d+", date)
             if pos:
-                date = f"{pos[0]:02d}"
+                date_int = pos[0] 
+                date = f"{date_int:02d}"
             else:
-                raise
+                raise CustomError(traceback.format_exc())
             try:
                 date_obj = datetime.strptime(month.strip(), "%b")
                 month = f"{date_obj.month:02d}"
             except:
-                raise
+                raise CustomError(traceback.format_exc())
             sym = self.get_closest_match(sym)
             exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
             filtered_df = scrip_info_df[
@@ -185,7 +207,7 @@ class SmsOptionsPremium:
             first_row = filtered_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
-            raise 
+            raise CustomError(traceback.format_exc())
     
     def get_float_values(self, string_val, start_val):
         float_values = []
@@ -199,13 +221,33 @@ class SmsOptionsPremium:
 
     def get_signal(self):
         statement = self.message.strip().upper()
+        new_msg = self.message.strip().upper().split('$$$$')[-1]
+        is_close_msg = any([word in new_msg for word in SmsOptionsPremium.close_words])
+        is_sl_message = "SL FOR TRADE @ " in statement.split('$$$$')[-1]
+        is_reply_msg = '$$$$' in statement
+        if is_reply_msg and (is_close_msg or is_sl_message):
+            # is a reply message and has close words in it:
+            pass
+        elif not is_reply_msg:
+            # is not a reply message 
+            pass
+        elif is_reply_msg and not is_close_msg and not is_sl_message:
+            # is a reply message but not having close words
+            # duplicate or junk
+            failure_details = {
+                "channel_name": "SmsOptionsPremium",
+                "timestamp": self.msg_received_timestamp,
+                "message": statement,
+                "exception": "is a reply message but not having close words and sl message. Possible duplicate or junk",
+            }
+            write_failure_to_csv(failure_details)
         for word in SmsOptionsPremium.split_words:
             statement = statement.replace(word, "|")
         parts = statement.split("|")
         try:
             sl = re.findall(r"(\d+)?", parts[4])[0]
             if not sl:
-                raise
+                raise CustomError(traceback.format_exc())
             symbol_dict = self.get_instrument_name(parts[1].strip())          
             signal_details = {
                 "channel_name": "SmsOptionsPremium",
@@ -217,12 +259,7 @@ class SmsOptionsPremium:
                 ),
                 "sl": sl,
                 "action": "Cancel"
-                if any(
-                    [
-                        word in self.message.upper()
-                        for word in ("CANCEL", "EXIT", "BOOK")
-                    ]
-                )
+                if is_close_msg
                 else "Buy",
             }
             write_signals_to_csv(signal_details)
@@ -237,6 +274,7 @@ class SmsOptionsPremium:
 
 
 class PaidCallPut:
+    close_words = ("CANCEL", "EXIT", "BOOK", "HIT")
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
@@ -290,22 +328,42 @@ class PaidCallPut:
 
     def get_signal(self):
         try:
+            new_msg = self.message.strip().upper().split('$$$$')[-1]
+            is_close_msg = any([word in new_msg for word in PaidCallPut.close_words])
+            is_reply_msg = '$$$$' in self.message
+            if is_reply_msg and is_close_msg :
+                # is a reply message and has close words in it:
+                pass
+            elif not is_reply_msg:
+                # is not a reply message 
+                pass
+            elif is_reply_msg and not is_close_msg:
+                # is a reply message but not having close words
+                # duplicate or junk
+                failure_details = {
+                    "channel_name": "PaidCallPut",
+                    "timestamp": self.msg_received_timestamp,
+                    "message": self.message,
+                    "exception": "is a reply message but not having close words. Possible duplicate or junk",
+                }
+                write_failure_to_csv(failure_details)
             symbol = self.get_symbol_from_message(self.message)
             req_content = self.message.split("expiry")
             req_content_list = req_content[0].strip().split()
             if len(req_content_list) >= 2:
                 pos = re.findall(r"\d+", req_content_list[-2])
                 if pos:
-                    date = f"{pos[0]:02d}"
+                    date_int = pos[0] 
+                    date = f"{date_int:02d}"
                 else:
-                    raise
+                    raise CustomError(traceback.format_exc())
                 try:
                     date_obj = datetime.strptime(req_content_list[-1].strip(), "%b")
                     month = f"{date_obj.month:02d}"
                 except:
-                    raise
+                    raise CustomError(traceback.format_exc())
             else:
-                raise
+                raise CustomError(traceback.format_exc())
             req_content = self.message.split()
             strike = None
             option = None
@@ -320,14 +378,14 @@ class PaidCallPut:
                 if word.upper().strip().startswith("SL-"):
                     sl = re.findall(r"SL-(\d+)?", word.upper().strip())[0]
             if strike == None or option == None:
-                raise
+                raise CustomError(traceback.format_exc())
             targets = self.get_target_values(self.message, "TARGET")
             symbol_dict = self.coin_option_name(
                 scrip_info_df, symbol, date, month, strike, option
             )
             ltp_range = self.get_target_values(self.message, "ABV")
             if not ltp_range:
-                raise
+                raise CustomError(traceback.format_exc())
             signal_details = {
                 "channel_name": "PaidCallPut",
                 "timestamp": self.msg_received_timestamp,
@@ -335,7 +393,9 @@ class PaidCallPut:
                 "ltp_range": "|".join(ltp_range),
                 "target_range": "|".join(targets),
                 "sl": sl,
-                "action": "Buy",
+                "action":  "Cancel"
+                if is_close_msg
+                else "Buy",
             }
             write_signals_to_csv(signal_details)
         except:

@@ -17,14 +17,16 @@ async def my_event_handler(event):
     chat = await event.get_chat()
     with open(TGRM["output_file"], 'a', encoding='utf-8',  newline='') as csv_file:
         csv_writer = csv.writer(csv_file)
-        now = int(datetime.now().timestamp())
+        date_now = int(datetime.now().timestamp())
+        now = int(event.date.timestamp()) 
         if event.reply_to_msg_id is not None:
             original_message = await client.get_messages(chat.id, ids=event.reply_to_msg_id)
-            msg = replace_non_ascii(original_message.raw_text) +" "+ replace_non_ascii(event.raw_text)
-            csv_writer.writerow([now, chat.title, msg,])
+            now = int(original_message.date.timestamp())
+            msg = replace_non_ascii(original_message.raw_text) +"$$$$"+ replace_non_ascii(event.raw_text)
+            csv_writer.writerow([date_now, now, chat.title, msg,])
         else:
             msg = replace_non_ascii(event.raw_text)
-            csv_writer.writerow([now, chat.title, msg])
+            csv_writer.writerow([date_now, now, chat.title, msg])
         if chat.title == "PREMIUM JACKPOT":
             i = PremiumJackpot(now, msg)
             i.get_signal()
