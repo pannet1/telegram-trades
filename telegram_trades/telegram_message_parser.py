@@ -186,7 +186,7 @@ class SmsOptionsPremium:
             sym, date, month, strike, option_type = symbol_from_tg.split()
             pos = re.findall(r"\d+", date)
             if pos:
-                date_int = pos[0] 
+                date_int = int(pos[0])
                 date = f"{date_int:02d}"
             else:
                 raise CustomError(f"date is not found in {date}")
@@ -353,7 +353,7 @@ class PaidCallPut:
             if len(req_content_list) >= 2:
                 pos = re.findall(r"\d+", req_content_list[-2])
                 if pos:
-                    date_int = pos[0] 
+                    date_int = int(pos[0] )
                     date = f"{date_int:02d}"
                 else:
                     raise CustomError(f"Date is not found in {req_content_list[-2]}")
