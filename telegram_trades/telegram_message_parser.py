@@ -84,7 +84,7 @@ all_symbols = set(scrip_info_df["Symbol"].to_list())
 class PremiumJackpot:
     index_options = ["NIFTY", "BANKNIFTY", "MIDCPNIFTY", "FINNIFTY", "SENSEX", "BANKEX"]
     split_words = ["BUY", "ABOVE", "NEAR", "TARGET", "TARGE"]
-    close_words =  ("CANCEL", "EXIT", "BOOK", "HIT")
+    close_words =  ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK")
     
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
@@ -178,7 +178,7 @@ class PremiumJackpot:
 
 class SmsOptionsPremium:
     split_words = ["BUY", "ONLY IN RANGE @", "TARGET" ,"SL FOR TRADE @ "]
-    close_words = ("CANCEL", "EXIT", "BOOK", "HIT")
+    close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK")
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
@@ -292,7 +292,7 @@ class SmsOptionsPremium:
 
 
 class PaidCallPut:
-    close_words = ("CANCEL", "EXIT", "BOOK", "HIT")
+    close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK")
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
