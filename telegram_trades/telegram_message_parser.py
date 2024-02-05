@@ -97,7 +97,7 @@ class PremiumJackpot:
         if closest_match:
             return closest_match[0]
         else:
-            raise CustomError(traceback.format_exc())
+            raise CustomError("Closest match is not found")
 
     def get_instrument_name(self, symbol_from_tg):
         try:
@@ -189,7 +189,7 @@ class SmsOptionsPremium:
                 date_int = pos[0] 
                 date = f"{date_int:02d}"
             else:
-                raise CustomError(traceback.format_exc())
+                raise CustomError(f"date is not found in {date}")
             try:
                 date_obj = datetime.strptime(month.strip(), "%b")
                 month = f"{date_obj.month:02d}"
@@ -247,7 +247,7 @@ class SmsOptionsPremium:
         try:
             sl = re.findall(r"(\d+)?", parts[4])[0]
             if not sl:
-                raise CustomError(traceback.format_exc())
+                raise CustomError(f"SL is not found in {parts[4]}")
             symbol_dict = self.get_instrument_name(parts[1].strip())          
             signal_details = {
                 "channel_name": "SmsOptionsPremium",
@@ -356,14 +356,14 @@ class PaidCallPut:
                     date_int = pos[0] 
                     date = f"{date_int:02d}"
                 else:
-                    raise CustomError(traceback.format_exc())
+                    raise CustomError(f"Date is not found in {req_content_list[-2]}")
                 try:
                     date_obj = datetime.strptime(req_content_list[-1].strip(), "%b")
                     month = f"{date_obj.month:02d}"
                 except:
                     raise CustomError(traceback.format_exc())
             else:
-                raise CustomError(traceback.format_exc())
+                raise CustomError(f"Date and month is not found in {req_content_list}")
             req_content = self.message.split()
             strike = None
             option = None
@@ -378,14 +378,14 @@ class PaidCallPut:
                 if word.upper().strip().startswith("SL-"):
                     sl = re.findall(r"SL-(\d+)?", word.upper().strip())[0]
             if strike == None or option == None:
-                raise CustomError(traceback.format_exc())
+                raise CustomError("Strike or Option is None")
             targets = self.get_target_values(self.message, "TARGET")
             symbol_dict = self.coin_option_name(
                 scrip_info_df, symbol, date, month, strike, option
             )
             ltp_range = self.get_target_values(self.message, "ABV")
             if not ltp_range:
-                raise CustomError(traceback.format_exc())
+                raise CustomError("target values is not found")
             signal_details = {
                 "channel_name": "PaidCallPut",
                 "timestamp": self.msg_received_timestamp,
