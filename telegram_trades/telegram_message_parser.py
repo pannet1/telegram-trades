@@ -22,7 +22,7 @@ signals_csv_file_headers = [
 ]
 failure_csv_filename = "data/failures.csv"
 failure_csv_file_headers = ["channel_name", "timestamp", "message", "exception", "normal_timestamp",]
-
+signals = []
 class CustomError(Exception):
     pass
 
@@ -83,7 +83,7 @@ all_symbols = set(scrip_info_df["Symbol"].to_list())
 
 class PremiumJackpot:
     index_options = ["NIFTY", "BANKNIFTY", "MIDCPNIFTY", "FINNIFTY", "SENSEX", "BANKEX"]
-    split_words = ["BUY", "ABOVE", "NEAR", "TARGET", "TARGE", "$$$$"]
+    split_words = ["BUY", "ABOVE", "NEAR", "TARGET", "TARGE"]
     close_words =  ("CANCEL", "EXIT", "BOOK", "HIT")
     
     def __init__(self, msg_received_timestamp, telegram_msg):
@@ -134,13 +134,14 @@ class PremiumJackpot:
                 failure_details = {
                     "channel_name": "Premium jackpot",
                     "timestamp": self.msg_received_timestamp,
-                    "message": statement,
+                    "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
                 write_failure_to_csv(failure_details)
 
             for word in PremiumJackpot.split_words:
                 statement = statement.replace(word, "|")
+            statement = statement.replace("$$$$", "")
             parts = statement.split("|")
             symbol_from_tg = parts[1].strip().removeprefix("#")
             sym, *_ = symbol_from_tg.split()
@@ -161,25 +162,39 @@ class PremiumJackpot:
                 if is_close_msg
                 else "Buy",
             }
+            if signal_details in signals:
+                raise CustomError("Signal already exists")
+            signals.append(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
                 "channel_name": "Premium jackpot",
                 "timestamp": self.msg_received_timestamp,
-                "message": statement,
+                "message": self.message,
                 "exception": traceback.format_exc().strip(),
             }
             write_failure_to_csv(failure_details)
 
 
 class SmsOptionsPremium:
-    split_words = ["BUY", "ONLY IN RANGE @", "TARGET", "$$$$" ,"SL FOR TRADE @ "]
+    split_words = ["BUY", "ONLY IN RANGE @", "TARGET" ,"SL FOR TRADE @ "]
     close_words = ("CANCEL", "EXIT", "BOOK", "HIT")
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
-    
+
+
+    def get_closest_match(self, symbol):
+        if symbol in all_symbols:
+            return symbol
+        closest_match = difflib.get_close_matches(symbol, all_symbols, n=2)
+        if closest_match:
+            return closest_match[0]
+        else:
+            return None
+        
+
     def get_instrument_name(self, symbol_from_tg):
         # FinNifty 9 Jan 21450 PE
         try:
@@ -237,13 +252,13 @@ class SmsOptionsPremium:
             failure_details = {
                 "channel_name": "SmsOptionsPremium",
                 "timestamp": self.msg_received_timestamp,
-                "message": statement,
+                "message": self.message,
                 "exception": "is a reply message but not having close words and sl message. Possible duplicate or junk",
             }
             write_failure_to_csv(failure_details)
         for word in SmsOptionsPremium.split_words:
             statement = statement.replace(word, "|")
-        parts = statement.split("|")
+        parts = statement.replace('$$$$','').split("|")
         try:
             sl = re.findall(r"(\d+)?", parts[4])[0]
             if not sl:
@@ -262,12 +277,15 @@ class SmsOptionsPremium:
                 if is_close_msg
                 else "Buy",
             }
+            if signal_details in signals:
+                raise CustomError("Signal already exists")
+            signals.append(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
                 "channel_name": "SmsOptionsPremium",
                 "timestamp": self.msg_received_timestamp,
-                "message": statement,
+                "message": self.message,
                 "exception": traceback.format_exc().strip(),
             }
             write_failure_to_csv(failure_details)
@@ -397,6 +415,9 @@ class PaidCallPut:
                 if is_close_msg
                 else "Buy",
             }
+            if signal_details in signals:
+                raise CustomError("Signal already exists")
+            signals.append(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
