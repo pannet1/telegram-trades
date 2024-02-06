@@ -1,8 +1,14 @@
 from constants import DATA, BRKR, FUTL, UTIL, logging
 from login import get_broker
+from api_helper import orders
 from rich import print
 import traceback
 import pandas as pd
+
+
+lst_ignore = ["unknown", "rejected", "canceled"]
+signal_file = DATA + "signals.csv"
+task_file = DATA + "tasks.json"
 
 
 def download_masters(broker):
@@ -37,9 +43,10 @@ def entry(**task):
     'target_range': '30 | 70 | 100 | 200 | 250',
     'sl': '540 | 570 | 610'}
     """
+    logging.debug(f"entering {task}")
     lst_symbol = task["symbol"].split(":")
     last_price = get_ltp(task["api"].broker, lst_symbol[0], lst_symbol[1])
-    lst_ltp = list(map(float, task["ltp_range"].split("|")))
+    lst_ltp = list(map(float, task["entry_range"].split("|")))
     if task["side"][0].upper() == "B":
         if max(lst_ltp) < last_price:
             price = max(lst_ltp)
@@ -62,14 +69,30 @@ def entry(**task):
         quantity=int(task["quantity"]),
         price=price,
         order_type=order_type,
-        product=task["product"]
+        product="N"
     )
     if "trigger_price" in locals() and trigger_price is not None:
         args["trigger_price"] = trigger_price
-    resp = task["api"].order_place(**args)
-    if resp and resp.get("order_id", None):
-        task["orders"] = [resp]
-        task["fn"] = "is_entry"
+
+    task["fn"] = "unknown"
+    try:
+        resp = task["api"].order_place(**args)
+        if order_no := resp.get("NOrdNo", None) is not None:
+            lst = orders(task["api"])
+            order = [order for order in lst if order.get(
+                'order_no', None) == order_no][0]
+            logging.debug("order details: ", order)
+
+            status = order.get('Status', "unknown")
+            if status in lst_ignore:
+                task["fn"] = status
+            else:
+                task["fn"] = "is_entry"
+                task["orders"] = [order]
+    except Exception as e:
+        logging.warning(e)
+        print(traceback.print_exc())
+    finally:
         update_task(task)
 
 
@@ -113,33 +136,45 @@ def is_cost_or_target2(**task):
     update_task(task)
 
 
-def init_tasks(task_file):
+def init_tasks():
+    # initate output task json file
     if FUTL.is_file_not_2day(task_file):
-        empty_lst = "[{}]"
+        empty_lst = []
         FUTL.save_file(empty_lst, task_file)
     return FUTL.json_fm_file(task_file)
 
 
 def read_tasks():
+    logging.debug("reading tasks")
     # input file
     lst_of_dct = [{}]
-    if FUTL.is_file_not_2day(DATA + "signals.csv") is False:
+    if FUTL.is_file_not_2day(signals_file):
         return lst_of_dct
 
     # output file
-    current_tasks = FUTL.json_fm_file("./fake_tasks")
+    current_tasks = FUTL.json_fm_file(task_file)
     ids = [task["id"] for task in current_tasks]
+    logging.debug("ids: " + str(ids))
 
     # input file
-    columns = ['channel', 'id', 'symbol',
+    columns = ['channel', 'id', 'symbol', 'quantity',
                'entry_range', 'target_range', 'sl', 'action']
-    df = FUTL.get_df_fm_csv(DATA, "signals", columns)
-    df = df[~df['id'].isin(ids) & df['action'] == 'Buy']
+    df = pd.read_csv(signal_file,
+                     names=columns,
+                     index_col=None,
+                     )
+    # df = FUTL.get_df_fm_csv(DATA, "signals", columns)
+    if any(ids):
+        df = df[(~df['id'].isin(ids) & df['action'] == 'Buy')]
+    else:
+        df = df[df["action"] == "Buy"]
     if not df.empty:
         lst_of_dct = df.to_dict(orient="records")
+        logging.debug(f"input to order {lst_of_dct}")
         for task in lst_of_dct:
             task.pop("action")
             task.pop("channel")
+            task["side"] = "B"
             task["fn"] = "entry"
     return lst_of_dct
 
@@ -147,19 +182,21 @@ def read_tasks():
 def update_task(updated_task):
     updated_task.pop("api", None)
     logging.debug(f'Updating task: {updated_task}')
-    tasks = FUTL.json_fm_file("fake_tasks")
-    [task.update(updated_task)
-     for task in tasks if task["id"] == updated_task["id"]]
-    FUTL.save_file(tasks, "./fake_tasks")
+    tasks = FUTL.json_fm_file(task_file)
+    if updated_task["id"] not in [task["id"] for task in tasks]:
+        tasks.append(updated_task)
+    else:
+        [task.update(updated_task)
+         for task in tasks if task["id"] == updated_task["id"]]
+    FUTL.save_file(tasks, task_file)
 
 
 def run():
-    lst_ignore = ["COMPLETED", "CANCELED"]
-    task_file = "./fake_tasks.json"
-    tasks = init_tasks(task_file)
+    #  initiate task file
+    tasks = init_tasks()
     try:
         api = get_broker(BRKR)
-        # download_masters(api.broker)
+        download_masters(api.broker)
         while True:
             tasks = read_tasks()
             UTIL.slp_til_nxt_sec()

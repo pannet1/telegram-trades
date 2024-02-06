@@ -54,6 +54,16 @@ def modify_order(order: Dict, updates: Dict) -> Dict:
     return order
 
 
+def positions(api):
+    lst = filter_by_keys(position_keys, api.positions)
+    return lst
+
+
+def orders(api):
+    lst = filter_by_keys(order_keys, api.orders)
+    return lst
+
+
 if __name__ == "__main__":
     from constants import BRKR, UTIL
     from login import get_broker
@@ -62,18 +72,8 @@ if __name__ == "__main__":
 
     api = get_broker(BRKR)
 
-    def positions(api):
-        lst = filter_by_keys(position_keys, api.positions)
-        return lst
-
     lst = positions(api)
     print(pd.DataFrame(lst).set_index("symbol"))
-
-    def orders(api):
-        lst = filter_by_keys(order_keys, api.orders)
-        lst = [order for order in lst if order.get(
-            'symbol', "") == "TRIDENT-EQ"]
-        return lst
 
     lst = orders(api)
     print(pd.DataFrame(lst).set_index("order_id"))
@@ -118,7 +118,7 @@ if __name__ == "__main__":
 
     order_id = "24012400368866"
     norder = order_modify(lst, order_id)
-    if any(norder):
+    if norder and any(norder):
         print(norder)
         norder["symbol"] = norder["exchange"] + ":" + norder["symbol"]
         norder["quantity"] = 2

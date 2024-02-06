@@ -1,1 +1,12 @@
-""
+[
+    {
+        "id": 64123415,
+        "symbol": "NSE:TRIDENT",
+        "quantity": 1,
+        "entry_range": "42|44",
+        "target_range": "50|51|52|53|54",
+        "sl": 38,
+        "side": "B",
+        "fn": "unknown"
+    }
+]

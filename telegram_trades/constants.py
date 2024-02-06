@@ -2,9 +2,9 @@ from toolkit.fileutils import Fileutils
 from toolkit.logger import Logger
 from toolkit.utilities import Utilities
 
-logging = Logger(30)
+logging = Logger(10)
 DIRP = "../../"
-DATA = "../data"
+DATA = "../data/"
 FUTL = Fileutils()
 SETG = FUTL.get_lst_fm_yml(DIRP + "ravikanth.yml")
 BRKR = SETG["aliceblue"]
