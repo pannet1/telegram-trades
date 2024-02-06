@@ -61,6 +61,7 @@ def get_all_contract_details(exchange=None):
 def write_signals_to_csv(signal_details):
     with open(signals_csv_filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=signals_csv_file_headers)
+        signal_details["normal_timestamp"] = datetime.fromtimestamp(signal_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
             {k: signal_details.get(k, "") for k in signals_csv_file_headers}
         )
@@ -69,7 +70,7 @@ def write_signals_to_csv(signal_details):
 def write_failure_to_csv(failure_details):
     with open(failure_csv_filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=failure_csv_file_headers)
-        failure_details["normal_timestamp"] = datetime.utcfromtimestamp(failure_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
+        failure_details["normal_timestamp"] = datetime.fromtimestamp(failure_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
             {k: failure_details.get(k, "") for k in failure_csv_file_headers}
         )
@@ -138,10 +139,11 @@ class PremiumJackpot:
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
                 write_failure_to_csv(failure_details)
+                return
 
             for word in PremiumJackpot.split_words:
                 statement = statement.replace(word, "|")
-            statement = statement.replace("$$$$", "")
+            statement = statement.replace("$$$$", "|")
             parts = statement.split("|")
             symbol_from_tg = parts[1].strip().removeprefix("#")
             sym, *_ = symbol_from_tg.split()
@@ -179,6 +181,7 @@ class PremiumJackpot:
 class SmsOptionsPremium:
     split_words = ["BUY", "ONLY IN RANGE @", "TARGET" ,"SL FOR TRADE @ "]
     close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK")
+    spot_sl = .15
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
@@ -234,13 +237,57 @@ class SmsOptionsPremium:
                 break
         return float_values
 
+    def get_spot_signal(self, message):
+        # Now If Spot BankNifty Crosses & Sustains Above 45728.85 We May See A Short Covering Rally Of 60 - 90 - 150 Plus Points      
+        # BankNifty 7 Feb 45800 CE If Crosses & Sustain Only Above 253.85 Will Try To Hit Targets @ 275 300 330 360 400 & Above
+        
+        # split_words = ('ABOVE ', 'TARGETS @ ')
+        message = message.replace("   ", "|")
+        
+        for statement in message.split("|"):
+            try:
+                statement = statement.strip()
+                if not statement:
+                    continue
+                symbol_d = " ".join(statement.split()[:5])
+                symbol_dict = self.get_instrument_name(symbol_d)  
+                ltp_range = self.get_float_values(statement, "ABOVE ")
+                sl = float(ltp_range[0]) * (1 - SmsOptionsPremium.spot_sl)
+                signal_details = {
+                    "channel_name": "SmsOptionsPremium",
+                    "timestamp": self.msg_received_timestamp,
+                    "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                    "ltp_range": "|".join(self.get_float_values(statement, "ABOVE ")),
+                    "target_range": "|".join(
+                        self.get_float_values(statement, "TARGETS @ ")
+                    ),
+                    "sl": sl,
+                    "action": "Buy"
+                }
+                if signal_details in signals:
+                    raise CustomError("Signal already exists")
+                signals.append(signal_details)
+                write_signals_to_csv(signal_details)
+            except:
+                failure_details = {
+                    "channel_name": "SmsOptionsPremium",
+                    "timestamp": self.msg_received_timestamp,
+                    "message": statement,
+                    "exception": traceback.format_exc().strip(),
+                }
+                write_failure_to_csv(failure_details)
+
     def get_signal(self):
         statement = self.message.strip().upper()
         new_msg = self.message.strip().upper().split('$$$$')[-1]
         is_close_msg = any([word in new_msg for word in SmsOptionsPremium.close_words])
         is_sl_message = "SL FOR TRADE @ " in statement.split('$$$$')[-1]
+        is_spot_message = "SPOT" in statement
         is_reply_msg = '$$$$' in statement
-        if is_reply_msg and (is_close_msg or is_sl_message):
+        if is_spot_message:
+            self.get_spot_signal(statement)
+            return
+        elif is_reply_msg and (is_close_msg or is_sl_message):
             # is a reply message and has close words in it:
             pass
         elif not is_reply_msg:
@@ -256,12 +303,15 @@ class SmsOptionsPremium:
                 "exception": "is a reply message but not having close words and sl message. Possible duplicate or junk",
             }
             write_failure_to_csv(failure_details)
+            return 
+        
         for word in SmsOptionsPremium.split_words:
             statement = statement.replace(word, "|")
-        parts = statement.replace('$$$$','').split("|")
+        parts = statement.split("|")
         try:
             sl = re.findall(r"(\d+)?", parts[4])[0]
             if not sl:
+                sl = re.findall(r"(\d+)?", statement.split("$$$$")[-1])[0]
                 raise CustomError(f"SL is not found in {parts[4]}")
             symbol_dict = self.get_instrument_name(parts[1].strip())          
             signal_details = {
@@ -334,7 +384,7 @@ class PaidCallPut:
         first_row = filtered_df.head(1)
         return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
 
-    def get_target_values(string_val, start_val):
+    def get_target_values(self, string_val, start_val):
         float_values = []
         v = string_val.replace("-", " ").split(start_val)
         for word in v[1].split():
@@ -365,6 +415,8 @@ class PaidCallPut:
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
                 write_failure_to_csv(failure_details)
+                return 
+            
             symbol = self.get_symbol_from_message(self.message)
             req_content = self.message.split("expiry")
             req_content_list = req_content[0].strip().split()

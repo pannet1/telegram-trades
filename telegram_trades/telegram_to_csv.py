@@ -21,7 +21,6 @@ async def my_event_handler(event):
         now = int(event.date.timestamp()) 
         if event.reply_to_msg_id is not None:
             original_message = await client.get_messages(chat.id, ids=event.reply_to_msg_id)
-            now = int(original_message.date.timestamp())
             msg = replace_non_ascii(original_message.raw_text) +"$$$$"+ replace_non_ascii(event.raw_text)
             csv_writer.writerow([date_now, now, chat.title, msg,])
         else:
