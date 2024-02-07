@@ -8,7 +8,7 @@ from datetime import datetime
 from login import get_broker
 from constants import BRKR, FUTL
 
-signals_csv_filename = "data/signals.csv"
+signals_csv_filename = "signals.csv"
 signals_csv_file_headers = [
     "channel_name",
     "timestamp",
@@ -18,13 +18,10 @@ signals_csv_file_headers = [
     "sl",
     "product_type",
     "action",
-    "normal_timestamp",
 ]
-failure_csv_filename = "data/failures.csv"
-failure_csv_file_headers = ["channel_name", "timestamp", "message", "exception", "normal_timestamp",]
-signals = []
-class CustomError(Exception):
-    pass
+failure_csv_filename = "failures.csv"
+failure_csv_file_headers = ["channel_name", "timestamp", "message", "exception"]
+
 
 def download_masters(broker):
     exchanges = ["NFO", "BFO"]
@@ -75,7 +72,6 @@ def get_all_contract_details(exchange=None):
 def write_signals_to_csv(signal_details):
     with open(signals_csv_filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=signals_csv_file_headers)
-        signal_details["normal_timestamp"] = datetime.fromtimestamp(signal_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
             {k: signal_details.get(k, "") for k in signals_csv_file_headers}
         )
@@ -84,14 +80,13 @@ def write_signals_to_csv(signal_details):
 def write_failure_to_csv(failure_details):
     with open(failure_csv_filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=failure_csv_file_headers)
-        failure_details["normal_timestamp"] = datetime.fromtimestamp(failure_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
             {k: failure_details.get(k, "") for k in failure_csv_file_headers}
         )
 
 
 api = get_broker(BRKR)
-download_masters(api.broker)
+download_masters(api)
 scrip_info_df = get_all_contract_details()
 all_symbols = set(scrip_info_df["Symbol"].to_list())
 
@@ -113,7 +108,7 @@ class PremiumJackpot:
         if closest_match:
             return closest_match[0]
         else:
-            raise CustomError("Closest match is not found")
+            raise
 
     def get_instrument_name(self, symbol_from_tg):
         try:
@@ -130,7 +125,7 @@ class PremiumJackpot:
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
-            raise CustomError(traceback.format_exc())
+            raise
 
     def get_signal(self):
         try:
@@ -158,7 +153,6 @@ class PremiumJackpot:
 
             for word in PremiumJackpot.split_words:
                 statement = statement.replace(word, "|")
-            statement = statement.replace("$$$$", "|")
             parts = statement.split("|")
             symbol_from_tg = parts[1].strip().removeprefix("#")
             sym, *_ = symbol_from_tg.split()
@@ -174,12 +168,14 @@ class PremiumJackpot:
                 "sl": re.findall(r"SL-(\d+)?", parts[3])[0],
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"]),
                 "action": "Cancel"
-                if is_close_msg
+                if any(
+                    [
+                        word in self.message.upper()
+                        for word in ("CANCEL", "EXIT", "BOOK")
+                    ]
+                )
                 else "Buy",
             }
-            if signal_details in signals:
-                raise CustomError("Signal already exists")
-            signals.append(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
@@ -216,15 +212,14 @@ class SmsOptionsPremium:
             sym, date, month, strike, option_type = symbol_from_tg.split()
             pos = re.findall(r"\d+", date)
             if pos:
-                date_int = int(pos[0])
-                date = f"{date_int:02d}"
+                date = f"{pos[0]:02d}"
             else:
-                raise CustomError(f"date is not found in {date}")
+                raise
             try:
                 date_obj = datetime.strptime(month.strip(), "%b")
                 month = f"{date_obj.month:02d}"
             except:
-                raise CustomError(traceback.format_exc())
+                raise
             sym = self.get_closest_match(sym)
             exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
             filtered_df = scrip_info_df[
@@ -339,15 +334,12 @@ class SmsOptionsPremium:
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"]),
                 "action": "Cancel" if is_close_msg else "Buy",
             }
-            if signal_details in signals:
-                raise CustomError("Signal already exists")
-            signals.append(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
                 "channel_name": "SmsOptionsPremium",
                 "timestamp": self.msg_received_timestamp,
-                "message": self.message,
+                "message": statement,
                 "exception": traceback.format_exc().strip(),
             }
             write_failure_to_csv(failure_details)
@@ -397,7 +389,7 @@ class PaidCallPut:
         first_row = filtered_df.head(1)
         return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
 
-    def get_target_values(self, string_val, start_val):
+    def get_target_values(string_val, start_val):
         float_values = []
         v = string_val.replace("-", " ").split(start_val)
         for word in v[1].split():
@@ -436,17 +428,16 @@ class PaidCallPut:
             if len(req_content_list) >= 2:
                 pos = re.findall(r"\d+", req_content_list[-2])
                 if pos:
-                    date_int = int(pos[0] )
-                    date = f"{date_int:02d}"
+                    date = f"{pos[0]:02d}"
                 else:
-                    raise CustomError(f"Date is not found in {req_content_list[-2]}")
+                    raise
                 try:
                     date_obj = datetime.strptime(req_content_list[-1].strip(), "%b")
                     month = f"{date_obj.month:02d}"
                 except:
-                    raise CustomError(traceback.format_exc())
+                    raise
             else:
-                raise CustomError(f"Date and month is not found in {req_content_list}")
+                raise
             req_content = self.message.split()
             strike = None
             option = None
@@ -461,14 +452,14 @@ class PaidCallPut:
                 if word.upper().strip().startswith("SL-"):
                     sl = re.findall(r"SL-(\d+)?", word.upper().strip())[0]
             if strike == None or option == None:
-                raise CustomError("Strike or Option is None")
+                raise
             targets = self.get_target_values(self.message, "TARGET")
             symbol_dict = self.coin_option_name(
                 scrip_info_df, symbol, date, month, strike, option
             )
             ltp_range = self.get_target_values(self.message, "ABV")
             if not ltp_range:
-                raise CustomError("target values is not found")
+                raise
             signal_details = {
                 "channel_name": "PaidCallPut",
                 "timestamp": f"{PaidCallPut.channel_number}{self.msg_received_timestamp}",
@@ -479,9 +470,6 @@ class PaidCallPut:
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"]),
                 "action": "Cancel" if is_close_msg else "Buy",
             }
-            if signal_details in signals:
-                raise CustomError("Signal already exists")
-            signals.append(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
