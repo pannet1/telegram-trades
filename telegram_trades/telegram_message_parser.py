@@ -33,6 +33,20 @@ def download_masters(broker):
             broker.get_contract_master(exchange)
 
 
+def get_multiplier(symbol):
+    if "BANKNIFTY" in symbol:
+        return 2 * 15
+    elif "FINNIFTY" in symbol:
+        return 2 * 40
+    elif "MIDCPNIFTY" in symbol:
+        return 2 * 75
+    elif "NIFTY" in symbol:
+        return 2 * 50
+    elif "SENSEX" in symbol:
+        return 1 * 50
+    return 1 * 25
+
+
 def get_all_contract_details(exchange=None):
     """
     To be run only once possibly at the start of the day
@@ -85,8 +99,9 @@ all_symbols = set(scrip_info_df["Symbol"].to_list())
 class PremiumJackpot:
     index_options = ["NIFTY", "BANKNIFTY", "MIDCPNIFTY", "FINNIFTY", "SENSEX", "BANKEX"]
     split_words = ["BUY", "ABOVE", "NEAR", "TARGET", "TARGE"]
-    close_words =  ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK")
-    
+    close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID")
+    channel_number = 1
+
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
@@ -127,7 +142,7 @@ class PremiumJackpot:
                 # is a reply message and has close words in it:
                 pass
             elif not is_reply_msg:
-                # is not a reply message 
+                # is not a reply message
                 pass
             elif is_reply_msg and not is_close_msg:
                 # is a reply message but not having close words
@@ -157,9 +172,7 @@ class PremiumJackpot:
                     re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
                 ),
                 "sl": re.findall(r"SL-(\d+)?", parts[3])[0],
-                "product": "MIS"
-                if sym.upper() in PremiumJackpot.index_options
-                else "NRML",
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"]),
                 "action": "Cancel"
                 if is_close_msg
                 else "Buy",
@@ -171,7 +184,7 @@ class PremiumJackpot:
         except:
             failure_details = {
                 "channel_name": "Premium jackpot",
-                "timestamp": self.msg_received_timestamp,
+                "timestamp": f"{PremiumJackpot.channel_number}{self.msg_received_timestamp}",
                 "message": self.message,
                 "exception": traceback.format_exc().strip(),
             }
@@ -180,13 +193,13 @@ class PremiumJackpot:
 
 class SmsOptionsPremium:
     split_words = ["BUY", "ONLY IN RANGE @", "TARGET" ,"SL FOR TRADE @ "]
-    close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK")
+    close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID")
     spot_sl = .15
+    channel_number = 2
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
-
 
     def get_closest_match(self, symbol):
         if symbol in all_symbols:
@@ -196,7 +209,6 @@ class SmsOptionsPremium:
             return closest_match[0]
         else:
             return None
-        
 
     def get_instrument_name(self, symbol_from_tg):
         # FinNifty 9 Jan 21450 PE
@@ -226,7 +238,7 @@ class SmsOptionsPremium:
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
             raise CustomError(traceback.format_exc())
-    
+
     def get_float_values(self, string_val, start_val):
         float_values = []
         v = string_val.split(start_val)
@@ -238,12 +250,12 @@ class SmsOptionsPremium:
         return float_values
 
     def get_spot_signal(self, message):
-        # Now If Spot BankNifty Crosses & Sustains Above 45728.85 We May See A Short Covering Rally Of 60 - 90 - 150 Plus Points      
+        # Now If Spot BankNifty Crosses & Sustains Above 45728.85 We May See A Short Covering Rally Of 60 - 90 - 150 Plus Points
         # BankNifty 7 Feb 45800 CE If Crosses & Sustain Only Above 253.85 Will Try To Hit Targets @ 275 300 330 360 400 & Above
-        
+
         # split_words = ('ABOVE ', 'TARGETS @ ')
         message = message.replace("   ", "|")
-        
+
         for statement in message.split("|"):
             try:
                 statement = statement.strip()
@@ -291,7 +303,7 @@ class SmsOptionsPremium:
             # is a reply message and has close words in it:
             pass
         elif not is_reply_msg:
-            # is not a reply message 
+            # is not a reply message
             pass
         elif is_reply_msg and not is_close_msg and not is_sl_message:
             # is a reply message but not having close words
@@ -304,7 +316,7 @@ class SmsOptionsPremium:
             }
             write_failure_to_csv(failure_details)
             return 
-        
+
         for word in SmsOptionsPremium.split_words:
             statement = statement.replace(word, "|")
         parts = statement.split("|")
@@ -312,20 +324,20 @@ class SmsOptionsPremium:
             sl = re.findall(r"(\d+)?", parts[4])[0]
             if not sl:
                 sl = re.findall(r"(\d+)?", statement.split("$$$$")[-1])[0]
-                raise CustomError(f"SL is not found in {parts[4]}")
+                if not sl:
+                    raise CustomError(f"SL is not found in {parts[4]}")
             symbol_dict = self.get_instrument_name(parts[1].strip())          
             signal_details = {
                 "channel_name": "SmsOptionsPremium",
-                "timestamp": self.msg_received_timestamp,
-                "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                "timestamp": f"{SmsOptionsPremium.channel_number}{self.msg_received_timestamp}",
+                "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(re.findall(r"\d+\.\d+|\d+", parts[2])),
                 "target_range": "|".join(
                     self.get_float_values(self.message.strip().upper(), "TARGET")
                 ),
                 "sl": sl,
-                "action": "Cancel"
-                if is_close_msg
-                else "Buy",
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"]),
+                "action": "Cancel" if is_close_msg else "Buy",
             }
             if signal_details in signals:
                 raise CustomError("Signal already exists")
@@ -342,7 +354,8 @@ class SmsOptionsPremium:
 
 
 class PaidCallPut:
-    close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK")
+    close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID")
+    channel_number = 3
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
@@ -403,7 +416,7 @@ class PaidCallPut:
                 # is a reply message and has close words in it:
                 pass
             elif not is_reply_msg:
-                # is not a reply message 
+                # is not a reply message
                 pass
             elif is_reply_msg and not is_close_msg:
                 # is a reply message but not having close words
@@ -416,7 +429,7 @@ class PaidCallPut:
                 }
                 write_failure_to_csv(failure_details)
                 return 
-            
+
             symbol = self.get_symbol_from_message(self.message)
             req_content = self.message.split("expiry")
             req_content_list = req_content[0].strip().split()
@@ -458,14 +471,13 @@ class PaidCallPut:
                 raise CustomError("target values is not found")
             signal_details = {
                 "channel_name": "PaidCallPut",
-                "timestamp": self.msg_received_timestamp,
-                "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                "timestamp": f"{PaidCallPut.channel_number}{self.msg_received_timestamp}",
+                "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(ltp_range),
                 "target_range": "|".join(targets),
                 "sl": sl,
-                "action":  "Cancel"
-                if is_close_msg
-                else "Buy",
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"]),
+                "action": "Cancel" if is_close_msg else "Buy",
             }
             if signal_details in signals:
                 raise CustomError("Signal already exists")
