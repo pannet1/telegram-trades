@@ -76,7 +76,7 @@ def get_all_contract_details(exchange=None):
 def write_signals_to_csv(signal_details):
     with open(signals_csv_filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=signals_csv_file_headers)
-        signal_details["normal_timestamp"] = datetime.fromtimestamp(signal_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
+        signal_details["normal_timestamp"] = datetime.fromtimestamp(int(signal_details["timestamp"][1:])).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
             {k: signal_details.get(k, "") for k in signals_csv_file_headers}
         )
@@ -85,7 +85,7 @@ def write_signals_to_csv(signal_details):
 def write_failure_to_csv(failure_details):
     with open(failure_csv_filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=failure_csv_file_headers)
-        failure_details["normal_timestamp"] = datetime.fromtimestamp(failure_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
+        failure_details["normal_timestamp"] = datetime.fromtimestamp(int(failure_details["timestamp"][1:])).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
             {k: failure_details.get(k, "") for k in failure_csv_file_headers}
         )
