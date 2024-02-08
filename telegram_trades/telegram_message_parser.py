@@ -9,7 +9,7 @@ from login import get_broker
 from constants import BRKR, FUTL
 from logzero import logger
 
-signals_csv_filename = "signals.csv"
+signals_csv_filename = "data/signals.csv"
 signals_csv_file_headers = [
     "channel_name",
     "timestamp",
@@ -17,16 +17,15 @@ signals_csv_file_headers = [
     "ltp_range",
     "target_range",
     "sl",
-    "product_type",
+    "quantity",
     "action",
+    "normal_timestamp",
 ]
-failure_csv_filename = "failures.csv"
-failure_csv_file_headers = ["channel_name", "timestamp", "message", "exception"]
+failure_csv_filename = "data/failures.csv"
+failure_csv_file_headers = ["channel_name", "timestamp", "message", "exception", "normal_timestamp",]
 signals = []
-
 class CustomError(Exception):
     pass
-
 
 def download_masters(broker):
     exchanges = ["NFO", "BFO"]
@@ -77,6 +76,7 @@ def get_all_contract_details(exchange=None):
 def write_signals_to_csv(signal_details):
     with open(signals_csv_filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=signals_csv_file_headers)
+        signal_details["normal_timestamp"] = datetime.fromtimestamp(signal_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
             {k: signal_details.get(k, "") for k in signals_csv_file_headers}
         )
@@ -85,6 +85,7 @@ def write_signals_to_csv(signal_details):
 def write_failure_to_csv(failure_details):
     with open(failure_csv_filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=failure_csv_file_headers)
+        failure_details["normal_timestamp"] = datetime.fromtimestamp(failure_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
             {k: failure_details.get(k, "") for k in failure_csv_file_headers}
         )
@@ -113,7 +114,7 @@ class PremiumJackpot:
         if closest_match:
             return closest_match[0]
         else:
-            raise
+            raise CustomError("Closest match is not found")
 
     def get_instrument_name(self, symbol_from_tg):
         try:
@@ -130,7 +131,7 @@ class PremiumJackpot:
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
-            raise
+            raise CustomError(traceback.format_exc())
 
     def get_signal(self):
         try:
@@ -173,12 +174,7 @@ class PremiumJackpot:
                 "sl": re.findall(r"SL-(\d+)?", parts[3])[0],
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"]),
                 "action": "Cancel"
-                if any(
-                    [
-                        word in self.message.upper()
-                        for word in ("CANCEL", "EXIT", "BOOK")
-                    ]
-                )
+                if is_close_msg
                 else "Buy",
             }
             if signal_details in signals:
@@ -222,14 +218,15 @@ class SmsOptionsPremium:
             sym, date, month, strike, option_type = symbol_from_tg.split()
             pos = re.findall(r"\d+", date)
             if pos:
-                date = f"{pos[0]:02d}"
+                date_int = int(pos[0])
+                date = f"{date_int:02d}"
             else:
-                raise
+                raise CustomError(f"date is not found in {date}")
             try:
                 date_obj = datetime.strptime(month.strip(), "%b")
                 month = f"{date_obj.month:02d}"
             except:
-                raise
+                raise CustomError(traceback.format_exc())
             sym = self.get_closest_match(sym)
             exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
             filtered_df = scrip_info_df[
@@ -355,7 +352,7 @@ class SmsOptionsPremium:
             failure_details = {
                 "channel_name": "SmsOptionsPremium",
                 "timestamp": self.msg_received_timestamp,
-                "message": statement,
+                "message": self.message,
                 "exception": traceback.format_exc().strip(),
             }
             write_failure_to_csv(failure_details)
@@ -405,7 +402,7 @@ class PaidCallPut:
         first_row = filtered_df.head(1)
         return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
 
-    def get_target_values(string_val, start_val):
+    def get_target_values(self, string_val, start_val):
         float_values = []
         v = string_val.replace("-", " ").split(start_val)
         for word in v[1].split():
@@ -444,16 +441,17 @@ class PaidCallPut:
             if len(req_content_list) >= 2:
                 pos = re.findall(r"\d+", req_content_list[-2])
                 if pos:
-                    date = f"{pos[0]:02d}"
+                    date_int = int(pos[0] )
+                    date = f"{date_int:02d}"
                 else:
-                    raise
+                    raise CustomError(f"Date is not found in {req_content_list[-2]}")
                 try:
                     date_obj = datetime.strptime(req_content_list[-1].strip(), "%b")
                     month = f"{date_obj.month:02d}"
                 except:
-                    raise
+                    raise CustomError(traceback.format_exc())
             else:
-                raise
+                raise CustomError(f"Date and month is not found in {req_content_list}")
             req_content = self.message.split()
             strike = None
             option = None
@@ -468,14 +466,14 @@ class PaidCallPut:
                 if word.upper().strip().startswith("SL-"):
                     sl = re.findall(r"SL-(\d+)?", word.upper().strip())[0]
             if strike == None or option == None:
-                raise
+                raise CustomError("Strike or Option is None")
             targets = self.get_target_values(self.message, "TARGET")
             symbol_dict = self.coin_option_name(
                 scrip_info_df, symbol, date, month, strike, option
             )
             ltp_range = self.get_target_values(self.message, "ABV")
             if not ltp_range:
-                raise
+                raise CustomError("target values is not found")
             signal_details = {
                 "channel_name": "PaidCallPut",
                 "timestamp": f"{PaidCallPut.channel_number}{self.msg_received_timestamp}",
