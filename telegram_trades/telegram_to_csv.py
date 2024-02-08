@@ -3,6 +3,8 @@ import csv
 from datetime import datetime
 from constants import TGRM
 from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallPut
+from logzero import logger
+import traceback
 
 api_id = TGRM['api_id']
 api_hash = TGRM['api_hash']
@@ -25,15 +27,19 @@ async def my_event_handler(event):
         else:
             msg = replace_non_ascii(event.raw_text)
             csv_writer.writerow([now, chat.title, msg])
-        if chat.title == "PREMIUM JACKPOT":
-            i = PremiumJackpot(now, msg)
-            i.get_signal()
-        elif chat.title == "SMS Options Premium":
-            i = SmsOptionsPremium(now, msg)
-            i.get_signal()
-        elif chat.title == "Paid - CALL & PUT":
-            i = PaidCallPut(now, msg)
-            i.get_signal()
+        logger.info(f"{chat.title} ===> {msg}")
+        try:
+            if chat.title == "PREMIUM JACKPOT":
+                i = PremiumJackpot(now, msg)
+                i.get_signal()
+            elif chat.title == "SMS Options Premium":
+                i = SmsOptionsPremium(now, msg)
+                i.get_signal()
+            elif chat.title == "Paid - CALL & PUT":
+                i = PaidCallPut(now, msg)
+                i.get_signal()
+        except:
+            logger.error(traceback.format_exc())
 
 client.start(phone=TGRM["phone_number"])
 client.run_until_disconnected()

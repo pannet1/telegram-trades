@@ -7,6 +7,7 @@ import traceback
 from datetime import datetime
 from login import get_broker
 from constants import BRKR, FUTL
+from logzero import logger
 
 signals_csv_filename = "signals.csv"
 signals_csv_file_headers = [
@@ -21,6 +22,10 @@ signals_csv_file_headers = [
 ]
 failure_csv_filename = "failures.csv"
 failure_csv_file_headers = ["channel_name", "timestamp", "message", "exception"]
+signals = []
+
+class CustomError(Exception):
+    pass
 
 
 def download_masters(broker):
@@ -86,7 +91,7 @@ def write_failure_to_csv(failure_details):
 
 
 api = get_broker(BRKR)
-download_masters(api)
+download_masters(api.broker)
 scrip_info_df = get_all_contract_details()
 all_symbols = set(scrip_info_df["Symbol"].to_list())
 
@@ -159,7 +164,7 @@ class PremiumJackpot:
             symbol_dict = self.get_instrument_name(symbol_from_tg)
             signal_details = {
                 "channel_name": "Premium jackpot",
-                "timestamp": self.msg_received_timestamp,
+                "timestamp": f"{PremiumJackpot.channel_number}{self.msg_received_timestamp}",
                 "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(re.findall(r"\d+\.\d+|\d+", parts[2])),
                 "target_range": "|".join(
@@ -176,14 +181,19 @@ class PremiumJackpot:
                 )
                 else "Buy",
             }
+            if signal_details in signals:
+                raise CustomError("Signal already exists")
+            signals.append(signal_details)
+            logger.info(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
                 "channel_name": "Premium jackpot",
-                "timestamp": f"{PremiumJackpot.channel_number}{self.msg_received_timestamp}",
+                "timestamp": self.msg_received_timestamp,
                 "message": self.message,
                 "exception": traceback.format_exc().strip(),
             }
+            logger.error(failure_details)
             write_failure_to_csv(failure_details)
 
 
@@ -274,6 +284,7 @@ class SmsOptionsPremium:
                 if signal_details in signals:
                     raise CustomError("Signal already exists")
                 signals.append(signal_details)
+                logger.info(signal_details)
                 write_signals_to_csv(signal_details)
             except:
                 failure_details = {
@@ -282,6 +293,7 @@ class SmsOptionsPremium:
                     "message": statement,
                     "exception": traceback.format_exc().strip(),
                 }
+                logger.error(failure_details)
                 write_failure_to_csv(failure_details)
 
     def get_signal(self):
@@ -334,6 +346,10 @@ class SmsOptionsPremium:
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"]),
                 "action": "Cancel" if is_close_msg else "Buy",
             }
+            if signal_details in signals:
+                raise CustomError("Signal already exists")
+            signals.append(signal_details)
+            logger.info(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
@@ -470,6 +486,10 @@ class PaidCallPut:
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"]),
                 "action": "Cancel" if is_close_msg else "Buy",
             }
+            if signal_details in signals:
+                raise CustomError("Signal already exists")
+            signals.append(signal_details)
+            logger.info(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
@@ -478,4 +498,5 @@ class PaidCallPut:
                 "message": self.message,
                 "exception": traceback.format_exc().strip(),
             }
+            logger.error(failure_details)
             write_failure_to_csv(failure_details)
