@@ -269,7 +269,7 @@ class SmsOptionsPremium:
                 sl = float(ltp_range[0]) * (1 - SmsOptionsPremium.spot_sl)
                 signal_details = {
                     "channel_name": "SmsOptionsPremium",
-                    "timestamp": self.msg_received_timestamp,
+                    "timestamp": f"{SmsOptionsPremium.channel_number}{self.msg_received_timestamp}",
                     "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
                     "ltp_range": "|".join(self.get_float_values(statement, "ABOVE ")),
                     "target_range": "|".join(
