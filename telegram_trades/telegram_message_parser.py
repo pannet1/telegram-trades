@@ -169,7 +169,6 @@ class PremiumJackpot:
             symbol_dict = self.get_instrument_name(symbol_from_tg)
             signal_details = {
                 "channel_name": "Premium jackpot",
-                "timestamp": f"{PremiumJackpot.channel_number}{self.msg_received_timestamp}",
                 "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(re.findall(r"\d+\.\d+|\d+", parts[2])),
                 "target_range": "|".join(
@@ -183,6 +182,7 @@ class PremiumJackpot:
             }
             if signal_details in signals:
                 raise CustomError("Signal already exists")
+            signal_details["timestamp"] = f"{PremiumJackpot.channel_number}{self.msg_received_timestamp}"
             signals.append(signal_details)
             logger.info(signal_details)
             write_signals_to_csv(signal_details)
@@ -273,7 +273,6 @@ class SmsOptionsPremium:
                 sl = float(ltp_range[0]) * (1 - SmsOptionsPremium.spot_sl)
                 signal_details = {
                     "channel_name": "SmsOptionsPremium",
-                    "timestamp": f"{SmsOptionsPremium.channel_number}{self.msg_received_timestamp}",
                     "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
                     "ltp_range": "|".join(self.get_float_values(statement, "ABOVE ")),
                     "target_range": "|".join(
@@ -285,6 +284,7 @@ class SmsOptionsPremium:
                 }
                 if signal_details in signals:
                     raise CustomError("Signal already exists")
+                signal_details["timestamp"] = f"{SmsOptionsPremium.channel_number}{self.msg_received_timestamp}"
                 signals.append(signal_details)
                 logger.info(signal_details)
                 write_signals_to_csv(signal_details)
@@ -338,7 +338,6 @@ class SmsOptionsPremium:
             symbol_dict = self.get_instrument_name(parts[1].strip())          
             signal_details = {
                 "channel_name": "SmsOptionsPremium",
-                "timestamp": f"{SmsOptionsPremium.channel_number}{self.msg_received_timestamp}",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(re.findall(r"\d+\.\d+|\d+", parts[2])),
                 "target_range": "|".join(
@@ -350,6 +349,7 @@ class SmsOptionsPremium:
             }
             if signal_details in signals:
                 raise CustomError("Signal already exists")
+            signal_details["timestamp"] = f"{SmsOptionsPremium.channel_number}{self.msg_received_timestamp}"
             signals.append(signal_details)
             logger.info(signal_details)
             write_signals_to_csv(signal_details)
@@ -481,7 +481,6 @@ class PaidCallPut:
                 raise CustomError("target values is not found")
             signal_details = {
                 "channel_name": "PaidCallPut",
-                "timestamp": f"{PaidCallPut.channel_number}{self.msg_received_timestamp}",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(ltp_range),
                 "target_range": "|".join(targets),
@@ -491,6 +490,7 @@ class PaidCallPut:
             }
             if signal_details in signals:
                 raise CustomError("Signal already exists")
+            signal_details["timestamp"] = f"{PaidCallPut.channel_number}{self.msg_received_timestamp}"
             signals.append(signal_details)
             logger.info(signal_details)
             write_signals_to_csv(signal_details)
