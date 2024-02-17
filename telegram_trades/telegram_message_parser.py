@@ -409,7 +409,7 @@ class PaidCallPut:
 
     def get_target_values(self, string_val, start_val):
         float_values = []
-        v = string_val.replace("-", " ").split(start_val)
+        v = string_val.upper().replace("-", " ").split(start_val)
         for word in v[1].split():
             if word.replace(".", "", 1).isdigit():
                 float_values.append(word)
