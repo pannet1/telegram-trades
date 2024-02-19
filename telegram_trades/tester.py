@@ -9,14 +9,14 @@ from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallP
 df = pd.read_csv(input_file, header=None)
 for i, row in df.iterrows():
     # print(i, row)
-    if row[2] == "PREMIUM JACKPOT":
-        i = PremiumJackpot(row[0], row[3])
+    if row[1] == "PREMIUM JACKPOT":
+        i = PremiumJackpot(row[0], row[2])
         i.get_signal()
-    elif row[2] == "SMS Options Premium":
-        i = SmsOptionsPremium(row[0], row[3])
+    elif row[1] == "SMS Options Premium":
+        i = SmsOptionsPremium(row[0], row[2])
         i.get_signal()
-    elif row[2] == "Paid - CALL & PUT":
-        i = PaidCallPut(row[0], row[3])
+    elif row[1] == "Paid - CALL & PUT":
+        i = PaidCallPut(row[0], row[2])
         i.get_signal()
 
 
@@ -28,3 +28,8 @@ for i, row in df.iterrows():
 # msg = "21st feb expiry  BUY 45600 PE only abv 330 SL-290 TARGET -400-500++  cmp - 310"
 # i = PaidCallPut(1707192066, msg)
 # i.get_signal()
+
+
+# for msg in ["14th feb expiry  BUY 45200 CE only abv 220 SL-180 TARGET -400-500-750  cmp - 190", "14th feb expiry  BUY 45200 CE only abv 220 SL-180 TARGET -400-500-750  cmp - 190"]:
+#     i = PaidCallPut(1707192066, msg)
+#     i.get_signal()
