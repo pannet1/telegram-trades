@@ -391,7 +391,7 @@ class PaidCallPut:
                 return word
         return "BANKNIFTY"
 
-    def get_float_values(string_val, start_val):
+    def get_float_values(self, string_val, start_val):
         float_values = []
         v = string_val.split(start_val)
         for word in v[1].split():
@@ -473,8 +473,13 @@ class PaidCallPut:
                 ):
                     strike = req_content[i + 1].strip()
                     option = req_content[i + 2].strip()
-                if word.upper().strip().startswith("SL-"):
-                    sl = re.findall(r"SL-(\d+)?", word.upper().strip())[0]
+            sl_list = self.get_float_values(self.message.strip().upper().replace("-",""), "SL")
+            if sl_list:
+                sl = sl_list[0]
+            else:
+                raise CustomError("SL is not available")
+                # if word.upper().strip().startswith("SL-"):
+                #     sl = re.findall(r"SL-(\d+)?", word.upper().strip())[0]
             if strike == None or option == None:
                 raise CustomError("Strike or Option is None")
             targets = self.get_target_values(self.message, "TARGET")

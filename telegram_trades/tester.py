@@ -26,6 +26,7 @@ for i, row in df.iterrows():
 
 # msg = "14th feb expiry  BUY 45200 CE only abv 220 SL-180 TARGET -400-500-750  cmp - 190"
 # msg = "21st feb expiry  BUY 45600 PE only abv 330 SL-290 TARGET -400-500++  cmp - 310"
+# msg = "28th feb expiry  BUY 47500 PE only abv 250 SL - 210 TARGET -450-550+  cmp - 240"
 # i = PaidCallPut(1707192066, msg)
 # i.get_signal()
 
