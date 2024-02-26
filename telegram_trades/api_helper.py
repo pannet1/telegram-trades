@@ -1,4 +1,7 @@
 from typing import List, Dict
+from constants import FUTL, UTIL
+
+SLP = 1
 
 trade_keys = [
     "order_id",
@@ -36,8 +39,20 @@ order_keys = [
 ]
 
 
+def update_lst_of_dct_with_vals(lst_of_dct, key, **kwargs):
+    updated = False
+    for dct in lst_of_dct:
+        if dct.get(key, None) == kwargs[key]:
+            dct.update(**kwargs)
+            updated = True
+            break
+    if not updated:
+        lst_of_dct.append(kwargs)
+    return lst_of_dct
+
+
 def filter_by_keys(keys: List, lst: List[Dict]) -> List[Dict]:
-    new_lst = [{}]
+    new_lst = []
     if lst and any(lst):
         for dct in lst:
             new_dct = {}
@@ -54,28 +69,57 @@ def modify_order(order: Dict, updates: Dict) -> Dict:
     return order
 
 
-def positions(api):
+def filtered_positions(api):
+    UTIL.slp_for(SLP)
     lst = filter_by_keys(position_keys, api.positions)
     return lst
 
 
-def orders(api):
+def filtered_orders(api, order_id):
+    UTIL.slp_for(SLP)
     lst = filter_by_keys(order_keys, api.orders)
-    return lst
+    if order_id:
+        return [order
+                for order in lst
+                if order['order_id'] == order_id][0]
+    else:
+        return [order for order in lst if order["quantity"] == 1]
+
+
+def order_modify(lst, order_id):
+    order = {}
+    for order in lst:
+        if order.get("order_id", None) == order_id:
+            return order
+
+
+def download_masters(broker):
+    exchanges = ["NFO", "BFO"]
+    for exchange in exchanges:
+        if FUTL.is_file_not_2day(f"./{exchange}.csv"):
+            broker.get_contract_master(exchange)
+            UTIL.slp_for(SLP)
+
+
+def get_ltp(broker, exchange, symbol):
+    UTIL.slp_for(SLP)
+    obj_inst = broker.get_instrument_by_symbol(exchange, symbol)
+    UTIL.slp_for(SLP)
+    return float(broker.get_scrip_info(obj_inst)["Ltp"])
 
 
 if __name__ == "__main__":
-    from constants import BRKR, UTIL
+    from constants import BRKR
     from login import get_broker
     import pandas as pd
     from rich import print
 
     api = get_broker(BRKR)
 
-    lst = positions(api)
+    lst = filtered_positions(api)
     print(pd.DataFrame(lst).set_index("symbol"))
 
-    lst = orders(api)
+    lst = filtered_orders(api, None)
     print(pd.DataFrame(lst).set_index("order_id"))
 
     updates = {
@@ -110,11 +154,6 @@ if __name__ == "__main__":
     order_cancelled = api.order_cancel("24012400365338")
     print(f"{order_cancelled=}")
     """
-    def order_modify(lst, order_id):
-        order = {}
-        for order in lst:
-            if order.get("order_id", None) == order_id:
-                return order
 
     order_id = "24012400368866"
     norder = order_modify(lst, order_id)
