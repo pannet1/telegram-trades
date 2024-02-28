@@ -1,114 +1,52 @@
 from constants import DATA, BRKR, FUTL, UTIL, logging
 from login import get_broker
-from api_helper import orders
+from api_helper import filtered_orders, download_masters, get_ltp
+from api_helper import update_lst_of_dct_with_vals
 from rich import print
 import traceback
 import pandas as pd
+from typing import Dict, List
+import pendulum
+import inspect
+
+lst_ignore = ["unknown", "rejected", "cancelled"]
+F_SIGNAL = DATA + "signals.csv"
+F_TASK = DATA + "tasks.json"
+SECS = 1  # sleep time
 
 
-lst_ignore = ["unknown", "rejected", "canceled"]
-signal_file = DATA + "signals.csv"
-task_file = DATA + "tasks.json"
+"""
+    helpers
+"""
 
 
-def download_masters(broker):
-    exchanges = ["NFO", "BFO"]
-    for exchange in exchanges:
-        if FUTL.is_file_not_2day(f"./{exchange}.csv"):
-            broker.get_contract_master(exchange)
+def log_exception(exception, locals, error_message=None):
+    """Logs an exception with detailed information.
 
-
-def str_to_callable(fn: str, task=None):
+    Args:
+        exception (Exception): The exception object itself.
+        method_name (str): The name of the method where the exception occurred.
+        params (dict, tuple, or list): The parameters passed to the method.
+        error_message (str, optional): An optional additional message to log with the exception.
     """
-    converts string to callable function
-    does not work if imported
+    method_name = inspect.stack(
+    )[1].function  # Get the name of the calling method
+
+    # Format the message
+    message = f"""
+        Method Name: {method_name}
+        Type: {type(exception).__name__}
+        Parameters: {locals}
+        Error message: {exception}
+        {error_message if error_message else ''}
     """
-    func = eval(fn)
-    if isinstance(task, dict):
-        return func(**task)
-    return func()
+    # Log the exception with appropriate level
+    logging.error(message, exc_info=True)
 
 
-def get_ltp(broker, exchange, symbol):
-    obj_inst = broker.get_instrument_by_symbol(exchange, symbol)
-    return float(broker.get_scrip_info(obj_inst)["Ltp"])
-
-
-def entry(**task):
-    """
-    place order on broker terminal
-    input: task details
-    {'symbol': 'BANKNIFTY 47300 CE',
-    'ltp_range': '570',
-    'target_range': '30 | 70 | 100 | 200 | 250',
-    'sl': '540 | 570 | 610'}
-    """
-    logging.debug(f"entering {task}")
-    lst_symbol = task["symbol"].split(":")
-    last_price = get_ltp(task["api"].broker, lst_symbol[0], lst_symbol[1])
-    lst_ltp = list(map(float, task["entry_range"].split("|")))
-    if task["side"][0].upper() == "B":
-        if max(lst_ltp) < last_price:
-            price = max(lst_ltp)
-            order_type = "LMT"
-        elif min(lst_ltp) > last_price:
-            price = min(lst_ltp)
-            trigger_price = price - 0.05
-            order_type = "SL-L"
-    else:
-        if min(lst_ltp) > last_price:
-            price = min(lst_ltp)
-            order_type = "LMT"
-        elif max(lst_ltp) < last_price:
-            price = max(lst_ltp)
-            trigger_price = price + 0.05
-            order_type = "SL-L"
-    args = dict(
-        symbol=task["symbol"],
-        side=task["side"],
-        quantity=int(task["quantity"]),
-        price=price,
-        order_type=order_type,
-        product="N"
-    )
-    if "trigger_price" in locals() and trigger_price is not None:
-        args["trigger_price"] = trigger_price
-
-    task["fn"] = "unknown"
-    try:
-        resp = task["api"].order_place(**args)
-        if order_no := resp.get("NOrdNo", None) is not None:
-            lst = orders(task["api"])
-            order = [order for order in lst if order.get(
-                'order_no', None) == order_no][0]
-            logging.debug("order details: ", order)
-
-            status = order.get('Status', "unknown")
-            if status in lst_ignore:
-                task["fn"] = status
-            else:
-                task["fn"] = "is_entry"
-                task["orders"] = [order]
-    except Exception as e:
-        logging.warning(e)
-        print(traceback.print_exc())
-    finally:
-        update_task(task)
-
-
-def is_entry(**task):
-    lst_order_ids = [order["order_id"] for order in task["orders"]]
-    lst_orders = [order for order in task["api"].orders if any(order)]
-    if any(lst_order_ids) and all(order["status"] == "COMPLETE"
-                                  for order in lst_orders
-                                  if order["order_id"] in lst_order_ids):
-        task["fn"] = "stop1"
-        update_task(task)
-
-
-def stop1(**task):
-    task["fn"] = "is_stop1_or_target1"
-    update_task(task)
+"""
+    string functions
+"""
 
 
 def is_stop1_or_target1(**task):
@@ -118,7 +56,7 @@ def is_stop1_or_target1(**task):
         task['side'].upper() != "B" and ltp > float(task["sl"]))
     if is_true:
         task["fn"] = "modify_stop1_to_target1"
-        update_task(task)
+    update_task(task)
 
 
 def modify_stop1_to_target1(**task):
@@ -135,81 +73,216 @@ def is_cost_or_target2(**task):
     task["fn"] = "COMPLETE"
     update_task(task)
 
-
-def init_tasks():
-    # initate output task json file
-    if FUTL.is_file_not_2day(task_file):
-        empty_lst = []
-        FUTL.save_file(empty_lst, task_file)
-    return FUTL.json_fm_file(task_file)
+    """
+    tasks
+    """
 
 
-def read_tasks():
-    logging.debug("reading tasks")
-    # input file
-    lst_of_dct = [{}]
-    if FUTL.is_file_not_2day(signals_file):
-        return lst_of_dct
+class Jsondb:
+    def __init__(self, api) -> None:
+        self.api = api
+        # input file
+        if FUTL.is_file_not_2day(F_SIGNAL):
+            # return empty list if file is not modified today
+            FUTL.write_file(filepath=F_TASK, content=[])
+        # initate output task json file
+        if FUTL.is_file_not_2day(F_TASK):
+            FUTL.write_file(filepath=F_TASK, content=[])
+        # output file
+        self.tasks = FUTL.read_file(F_TASK)
+        self.is_dirty = False
+        self.lastsync = pendulum.now()
 
-    # output file
-    current_tasks = FUTL.json_fm_file(task_file)
-    ids = [task["id"] for task in current_tasks]
-    logging.debug("ids: " + str(ids))
+    def _str_to_func(self, fn: str, task):
+        """
+        converts string to callable function
+        does not work if imported
+        """
+        # Check if the string represents a valid method name in the class
+        if hasattr(self, fn):
+            # Get the method corresponding to the provided string
+            method = getattr(self, fn)
+            # Call the method with the provided arguments and keyword arguments
+            return method(**task)
+        else:
+            # Raise an error if the method does not exist
+            raise AttributeError(
+                f"{fn} is not a valid method in this class")
 
-    # input file
-    columns = ['channel', 'id', 'symbol', 'quantity',
-               'entry_range', 'target_range', 'sl', 'action']
-    df = pd.read_csv(signal_file,
-                     names=columns,
-                     index_col=None,
-                     )
-    # df = FUTL.get_df_fm_csv(DATA, "signals", columns)
-    if any(ids):
-        df = df[(~df['id'].isin(ids) & df['action'] == 'Buy')]
-    else:
-        df = df[df["action"] == "Buy"]
-    if not df.empty:
-        lst_of_dct = df.to_dict(orient="records")
-        logging.debug(f"input to order {lst_of_dct}")
-        for task in lst_of_dct:
-            task.pop("action")
-            task.pop("channel")
-            task["side"] = "B"
-            task["fn"] = "entry"
-    return lst_of_dct
+    def _task_to_order_args(self, **task):
+        args = {}
+        lst_symbol = task["symbol"].split(":")
+        last_price = get_ltp(self.api.broker,
+                             lst_symbol[0], lst_symbol[1])
+        lst_ltp = list(map(float, task["entry_range"].split("|")))
+        if (side := task["action"][0].upper()) == "B":
+            if (price := max(lst_ltp)) <= last_price:
+                order_type = "LMT"
+            elif (price := min(lst_ltp)) > last_price:
+                trigger_price = price - 0.05
+                order_type = "SL-L"
+        elif (side := task["action"][0].upper()) == "S":
+            if (price := min(lst_ltp)) >= last_price:
+                order_type = "LMT"
+            elif (price := max(lst_ltp)) < last_price:
+                trigger_price = price + 0.05
+                order_type = "SL-L"
 
+        if side in ["B", "S"]:
+            args = dict(
+                symbol=task["symbol"],
+                side=side,
+                quantity=int(task["quantity"]),
+                price=price,
+                order_type=order_type,
+                product="N",
+                remarks="entry"
+            )
+            if "trigger_price" in locals() and trigger_price is not None:
+                args["trigger_price"] = str(trigger_price)
+        return args
 
-def update_task(updated_task):
-    updated_task.pop("api", None)
-    logging.debug(f'Updating task: {updated_task}')
-    tasks = FUTL.json_fm_file(task_file)
-    if updated_task["id"] not in [task["id"] for task in tasks]:
-        tasks.append(updated_task)
-    else:
-        [task.update(updated_task)
-         for task in tasks if task["id"] == updated_task["id"]]
-    FUTL.save_file(tasks, task_file)
+    def entry(self, **task):
+        """
+        place order on broker terminal
+        input: task details
+        {'symbol': 'BANKNIFTY 47300 CE',
+        'ltp_range': '570',
+        'target_range': '30 | 70 | 100 | 200 | 250',
+        'sl': '540 | 570 | 610',
+        'action': 'Buy',}
+        """
+        try:
+            task["fn"] = "unknown"
+            args = self._task_to_order_args(**task)
+            if any(args):
+                logging.debug(f"entry args: {args}")
+                resp = self.api.order_place(**args)
+                logging.debug(f"entry resp: {resp}")
+                if order_id := resp.get("NOrdNo", None):
+                    dct_order = filtered_orders(self.api, order_id)
+                    if any(dct_order) and \
+                            dct_order["Status"] not in lst_ignore:
+                        task["entry"] = dct_order
+                        task['fn'] = "is_entry"
+            else:
+                raise Exception("invalid args")
+        except Exception as e:
+            log_exception(e, locals())
+            print(traceback.print_exc())
+        finally:
+            self._update(task)
+
+    def is_entry(self, **task):
+        try:
+            que = task["entry"]
+            que = filtered_orders(self.api, que["order_id"])
+            if que["Status"] == "complete":
+                task["fn"] = "stop1"
+        except Exception as e:
+            log_exception(e, locals())
+            print(traceback.print_exc())
+        finally:
+            self._update(task)
+
+    def stop1(self, **task):
+        try:
+            que = task["entry"]
+            if que["side"] == "B":
+                args = dict(
+                    symbol=que["symbol"],
+                    side="S",
+                    quantity=que["quantity"],
+                    price=que["sl"].split("|")[0],
+                    order_type="SL-M",
+                    product="N",
+                    remarks="exit"
+                )
+                resp = self.api.order_place(**args)
+                task["fn"] = "is_stop1_or_target1"
+        except Exception as e:
+            log_exception(e, locals())
+            print(traceback.print_exc())
+        finally:
+            self._update(task)
+
+    """
+        core functions
+    """
+
+    def _update(self, updated_task):
+        logging.debug(f'UPDATING \n {updated_task}')
+        self.tasks = update_lst_of_dct_with_vals(
+            self.tasks, "id", **updated_task)
+        FUTL.write_file(content=self.tasks, filepath=F_TASK)
+        self.is_dirty = True
+
+    def read_new_buy_fm_csv(self):
+        if self.lastsync < pendulum.now().subtract(seconds=15):
+            logging.debug("READING NEW BUY FROM CSV")
+            # get ids in current tasks
+            ids = [task["id"] for task in self.tasks]
+            columns = ['channel', 'id', 'symbol', 'quantity',
+                       'entry_range', 'target_range', 'sl', 'action']
+            df = pd.read_csv(F_SIGNAL,
+                             names=columns,
+                             index_col=None)
+            lst_of_dct = df.to_dict(orient="records")
+            lst_of_dct = [dct
+                          for dct in lst_of_dct
+                          if dct["id"] not in ids and dct["action"] == 'Buy']
+            return lst_of_dct
+        else:
+            return []
+
+    def sync(self, lst_of_dct):
+        for dct in lst_of_dct:
+            dct.pop("channel", None)
+            dct["fn"] = "entry"
+            print("sync new buy", dct)
+            self._update(dct)
+        self.lastsync = pendulum.now()
+
+    def read(self) -> List[Dict or None]:
+        logging.debug("READING")
+        if self.is_dirty:
+            self.tasks = FUTL.read_file(F_TASK)
+            self.is_dirty = False
+
+    def process_que(self):
+        if any(self.tasks):
+            for task in self.tasks:
+                fn: str = task["fn"]
+                if fn not in lst_ignore:
+                    self._str_to_func(fn, task)
+                    UTIL.slp_for(SECS)
 
 
 def run():
-    #  initiate task file
-    tasks = init_tasks()
-    try:
-        api = get_broker(BRKR)
-        download_masters(api.broker)
-        while True:
-            tasks = read_tasks()
-            UTIL.slp_til_nxt_sec()
-            if any(tasks):
-                print(pd.DataFrame(tasks).set_index("id"))
-                for task in tasks:
-                    task["api"] = api
-                    fn: str = task.pop("fn")
-                    if fn not in lst_ignore:
-                        str_to_callable(fn, task)
-    except Exception as e:
-        logging.error(e)
-        print(traceback.print_exc())
+    api = get_broker(BRKR)
+    download_masters(api.broker)
+    #  initiate task object
+    obj_db = Jsondb(api)
+    while True:
+        lst_calls = obj_db.read_new_buy_fm_csv()
+        if any(lst_calls):
+            # write the new calls to task file
+            obj_db.sync(lst_calls)
+        # read current task que
+        obj_db.read()
+        # process each task
+        obj_db.process_que()
 
 
-run()
+if __name__ == "__main__":
+    run()
+    lst_of_dct = [
+        {"id": 1, "symbol": "BANKNIFTY:47300:CE", "quantity": 1, "action": "Buy"},
+        {"id": 2, "symbol": "BANKNIFTY:47300:CE", "quantity": 1, "action": "Sell"},
+    ]
+    updated_val = {"id": 1, "symbol": "UPDATED",
+                   "quantity": 500, "action": "Sell"}
+    val = update_lst_of_dct_with_vals(lst_of_dct, "id", **updated_val)
+    print(val)
+    empty_lst = update_lst_of_dct_with_vals([], "id", **updated_val)
+    print(f"{empty_lst=}")
