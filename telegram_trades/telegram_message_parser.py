@@ -24,6 +24,9 @@ signals_csv_file_headers = [
 failure_csv_filename = "data/failures.csv"
 failure_csv_file_headers = ["channel_name", "timestamp", "message", "exception", "normal_timestamp",]
 signals = []
+
+close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID", "PROFIT", "LOSS", "TRIAL", "IGNORE")
+
 class CustomError(Exception):
     pass
 
@@ -104,7 +107,6 @@ all_symbols = set(scrip_info_df["Symbol"].to_list())
 class PremiumJackpot:
     index_options = ["NIFTY", "BANKNIFTY", "MIDCPNIFTY", "FINNIFTY", "SENSEX", "BANKEX"]
     split_words = ["BUY", "ABOVE", "NEAR", "TARGET", "TARGE"]
-    close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID")
     channel_number = 1
 
     def __init__(self, msg_received_timestamp, telegram_msg):
@@ -142,7 +144,7 @@ class PremiumJackpot:
             statement = self.message
             is_reply_msg = '$$$$' in statement
             new_msg = self.message.upper().split('$$$$')[-1]
-            is_close_msg = any([word in new_msg for word in PremiumJackpot.close_words])
+            is_close_msg = any([word in new_msg for word in close_words])
             if is_reply_msg and is_close_msg:
                 # is a reply message and has close words in it:
                 pass
@@ -201,14 +203,13 @@ class PremiumJackpot:
 
 class SmsOptionsPremium:
     split_words = ["BUY", "ONLY IN RANGE @", "TARGET" ,"SL FOR TRADE @ "]
-    close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID")
     spot_sl = .15
     channel_number = 2
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
-
+      
     def get_closest_match(self, symbol):
         if symbol in all_symbols:
             return symbol
@@ -218,21 +219,22 @@ class SmsOptionsPremium:
         else:
             return None
 
-    def get_instrument_name(self, symbol_from_tg):
+    def get_instrument_name(self, symbol_from_tg): 
         # FinNifty 9 Jan 21450 PE
         try:
-            sym, date, month, strike, option_type = symbol_from_tg.split()
-            pos = re.findall(r"\d+", date)
-            if pos:
-                date_int = int(pos[0])
-                date = f"{date_int:02d}"
-            else:
-                raise CustomError(f"date is not found in {date}")
-            try:
-                date_obj = datetime.strptime(month.strip(), "%b")
-                month = f"{date_obj.month:02d}"
-            except:
-                raise CustomError(traceback.format_exc())
+            # sym, date, month, strike, option_type = symbol_from_tg.split()
+            # pos = re.findall(r"\d+", date)
+            # if pos:
+            #     date_int = int(pos[0])
+            #     date = f"{date_int:02d}"
+            # else:
+            #     raise CustomError(f"date is not found in {date}")
+            # try:
+            #     date_obj = datetime.strptime(month.strip(), "%b")
+            #     month = f"{date_obj.month:02d}"
+            # except:
+            #     raise CustomError(traceback.format_exc())
+            sym, *_, strike, option_type = symbol_from_tg.split()
             sym = self.get_closest_match(sym)
             exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
             filtered_df = scrip_info_df[
@@ -240,8 +242,9 @@ class SmsOptionsPremium:
                 & (scrip_info_df["Symbol"] == sym)
                 & (scrip_info_df["Strike Price"] == float(strike))
                 & (scrip_info_df["Option Type"] == option_type)
-                & (scrip_info_df["Expiry Date"] == f"2024-{month}-{date}")
+                # & (scrip_info_df["Expiry Date"] == f"2024-{month}-{date}")
             ]
+            filtered_df = filtered_df.sort_values(by="Expiry Date")
             first_row = filtered_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -269,7 +272,14 @@ class SmsOptionsPremium:
                 statement = statement.strip()
                 if not statement:
                     continue
-                symbol_d = " ".join(statement.split()[:5])
+                symbol_d = None
+                for i, word in enumerate(statement.split()):
+                    if word.upper() in ('PE', 'CE') and i < 5:
+                        symbol_d = " ".join(statement.split()[:i+1])
+                        break
+                if not symbol_d:
+                    continue 
+                # symbol_d = " ".join(statement.split()[:5])
                 symbol_dict = self.get_instrument_name(symbol_d)  
                 ltp_range = self.get_float_values(statement, "ABOVE ")
                 sl = float(ltp_range[0]) * (1 - SmsOptionsPremium.spot_sl)
@@ -305,7 +315,7 @@ class SmsOptionsPremium:
     def get_signal(self):
         statement = self.message.strip().upper()
         new_msg = self.message.strip().upper().split('$$$$')[-1]
-        is_close_msg = any([word in new_msg for word in SmsOptionsPremium.close_words])
+        is_close_msg = any([word in new_msg for word in close_words])
         is_sl_message = "SL FOR TRADE @ " in statement.split('$$$$')[-1]
         is_spot_message = "SPOT" in statement
         is_reply_msg = '$$$$' in statement
@@ -369,7 +379,7 @@ class SmsOptionsPremium:
 
 
 class PaidCallPut:
-    close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID")
+    
     channel_number = 3
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
@@ -401,14 +411,15 @@ class PaidCallPut:
                 break
         return float_values
 
-    def coin_option_name(self, df, symbol, date, month, strike, option_type):
+    def coin_option_name(self, df, symbol, strike, option_type):
         filtered_df = df[
             (df["Exch"] == "NFO")
             & (df["Symbol"] == symbol)
             & (df["Strike Price"] == float(strike))
             & (df["Option Type"] == option_type)
-            & (df["Expiry Date"] == f"2024-{month}-{date}")
+            # & (df["Expiry Date"] == f"2024-{month}-{date}")
         ]
+        filtered_df = filtered_df.sort_values(by="Expiry Date")
         first_row = filtered_df.head(1)
         return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
 
@@ -425,7 +436,7 @@ class PaidCallPut:
     def get_signal(self):
         try:
             new_msg = self.message.strip().upper().split('$$$$')[-1]
-            is_close_msg = any([word in new_msg for word in PaidCallPut.close_words])
+            is_close_msg = any([word in new_msg for word in close_words])
             is_reply_msg = '$$$$' in self.message
             if is_reply_msg and is_close_msg :
                 # is a reply message and has close words in it:
@@ -446,22 +457,22 @@ class PaidCallPut:
                 return 
 
             symbol = self.get_symbol_from_message(self.message)
-            req_content = self.message.split("expiry")
-            req_content_list = req_content[0].strip().split()
-            if len(req_content_list) >= 2:
-                pos = re.findall(r"\d+", req_content_list[-2])
-                if pos:
-                    date_int = int(pos[0] )
-                    date = f"{date_int:02d}"
-                else:
-                    raise CustomError(f"Date is not found in {req_content_list[-2]}")
-                try:
-                    date_obj = datetime.strptime(req_content_list[-1].strip(), "%b")
-                    month = f"{date_obj.month:02d}"
-                except:
-                    raise CustomError(traceback.format_exc())
-            else:
-                raise CustomError(f"Date and month is not found in {req_content_list}")
+            # req_content = self.message.split("expiry")
+            # req_content_list = req_content[0].strip().split()
+            # if len(req_content_list) >= 2:
+            #     pos = re.findall(r"\d+", req_content_list[-2])
+            #     if pos:
+            #         date_int = int(pos[0] )
+            #         date = f"{date_int:02d}"
+            #     else:
+            #         raise CustomError(f"Date is not found in {req_content_list[-2]}")
+            #     try:
+            #         date_obj = datetime.strptime(req_content_list[-1].strip(), "%b")
+            #         month = f"{date_obj.month:02d}"
+            #     except:
+            #         raise CustomError(traceback.format_exc())
+            # else:
+            #     raise CustomError(f"Date and month is not found in {req_content_list}")
             req_content = self.message.split()
             strike = None
             option = None
@@ -484,10 +495,17 @@ class PaidCallPut:
                 raise CustomError("Strike or Option is None")
             targets = self.get_target_values(self.message, "TARGET")
             symbol_dict = self.coin_option_name(
-                scrip_info_df, symbol, date, month, strike, option
+                # scrip_info_df, symbol, date, month, strike, option
+                scrip_info_df, symbol, strike, option
             )
-            ltp_range = self.get_target_values(self.message, "ABV")
-            if not ltp_range:
+            ltp_words = ('ABV', 'CMP', 'ABOVE')
+            ltp_range = None
+            for word in ltp_words:
+                ltp_range = self.get_target_values(self.message, word)
+                if ltp_range:
+                    
+                    break
+            else:
                 raise CustomError("target values is not found")
             _signal_details = {
                 "channel_name": "PaidCallPut",
