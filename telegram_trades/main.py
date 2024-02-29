@@ -9,7 +9,7 @@ from typing import Dict, List
 import pendulum
 import inspect
 
-lst_ignore = ["unknown", "rejected", "cancelled"]
+lst_ignore = ["unknown", "rejected", "cancelled", "t1_reached"]
 F_SIGNAL = DATA + "signals.csv"
 F_TASK = DATA + "tasks.json"
 SECS = 1  # sleep time
@@ -47,21 +47,6 @@ def log_exception(exception, locals, error_message=None):
 """
     string functions
 """
-
-
-def is_stop1_or_target1(**task):
-    ltp = get_ltp(task["api"].broker, task["symbol"].split(
-        ":")[0], task["symbol"].split(":")[1])
-    is_true = (task['side'].upper() == "B" and ltp < float(task["sl"])) or (
-        task['side'].upper() != "B" and ltp > float(task["sl"]))
-    if is_true:
-        task["fn"] = "modify_stop1_to_target1"
-    update_task(task)
-
-
-def modify_stop1_to_target1(**task):
-    task["fn"] = "trail_stop1_to_entry"
-    update_task(task)
 
 
 def trail_stop1_to_cost(**task):
@@ -110,37 +95,54 @@ class Jsondb:
                 f"{fn} is not a valid method in this class")
 
     def _task_to_order_args(self, **task):
-        args = {}
-        lst_symbol = task["symbol"].split(":")
-        last_price = get_ltp(self.api.broker,
-                             lst_symbol[0], lst_symbol[1])
-        lst_ltp = list(map(float, task["entry_range"].split("|")))
-        if (side := task["action"][0].upper()) == "B":
-            if (price := max(lst_ltp)) <= last_price:
-                order_type = "LMT"
-            elif (price := min(lst_ltp)) > last_price:
-                trigger_price = price - 0.05
-                order_type = "SL-L"
-        elif (side := task["action"][0].upper()) == "S":
-            if (price := min(lst_ltp)) >= last_price:
-                order_type = "LMT"
-            elif (price := max(lst_ltp)) < last_price:
-                trigger_price = price + 0.05
-                order_type = "SL-L"
+        try:
+            args = {}
+            trigger_price = 0
+            order_type = "LMT"
+            lst_symbol = task["symbol"].split(":")
+            last_price = get_ltp(self.api.broker,
+                                 lst_symbol[0], lst_symbol[1])
+            lst_ltp = list(map(float, task["entry_range"].split("|")))
+            if (side := task["action"][0].upper()) == "B":
+                if (price := min(lst_ltp)) > last_price:
+                    trigger_price = price - 0.05
+                    order_type = "SL-L"
+            elif (side := task["action"][0].upper()) == "S":
+                if (price := max(lst_ltp)) < last_price:
+                    trigger_price = price + 0.05
+                    order_type = "SL-L"
 
-        if side in ["B", "S"]:
-            args = dict(
-                symbol=task["symbol"],
-                side=side,
-                quantity=int(task["quantity"]),
-                price=price,
-                order_type=order_type,
-                product="N",
-                remarks="entry"
-            )
-            if "trigger_price" in locals() and trigger_price is not None:
-                args["trigger_price"] = str(trigger_price)
-        return args
+            if side in ["B", "S"]:
+                args = dict(
+                    symbol=task["symbol"],
+                    side=side,
+                    quantity=int(task["quantity"]),
+                    price=price,
+                    order_type=order_type,
+                    product="N",
+                    remarks="entry"
+                )
+                if trigger_price > 0:
+                    args["trigger_price"] = float(trigger_price)
+        except Exception as e:
+            log_exception(e, locals())
+            traceback.print_exc()
+        finally:
+            return args
+
+    def _order_status(self, resp):
+        try:
+            dct_order = {"Status": "unknown"}
+            if order_id := resp.get("NOrdNo", None):
+                dct_order = filtered_orders(self.api, order_id)
+                if any(dct_order) and \
+                        dct_order["Status"] not in lst_ignore:
+                    return dct_order
+        except Exception as e:
+            log_exception(e, locals())
+            traceback.print_exc()
+        finally:
+            return dct_order
 
     def entry(self, **task):
         """
@@ -153,23 +155,18 @@ class Jsondb:
         'action': 'Buy',}
         """
         try:
-            task["fn"] = "unknown"
+            task.pop("fn")
             args = self._task_to_order_args(**task)
             if any(args):
                 logging.debug(f"entry args: {args}")
                 resp = self.api.order_place(**args)
-                logging.debug(f"entry resp: {resp}")
-                if order_id := resp.get("NOrdNo", None):
-                    dct_order = filtered_orders(self.api, order_id)
-                    if any(dct_order) and \
-                            dct_order["Status"] not in lst_ignore:
-                        task["entry"] = dct_order
-                        task['fn'] = "is_entry"
-            else:
-                raise Exception("invalid args")
+                order_details = self._order_status(resp)
+                if order_details["Status"] != "unknown":
+                    task["entry"] = order_details
+                    task["fn"] = "is_entry"
         except Exception as e:
             log_exception(e, locals())
-            print(traceback.print_exc())
+            traceback.print_exc()
         finally:
             self._update(task)
 
@@ -181,30 +178,75 @@ class Jsondb:
                 task["fn"] = "stop1"
         except Exception as e:
             log_exception(e, locals())
-            print(traceback.print_exc())
+            traceback.print_exc()
         finally:
             self._update(task)
 
     def stop1(self, **task):
         try:
+            task['fn'] = "unknown"
             que = task["entry"]
             if que["side"] == "B":
                 args = dict(
-                    symbol=que["symbol"],
+                    symbol=task["symbol"],
                     side="S",
                     quantity=que["quantity"],
-                    price=que["sl"].split("|")[0],
+                    price=float(task["sl"]),
                     order_type="SL-M",
                     product="N",
                     remarks="exit"
                 )
                 resp = self.api.order_place(**args)
-                task["fn"] = "is_stop1_or_target1"
+                order_details = self._order_status(resp)
+                if order_details["Status"] != "unknown":
+                    task["stop"] = order_details
+                    task['fn'] = "is_stop_or_target1"
         except Exception as e:
             log_exception(e, locals())
-            print(traceback.print_exc())
+            traceback.print_exc()
         finally:
             self._update(task)
+
+    def is_stop_or_target1(self, **task):
+        try:
+            que = task["stop"]
+            que = filtered_orders(self.api, que["order_id"])
+            if que["Status"] == "complete":
+                task["fn"] = "STOPPED-OUT"
+            else:
+                t1 = float(task["target_range"].split("|")[0])
+                ltp = get_ltp(task["api"].broker, task["symbol"].split(
+                    ":")[0], task["symbol"].split(":")[1])
+                is_true = (task['side'].upper() == "B" and ltp < float(task["sl"])) or (
+                    task['side'].upper() != "B" and ltp > float(task["sl"]))
+                if is_true:
+                    raise Exception("Market jumped the Stop Los")
+                elif (
+                    (task['side'].upper() == "B" and ltp > t1) or
+                    (task['side'].upper() == "S" and ltp < t1)
+                ):
+                    args = dict(
+                        symbol=task["symbol"],
+                        side="S",
+                        # TODO reduce quantity
+                        quantity=que["quantity"],
+                        price=0,
+                        order_type="MKT",
+                        product="N",
+                        remarks="exit"
+                    )
+                    resp = self.api.order_modify(*args)
+
+                task["fn"] = "modify_stop_to_target1"
+        except Exception as e:
+            log_exception(e, locals())
+            traceback.print_exc()
+        finally:
+            self._update(task)
+
+    def modify_stop_to_target1(self, **task):
+        task["fn"] = "trail_stop1_to_entry"
+        self._update(task)
 
     """
         core functions
@@ -219,7 +261,6 @@ class Jsondb:
 
     def read_new_buy_fm_csv(self):
         if self.lastsync < pendulum.now().subtract(seconds=15):
-            logging.debug("READING NEW BUY FROM CSV")
             # get ids in current tasks
             ids = [task["id"] for task in self.tasks]
             columns = ['channel', 'id', 'symbol', 'quantity',
@@ -248,6 +289,13 @@ class Jsondb:
         if self.is_dirty:
             self.tasks = FUTL.read_file(F_TASK)
             self.is_dirty = False
+        for task in self.tasks:
+            for k, v in task.items():
+                if isinstance(v, dict):
+                    print(f"\n{v}\n")
+                else:
+                    print(f"{k}: {v}")
+        UTIL.slp_for(5)
 
     def process_que(self):
         if any(self.tasks):
