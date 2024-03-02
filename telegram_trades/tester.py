@@ -25,9 +25,9 @@ from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallP
 # i = SmsOptionsPremium(1707192066, msg)
 # i.get_signal()
 
-msg = "BUY #SENSEX 73900 CE ABOVE -20-25 TARGET- 35,80 SL-0  EXPIRY 1ST MARCH  HERO ZERO CALL BUY ONLY 1-3 LOT"
-i = PremiumJackpot(1707192066, msg)
-i.get_signal()
+# msg = "BUY #SENSEX 73900 CE ABOVE -20-25 TARGET- 35,80 SL-0  EXPIRY 1ST MARCH  HERO ZERO CALL BUY ONLY 1-3 LOT"
+# i = PremiumJackpot(1707192066, msg)
+# i.get_signal()
 
 # msg = "14th feb expiry  BUY 45200 CE only abv 220 SL-180 TARGET -400-500-750  cmp - 190"
 # msg = "21st feb expiry  BUY 45600 PE only abv 330 SL-290 TARGET -400-500++  cmp - 310"
@@ -36,6 +36,6 @@ i.get_signal()
 # i.get_signal()
 
 
-# for msg in ["14th feb expiry  BUY 45200 CE only abv 220 SL-180 TARGET -400-500-750  cmp - 190", "14th feb expiry  BUY 45200 CE only abv 220 SL-180 TARGET -400-500-750  cmp - 190"]:
-#     i = PaidCallPut(1707192066, msg)
-#     i.get_signal()
+for msg in ["7th march expiry nifty  buy 22150 PE CMP 135/130 SL-120 TARGTE-200-250+	"]:
+    i = PaidCallPut(1707192066, msg)
+    i.get_signal()

@@ -107,7 +107,6 @@ all_symbols = set(scrip_info_df["Symbol"].to_list())
 
 
 class PremiumJackpot:
-    index_options = ["NIFTY", "BANKNIFTY", "MIDCPNIFTY", "FINNIFTY", "SENSEX", "BANKEX"]
     split_words = ["BUY", "ABOVE", "NEAR", "TARGET", "TARGE"]
     channel_number = 1
 
@@ -169,7 +168,7 @@ class PremiumJackpot:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
             symbol_from_tg = parts[1].strip().removeprefix("#")
-            sym, *_ = symbol_from_tg.split()
+            sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
             __signal_details = {
                 "channel_name": "Premium jackpot",
@@ -275,7 +274,7 @@ class SmsOptionsPremium:
                 if not statement:
                     continue
                 symbol_d = None
-                for i, word in enumerate(statement.split()):
+                for i, word in enumerate(statement.upper().split()):
                     if word.upper() in ('PE', 'CE') and i < 5:
                         symbol_d = " ".join(statement.split()[:i+1])
                         break
@@ -351,7 +350,7 @@ class SmsOptionsPremium:
                 sl = re.findall(r"(\d+)?", statement.split("$$$$")[-1])[0]
                 if not sl:
                     raise CustomError(f"SL is not found in {parts[4]}")
-            symbol_dict = self.get_instrument_name(parts[1].strip())          
+            symbol_dict = self.get_instrument_name(parts[1].upper().strip())          
             _signal_details = {
                 "channel_name": "SmsOptionsPremium",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -397,9 +396,13 @@ class PaidCallPut:
             return None
 
     def get_symbol_from_message(self, message):
-        for word in message.split():
+        for word in message.upper().split():
             word = word.strip()
-            if word.startswith("#") and self.get_closest_match(word.removeprefix("#")):
+            if word in all_symbols:
+                return word
+        for word in message.upper().split():
+            word = word.strip()
+            if self.get_closest_match(word):
                 return word
         return "BANKNIFTY"
 
@@ -427,12 +430,15 @@ class PaidCallPut:
 
     def get_target_values(self, string_val, start_val):
         float_values = []
-        v = string_val.upper().replace("-", " ").split(start_val)
-        for word in v[1].split():
-            if word.replace(".", "", 1).isdigit():
-                float_values.append(word)
-            else:
-                break
+        try:
+            v = string_val.upper().replace("-", " ").replace("/", " ").split(start_val)
+            for word in v[1].strip().split():
+                if word.replace(".", "", 1).isdigit():
+                    float_values.append(word)
+                else:
+                    break
+        except:
+            pass
         return float_values
 
     def get_signal(self):
@@ -459,6 +465,7 @@ class PaidCallPut:
                 return 
 
             symbol = self.get_symbol_from_message(self.message)
+            print(symbol)
             # req_content = self.message.split("expiry")
             # req_content_list = req_content[0].strip().split()
             # if len(req_content_list) >= 2:
@@ -495,7 +502,7 @@ class PaidCallPut:
                 #     sl = re.findall(r"SL-(\d+)?", word.upper().strip())[0]
             if strike == None or option == None:
                 raise CustomError("Strike or Option is None")
-            targets = self.get_target_values(self.message, "TARGET")
+            targets = self.get_target_values(self.message.replace("TARGTE", "TARGET"), "TARGET")
             symbol_dict = self.coin_option_name(
                 # scrip_info_df, symbol, date, month, strike, option
                 scrip_info_df, symbol, strike, option
