@@ -21,8 +21,12 @@ from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallP
 
 
 # msg = "BANKNIFTY 7 FEB 45800 CE IF CROSSES & SPOT SUSTAIN ONLY ABOVE 253.85 WILL TRY TO HIT TARGETS @ 275 300 330 360 400 & ABOVE$$$$"
-msg = "Buy BankNifty Feb 46900 CE Only In Range @ 195 - 215 Target 240 270 300 350 & Above SL For Trade @ 124"
-i = SmsOptionsPremium(1707192066, msg)
+# msg = "Buy BankNifty Feb 46900 CE Only In Range @ 195 - 215 Target 240 270 300 350 & Above SL For Trade @ 124"
+# i = SmsOptionsPremium(1707192066, msg)
+# i.get_signal()
+
+msg = "BUY #SENSEX 73900 CE ABOVE -20-25 TARGET- 35,80 SL-0  EXPIRY 1ST MARCH  HERO ZERO CALL BUY ONLY 1-3 LOT"
+i = PremiumJackpot(1707192066, msg)
 i.get_signal()
 
 # msg = "14th feb expiry  BUY 45200 CE only abv 220 SL-180 TARGET -400-500-750  cmp - 190"

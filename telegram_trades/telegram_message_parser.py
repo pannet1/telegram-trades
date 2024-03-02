@@ -38,21 +38,23 @@ def download_masters(broker):
 
 
 def get_multiplier(symbol):
-    df = pd.read_csv("NFO.csv")
+    nfo_df = pd.read_csv("NFO.csv")
+    bfo_df = pd.read_csv("BFO.csv")
+    df = pd.concat([nfo_df, bfo_df])
     lot_size = df.loc[df['Trading Symbol'] == symbol, 'Lot Size'].iloc[0]
     if "BANKNIFTY" in symbol:
-        return 2 * lot_size
+        return f"{lot_size|lot_size}"
     elif "FINNIFTY" in symbol:
-        return 2 * lot_size
+        return f"{lot_size|lot_size}"
     elif "MIDCPNIFTY" in symbol:
-        return 2 * lot_size
+        return f"{lot_size|lot_size}"
     elif "NIFTY" in symbol:
-        return 2 * lot_size
+        return f"{lot_size|lot_size}"
     elif "SENSEX" in symbol:
-        return 1 * lot_size
+        return f"{lot_size|lot_size}"
     elif "BANKEX" in symbol:
-        return 1 * lot_size      
-    return 1 * lot_size
+        return f"{lot_size|lot_size}"    
+    return lot_size
 
 
 def get_all_contract_details(exchange=None):
