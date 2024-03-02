@@ -6,18 +6,18 @@ from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallP
 
 
 
-# df = pd.read_csv(input_file, header=None)
-# for i, row in df.iterrows():
-#     # print(i, row)
-#     if row[1] == "PREMIUM JACKPOT":
-#         i = PremiumJackpot(row[0], row[2])
-#         i.get_signal()
-#     elif row[1] == "SMS Options Premium":
-#         i = SmsOptionsPremium(row[0], row[2])
-#         i.get_signal()
-#     elif row[1] == "Paid - CALL & PUT":
-#         i = PaidCallPut(row[0], row[2])
-#         i.get_signal()
+df = pd.read_csv(input_file, header=None)
+for i, row in df.iterrows():
+    # print(i, row)
+    if row[1] == "PREMIUM JACKPOT":
+        i = PremiumJackpot(row[0], row[2])
+        i.get_signal()
+    elif row[1] == "SMS Options Premium":
+        i = SmsOptionsPremium(row[0], row[2])
+        i.get_signal()
+    elif row[1] == "Paid - CALL & PUT":
+        i = PaidCallPut(row[0], row[2])
+        i.get_signal()
 
 
 # msg = "BANKNIFTY 7 FEB 45800 CE IF CROSSES & SPOT SUSTAIN ONLY ABOVE 253.85 WILL TRY TO HIT TARGETS @ 275 300 330 360 400 & ABOVE$$$$"
@@ -36,6 +36,6 @@ from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallP
 # i.get_signal()
 
 
-for msg in ["7th march expiry nifty  buy 22150 PE CMP 135/130 SL-120 TARGTE-200-250+	"]:
-    i = PaidCallPut(1707192066, msg)
-    i.get_signal()
+# for msg in ["6th march expiry  BUY 46800 CE ONLY ABV 350 SL- 310 TARGET -460  CMP - 335", "7th march expiry nifty  buy 22150 PE CMP 135/130 SL-120 TARGTE-200-250+"]:
+#     i = PaidCallPut(1707192066, msg)
+#     i.get_signal()

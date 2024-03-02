@@ -24,7 +24,10 @@ signals_csv_file_headers = [
 failure_csv_filename = "data/failures.csv"
 failure_csv_file_headers = ["channel_name", "timestamp", "message", "exception", "normal_timestamp",]
 signals = []
-
+spell_checks = {
+    "F1NIFTY": "FINNIFTY",
+    "N1FTY": "NIFTY",
+}
 close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID", "PROFIT", "LOSS", "TRIAL", "IGNORE")
 
 class CustomError(Exception):
@@ -115,13 +118,11 @@ class PremiumJackpot:
         self.message = telegram_msg
 
     def get_closest_match(self, symbol):
+        if symbol in spell_checks:
+            symbol = spell_checks[symbol]
         if symbol in all_symbols:
             return symbol
-        closest_match = difflib.get_close_matches(symbol, all_symbols, n=2)
-        if closest_match:
-            return closest_match[0]
-        else:
-            raise CustomError("Closest match is not found")
+        raise CustomError("Closest match is not found")
 
     def get_instrument_name(self, symbol_from_tg):
         try:
@@ -212,13 +213,11 @@ class SmsOptionsPremium:
         self.message = telegram_msg
       
     def get_closest_match(self, symbol):
+        if symbol in spell_checks:
+            symbol = spell_checks[symbol]
         if symbol in all_symbols:
             return symbol
-        closest_match = difflib.get_close_matches(symbol, all_symbols, n=2)
-        if closest_match:
-            return closest_match[0]
-        else:
-            return None
+        raise CustomError("Closest match is not found")
 
     def get_instrument_name(self, symbol_from_tg): 
         # FinNifty 9 Jan 21450 PE
@@ -386,23 +385,13 @@ class PaidCallPut:
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
 
-    def get_closest_match(self, symbol):
-        if symbol in all_symbols:
-            return symbol
-        closest_match = difflib.get_close_matches(symbol, all_symbols, n=2)
-        if closest_match:
-            return closest_match[0]
-        else:
-            return None
 
     def get_symbol_from_message(self, message):
         for word in message.upper().split():
+            if word in spell_checks:
+                word = spell_checks[word]
             word = word.strip()
             if word in all_symbols:
-                return word
-        for word in message.upper().split():
-            word = word.strip()
-            if self.get_closest_match(word):
                 return word
         return "BANKNIFTY"
 
