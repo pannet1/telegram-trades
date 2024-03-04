@@ -1,10 +1,6 @@
 # https://github.com/jerokpradeep/pya3
-import logging
 from omspy_brokers.alice_blue import AliceBlue
-import sys
-
-
-logging.basicConfig(level=logging.INFO)
+from constants import logging
 
 
 def get_broker(BRKR):
@@ -14,7 +10,9 @@ def get_broker(BRKR):
     """
     api = AliceBlue(user_id=BRKR['username'], api_key=BRKR["api_secret"])
     if api.authenticate():
-        logging.debug(f"Authenticated with token {api.token}")
-        return api
+        # get attributes of api object
+        logging.debug(f"Authenticated with token {vars(api)}")
     else:
-        sys.exit("Failed to authenticate")
+        logging.error("Authentication failed")
+        __import__("sys").exit(1)
+    return api
