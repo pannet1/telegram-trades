@@ -2,7 +2,7 @@ from telethon.sync import TelegramClient, events
 import csv
 from datetime import datetime
 from constants import TGRM
-from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallPut
+from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption
 from logzero import logger
 import traceback
 
@@ -37,6 +37,9 @@ async def my_event_handler(event):
                 i.get_signal()
             elif chat.title == "Paid - CALL & PUT":
                 i = PaidCallPut(now, msg)
+                i.get_signal()
+            elif chat.title == "Paid Stock & Index Option":
+                i = PaidStockIndexOption(now, msg)
                 i.get_signal()
         except:
             logger.error(traceback.format_exc())

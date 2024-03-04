@@ -501,10 +501,9 @@ class PaidCallPut:
             for word in ltp_words:
                 ltp_range = self.get_target_values(self.message, word)
                 if ltp_range:
-                    
                     break
             else:
-                raise CustomError("target values is not found")
+                raise CustomError("ltp_range values is not found")
             _signal_details = {
                 "channel_name": "PaidCallPut",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -525,6 +524,145 @@ class PaidCallPut:
         except:
             failure_details = {
                 "channel_name": "PaidCallPut",
+                "timestamp": self.msg_received_timestamp,
+                "message": self.message,
+                "exception": traceback.format_exc().strip(),
+            }
+            logger.error(failure_details)
+            write_failure_to_csv(failure_details)
+
+
+class PaidStockIndexOption:
+    channel_number = 4
+    sl = 0.25
+    def __init__(self, msg_received_timestamp, telegram_msg):
+        self.msg_received_timestamp = msg_received_timestamp
+        self.message = telegram_msg
+        try:
+            self.message_upper = telegram_msg.upper().split("BUY ")[1].replace("  "," ").replace("\n", " ").replace("-", " ").replace("/", " ").strip()
+        except:
+            pass
+    
+
+    def get_target_values(self, string_val, start_val):
+        float_values = []
+        try:
+            v = string_val.upper().replace("-", " ").replace("/", " ").split(start_val)
+            for word in v[1].strip().split():
+                if word.replace(".", "", 1).isdigit():
+                    float_values.append(word)
+                else:
+                    break
+        except:
+            pass
+        return float_values
+    
+    def coin_option_name(self, df, symbol, strike, option_type):
+        filtered_df = df[
+            (df["Exch"] == "NFO")
+            & (df["Symbol"] == symbol)
+            & (df["Strike Price"] == float(strike))
+            & (df["Option Type"] == option_type)
+        ]
+        filtered_df = filtered_df.sort_values(by="Expiry Date")
+        first_row = filtered_df.head(1)
+        return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+    
+
+    def get_signal(self):
+        try:
+            new_msg = self.message.strip().upper().split('$$$$')[-1]
+            is_close_msg = any([word in new_msg for word in close_words])
+            is_reply_msg = '$$$$' in self.message
+            if is_reply_msg and is_close_msg:
+                # is a reply message and has close words in it:
+                pass
+            elif not is_reply_msg:
+                # is not a reply message
+                pass
+            elif is_reply_msg and not is_close_msg:
+                # is a reply message but not having close words
+                # duplicate or junk
+                failure_details = {
+                    "channel_name": "PaidStockIndexOption",
+                    "timestamp": self.msg_received_timestamp,
+                    "message": self.message,
+                    "exception": "is a reply message but not having close words. Possible duplicate or junk",
+                }
+                write_failure_to_csv(failure_details)
+                return 
+            msg_split = [m.strip() for m in self.message.split()]
+            sym = msg_split[0]
+            if str(msg_split[1]).endswith('PE'):
+                option_type = "PE"
+                strike = str(msg_split[1])[:-2]
+            elif str(msg_split[1]).endswith('CE'):
+                option_type = "CE"
+                strike = str(msg_split[1])[:-2]
+            else:
+                option_type = str(msg_split[2])
+                strike = msg_split[1]
+            symbol_dict = self.coin_option_name(
+                scrip_info_df, sym, strike, option_type
+            )
+
+            ltp_words = ["RANGE", "ABOVE", "NEAR LEVEL"]
+            target_words = ["TARGET", "TRG"]
+            sl_words = ["SL", "STOPLOSS"]
+
+            
+            ltp_range = None
+            for word in ltp_words:
+                ltp_range = self.get_target_values(self.message_upper, word)
+                if ltp_range:
+                    break
+            else:
+                raise CustomError("ltp_range values is not found")
+            
+            target_range = None
+            for word in target_words:
+                target_range = self.get_target_values(self.message_upper, word)
+                if target_range:
+                    break
+            else:
+                raise CustomError("target_range values is not found")
+            
+            sl_range = None
+            for word in sl_words:
+                sl_range = self.get_target_values(self.message_upper, word)
+                if sl_range:
+                    break
+            if not sl_words:
+                for word in sl_words:
+                    if word in self.message_upper:
+                        v = self.message_upper.split(word)[1]
+                        v_list = [v_.strip() for v_ in v.split() if v_.strip()]
+                        if v_list[0] in ("TOMORROW", "PAID"):
+                            sl_range = [float(ltp_range[0]) * (1 - PaidStockIndexOption.sl)]
+                            break
+                else:
+                    raise CustomError("sl_range values is not found")
+            
+            _signal_details = {
+                "channel_name": "PaidStockIndexOption",
+                "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
+                "ltp_range": "|".join(ltp_range),
+                "target_range": "|".join(target_range),
+                "sl": "|".join(sl_words),
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"]),
+                "action": "Cancel" if is_close_msg else "Buy",
+            }
+            if _signal_details in signals:
+                raise CustomError("Signal already exists")
+            else:
+                signals.append(_signal_details)
+            signal_details = _signal_details.copy()
+            signal_details["timestamp"] = f"{PaidStockIndexOption.channel_number}{self.msg_received_timestamp}"
+            logger.info(signal_details)
+            write_signals_to_csv(signal_details)
+        except:
+            failure_details = {
+                "channel_name": "PaidStockIndexOption",
                 "timestamp": self.msg_received_timestamp,
                 "message": self.message,
                 "exception": traceback.format_exc().strip(),
