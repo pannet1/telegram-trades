@@ -2,21 +2,24 @@
 input_file = "data/output.csv"
 import pandas as pd
 
-from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallPut
+from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption
 
 
 
 df = pd.read_csv(input_file, header=None)
 for i, row in df.iterrows():
-    # print(i, row)
-    if row[1] == "PREMIUM JACKPOT":
-        i = PremiumJackpot(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "SMS Options Premium":
-        i = SmsOptionsPremium(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "Paid - CALL & PUT":
-        i = PaidCallPut(row[0], row[2])
+#     # print(i, row)
+#     if row[1] == "PREMIUM JACKPOT":
+#         i = PremiumJackpot(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "SMS Options Premium":
+#         i = SmsOptionsPremium(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "Paid - CALL & PUT":
+#         i = PaidCallPut(row[0], row[2])
+#         i.get_signal()
+    if row[1] == "Paid Stock & Index Option":
+        i = PaidStockIndexOption(row[0], row[2])
         i.get_signal()
 
 
@@ -39,3 +42,7 @@ for i, row in df.iterrows():
 # for msg in ["6th march expiry  BUY 46800 CE ONLY ABV 350 SL- 310 TARGET -460  CMP - 335", "7th march expiry nifty  buy 22150 PE CMP 135/130 SL-120 TARGTE-200-250+"]:
 #     i = PaidCallPut(1707192066, msg)
 #     i.get_signal()
+# close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID", "PROFIT", "LOSS", "TRIAL", "TRAIL", "IGNORE")
+msg = "  INTRADAY + BTST INDEX OPTION TRADE     BUY - BANKNIFTY 47700 PE   NEAR LEVEL -- 380-405  TARGET - 550/650/750  STOPLOSS -- TOMORROW   EXPIRY -  6 MARCH INTRADAY + BTST BANKNIFTY 47700 PE  405 TO 505   25%+ PROFIT 100++ POINTS RUNNING     SAFE TRADERS CAN BOOK PROFIT  OR TRAIL SL   "
+i = PaidStockIndexOption(1707192066, msg)
+i.get_signal()

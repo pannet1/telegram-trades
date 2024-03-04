@@ -28,7 +28,7 @@ spell_checks = {
     "F1NIFTY": "FINNIFTY",
     "N1FTY": "NIFTY",
 }
-close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID", "PROFIT", "LOSS", "TRIAL", "IGNORE")
+close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID", "PROFIT", "LOSS", "TRIAL", "TRAIL", "IGNORE")
 
 class CustomError(Exception):
     pass
@@ -146,7 +146,7 @@ class PremiumJackpot:
             statement = self.message
             is_reply_msg = '$$$$' in statement
             new_msg = self.message.upper().split('$$$$')[-1]
-            is_close_msg = any([word in new_msg for word in close_words])
+            is_close_msg = any([word in new_msg.split() for word in close_words])
             if is_reply_msg and is_close_msg:
                 # is a reply message and has close words in it:
                 pass
@@ -315,7 +315,7 @@ class SmsOptionsPremium:
     def get_signal(self):
         statement = self.message.strip().upper()
         new_msg = self.message.strip().upper().split('$$$$')[-1]
-        is_close_msg = any([word in new_msg for word in close_words])
+        is_close_msg = any([word in new_msg.split() for word in close_words])
         is_sl_message = "SL FOR TRADE @ " in statement.split('$$$$')[-1]
         is_spot_message = "SPOT" in statement
         is_reply_msg = '$$$$' in statement
@@ -407,8 +407,7 @@ class PaidCallPut:
 
     def coin_option_name(self, df, symbol, strike, option_type):
         filtered_df = df[
-            (df["Exch"] == "NFO")
-            & (df["Symbol"] == symbol)
+            (df["Symbol"] == symbol)
             & (df["Strike Price"] == float(strike))
             & (df["Option Type"] == option_type)
             # & (df["Expiry Date"] == f"2024-{month}-{date}")
@@ -433,7 +432,7 @@ class PaidCallPut:
     def get_signal(self):
         try:
             new_msg = self.message.strip().upper().split('$$$$')[-1]
-            is_close_msg = any([word in new_msg for word in close_words])
+            is_close_msg = any([word in new_msg.split() for word in close_words])
             is_reply_msg = '$$$$' in self.message
             if is_reply_msg and is_close_msg :
                 # is a reply message and has close words in it:
@@ -559,8 +558,7 @@ class PaidStockIndexOption:
     
     def coin_option_name(self, df, symbol, strike, option_type):
         filtered_df = df[
-            (df["Exch"] == "NFO")
-            & (df["Symbol"] == symbol)
+            (df["Symbol"] == symbol)
             & (df["Strike Price"] == float(strike))
             & (df["Option Type"] == option_type)
         ]
@@ -572,7 +570,7 @@ class PaidStockIndexOption:
     def get_signal(self):
         try:
             new_msg = self.message.strip().upper().split('$$$$')[-1]
-            is_close_msg = any([word in new_msg for word in close_words])
+            is_close_msg = any([word in new_msg.split() for word in close_words])
             is_reply_msg = '$$$$' in self.message
             if is_reply_msg and is_close_msg:
                 # is a reply message and has close words in it:
@@ -591,7 +589,7 @@ class PaidStockIndexOption:
                 }
                 write_failure_to_csv(failure_details)
                 return 
-            msg_split = [m.strip() for m in self.message.split()]
+            msg_split = [m.strip() for m in self.message_upper.split()]
             sym = msg_split[0]
             if str(msg_split[1]).endswith('PE'):
                 option_type = "PE"
@@ -632,16 +630,18 @@ class PaidStockIndexOption:
                 sl_range = self.get_target_values(self.message_upper, word)
                 if sl_range:
                     break
-            if not sl_words:
+            if not sl_range:
                 for word in sl_words:
                     if word in self.message_upper:
                         v = self.message_upper.split(word)[1]
+                        if not v.strip():
+                            continue
                         v_list = [v_.strip() for v_ in v.split() if v_.strip()]
                         if v_list[0] in ("TOMORROW", "PAID"):
-                            sl_range = [float(ltp_range[0]) * (1 - PaidStockIndexOption.sl)]
+                            sl_range = [str(float(ltp_range[0]) * (1 - PaidStockIndexOption.sl))]
                             break
-                else:
-                    raise CustomError("sl_range values is not found")
+            if not sl_range:
+                raise CustomError("sl_range values is not found")
             
             _signal_details = {
                 "channel_name": "PaidStockIndexOption",
