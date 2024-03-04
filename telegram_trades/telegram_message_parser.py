@@ -648,7 +648,7 @@ class PaidStockIndexOption:
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(ltp_range),
                 "target_range": "|".join(target_range),
-                "sl": "|".join(sl_words),
+                "sl": "|".join(sl_range),
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"]),
                 "action": "Cancel" if is_close_msg else "Buy",
             }
