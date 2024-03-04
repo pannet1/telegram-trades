@@ -406,8 +406,10 @@ class PaidCallPut:
         return float_values
 
     def coin_option_name(self, df, symbol, strike, option_type):
+        exch = "BFO" if symbol in ["SENSEX", "BANKEX"] else "NFO"
         filtered_df = df[
-            (df["Symbol"] == symbol)
+            (df["Exch"] == exch)
+            & (df["Symbol"] == symbol)
             & (df["Strike Price"] == float(strike))
             & (df["Option Type"] == option_type)
             # & (df["Expiry Date"] == f"2024-{month}-{date}")
@@ -557,8 +559,10 @@ class PaidStockIndexOption:
         return float_values
     
     def coin_option_name(self, df, symbol, strike, option_type):
+        exch = "BFO" if symbol in ["SENSEX", "BANKEX"] else "NFO"
         filtered_df = df[
-            (df["Symbol"] == symbol)
+            (df["Exch"] == exch)
+            & (df["Symbol"] == symbol)
             & (df["Strike Price"] == float(strike))
             & (df["Option Type"] == option_type)
         ]
@@ -640,6 +644,9 @@ class PaidStockIndexOption:
                         if v_list[0] in ("TOMORROW", "PAID"):
                             sl_range = [str(float(ltp_range[0]) * (1 - PaidStockIndexOption.sl))]
                             break
+            else:
+                if sym in ('SENSEX', 'BANKEX', 'NIFTY', 'BANKNIFTY', 'MIDCPNIFTY', 'FINNIFTY'):
+                    sl_range = [str(float(sl)/2) for sl in sl_range]
             if not sl_range:
                 raise CustomError("sl_range values is not found")
             

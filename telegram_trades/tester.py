@@ -43,6 +43,6 @@ for i, row in df.iterrows():
 #     i = PaidCallPut(1707192066, msg)
 #     i.get_signal()
 # close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID", "PROFIT", "LOSS", "TRIAL", "TRAIL", "IGNORE")
-msg = "  INTRADAY + BTST INDEX OPTION TRADE     BUY - BANKNIFTY 47700 PE   NEAR LEVEL -- 380-405  TARGET - 550/650/750  STOPLOSS -- TOMORROW   EXPIRY -  6 MARCH INTRADAY + BTST BANKNIFTY 47700 PE  405 TO 505   25%+ PROFIT 100++ POINTS RUNNING     SAFE TRADERS CAN BOOK PROFIT  OR TRAIL SL   "
-i = PaidStockIndexOption(1707192066, msg)
-i.get_signal()
+# msg = "INTRADAY + BTST STOCK OPTION TRADE   BUY NTPC 350 PE RANGE 6-6.50 TRG 8-11-17 SL 4"
+# i = PaidStockIndexOption(1707192066, msg)
+# i.get_signal()
