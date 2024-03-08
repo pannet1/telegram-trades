@@ -11,4 +11,5 @@ BRKR = SETG["aliceblue"]
 logging.debug(BRKR)
 TGRM = SETG["telegram"]
 logging.debug(TGRM)
+CHANNEL_DETAILS = SETG["channel_details"]
 UTIL = Utilities()
