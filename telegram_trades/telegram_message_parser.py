@@ -46,17 +46,17 @@ def get_multiplier(symbol, channel_config):
     df = pd.concat([nfo_df, bfo_df])
     lot_size = df.loc[df['Trading Symbol'] == symbol, 'Lot Size'].iloc[0]
     if "BANKNIFTY" in symbol:
-        return "|".join([str(lot_size)] * channel_config.get("BANKNIFTY", 1))
+        return "|".join([str(15)] * channel_config.get("BANKNIFTY", 1))
     elif "FINNIFTY" in symbol:
-        return "|".join([str(lot_size)] * channel_config.get("FINNIFTY", 1))
+        return "|".join([str(40)] * channel_config.get("FINNIFTY", 1))
     elif "MIDCPNIFTY" in symbol:
-        return "|".join([str(lot_size)] * channel_config.get("MIDCPNIFTY", 1))
+        return "|".join([str(70)] * channel_config.get("MIDCPNIFTY", 1))
     elif "NIFTY" in symbol:
-        return "|".join([str(lot_size)] * channel_config.get("NIFTY", 1))
+        return "|".join([str(50)] * channel_config.get("NIFTY", 1))
     elif "SENSEX" in symbol:
-        return "|".join([str(lot_size)] * channel_config.get("SENSEX", 1))
+        return "|".join([str(10)] * channel_config.get("SENSEX", 1))
     elif "BANKEX" in symbol:
-        return "|".join([str(lot_size)] * channel_config.get("BANKEX", 1))
+        return "|".join([str(15)] * channel_config.get("BANKEX", 1))
     return lot_size
 
 
