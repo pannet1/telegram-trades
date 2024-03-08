@@ -53,7 +53,7 @@ def update_lst_of_dct_with_vals(lst_of_dct, key, **kwargs):
 
 def filter_by_keys(keys: List, lst: List[Dict]) -> List[Dict]:
     new_lst = []
-    if lst and any(lst):
+    if lst and isinstance(lst, list) and any(lst):
         for dct in lst:
             new_dct = {}
             for key in keys:
@@ -83,7 +83,7 @@ def filtered_orders(api, order_id):
                 for order in lst
                 if order['order_id'] == order_id][0]
     else:
-        return [order for order in lst if order["quantity"] == 1]
+        return [order for order in lst if order["quantity"] <= 2]
 
 
 def order_modify(lst, order_id):
@@ -117,10 +117,12 @@ if __name__ == "__main__":
     api = get_broker(BRKR)
 
     lst = filtered_positions(api)
-    print(pd.DataFrame(lst).set_index("symbol"))
+    if any(lst):
+        print(pd.DataFrame(lst).set_index("symbol"))
 
     lst = filtered_orders(api, None)
-    print(pd.DataFrame(lst).set_index("order_id"))
+    if any(lst):
+        print(pd.DataFrame(lst).set_index("order_id"))
 
     updates = {
         "order_type": "MKT",
@@ -153,7 +155,6 @@ if __name__ == "__main__":
 
     order_cancelled = api.order_cancel("24012400365338")
     print(f"{order_cancelled=}")
-    """
 
     order_id = "24012400368866"
     norder = order_modify(lst, order_id)
@@ -166,3 +167,4 @@ if __name__ == "__main__":
         norder.pop("trigger_price", None)
         modified_order = api.order_modify(**norder)
         print(f"{modified_order=}")
+    """
