@@ -513,7 +513,7 @@ class PaidCallPut:
                 "ltp_range": "|".join(ltp_range),
                 "target_range": "|".join(targets),
                 "sl": sl,
-                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidCallPut.channel_number),
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidCallPut.channel_details),
                 "action": "Cancel" if is_close_msg else "Buy",
             }
             if _signal_details in signals:
