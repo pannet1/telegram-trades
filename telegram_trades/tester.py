@@ -9,16 +9,16 @@ from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallP
 df = pd.read_csv(input_file, header=None)
 for i, row in df.iterrows():
 #     # print(i, row)
-#     if row[1] == "PREMIUM JACKPOT":
-#         i = PremiumJackpot(row[0], row[2])
-#         i.get_signal()
-#     elif row[1] == "SMS Options Premium":
-#         i = SmsOptionsPremium(row[0], row[2])
-#         i.get_signal()
-#     elif row[1] == "Paid - CALL & PUT":
-#         i = PaidCallPut(row[0], row[2])
-#         i.get_signal()
-    if row[1] == "Paid Stock & Index Option":
+    if row[1] == "PREMIUM JACKPOT":
+        i = PremiumJackpot(row[0], row[2])
+        i.get_signal()
+    elif row[1] == "SMS Options Premium":
+        i = SmsOptionsPremium(row[0], row[2])
+        i.get_signal()
+    elif row[1] == "Paid - CALL & PUT":
+        i = PaidCallPut(row[0], row[2])
+        i.get_signal()
+    elif row[1] == "Paid Stock & Index Option":
         i = PaidStockIndexOption(row[0], row[2])
         i.get_signal()
 
