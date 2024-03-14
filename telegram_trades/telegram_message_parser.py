@@ -44,23 +44,23 @@ def download_masters(broker):
             broker.get_contract_master(exchange)
 
 
-def get_multiplier(symbol, channel_config):
+def get_multiplier(symbol, channel_config, num_of_targets=1):
     nfo_df = pd.read_csv("NFO.csv")
     bfo_df = pd.read_csv("BFO.csv")
     df = pd.concat([nfo_df, bfo_df])
     lot_size = df.loc[df['Trading Symbol'] == symbol, 'Lot Size'].iloc[0]
     if "BANKNIFTY" in symbol:
-        return "|".join([str(15)] * channel_config.get("BANKNIFTY", 1))
+        return "|".join([str(15)] * channel_config.get("BANKNIFTY", 1)) if num_of_targets>1 else str(15*channel_config.get("BANKNIFTY", 1))
     elif "FINNIFTY" in symbol:
-        return "|".join([str(40)] * channel_config.get("FINNIFTY", 1))
+        return "|".join([str(40)] * channel_config.get("FINNIFTY", 1)) if num_of_targets>1 else str(40*channel_config.get("FINNIFTY", 1))
     elif "MIDCPNIFTY" in symbol:
-        return "|".join([str(70)] * channel_config.get("MIDCPNIFTY", 1))
+        return "|".join([str(70)] * channel_config.get("MIDCPNIFTY", 1)) if num_of_targets>1 else str(70*channel_config.get("MIDCPNIFTY", 1))
     elif "NIFTY" in symbol:
-        return "|".join([str(50)] * channel_config.get("NIFTY", 1))
+        return "|".join([str(50)] * channel_config.get("NIFTY", 1)) if num_of_targets>1 else str(50*channel_config.get("NIFTY", 1))
     elif "SENSEX" in symbol:
-        return "|".join([str(10)] * channel_config.get("SENSEX", 1))
+        return "|".join([str(10)] * channel_config.get("SENSEX", 1)) if num_of_targets>1 else str(10*channel_config.get("SENSEX", 1))
     elif "BANKEX" in symbol:
-        return "|".join([str(15)] * channel_config.get("BANKEX", 1))
+        return "|".join([str(15)] * channel_config.get("BANKEX", 1)) if num_of_targets>1 else str(15*channel_config.get("BANKEX", 1))
     return lot_size
 
 
@@ -192,7 +192,7 @@ class PremiumJackpot:
                 "ltp_range":ltps,
                 "target_range": targets,
                 "sl": re.findall(r"SL-(\d+)?", parts[3])[0],
-                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumJackpot.channel_details),
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumJackpot.channel_details, len(targets)),
                 "action": "Cancel"
                 if is_close_msg
                 else "Buy",
@@ -310,7 +310,7 @@ class SmsOptionsPremium:
                     "ltp_range": ltps,
                     "target_range": targets,
                     "sl": sl,
-                    "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details),
+                    "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details, len(targets)),
                     "action": "Buy"
                 }
                 if _signal_details in signals:
@@ -383,7 +383,7 @@ class SmsOptionsPremium:
                 "ltp_range": ltps,
                 "target_range": targets,
                 "sl": sl,
-                "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details),
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details, len(targets)),
                 "action": "Cancel" if is_close_msg else "Buy",
             }
             if _signal_details in signals:
@@ -544,7 +544,7 @@ class PaidCallPut:
                 "ltp_range": ltps,
                 "target_range": targets,
                 "sl": sl,
-                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidCallPut.channel_details),
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidCallPut.channel_details, len(targets)),
                 "action": "Cancel" if is_close_msg else "Buy",
             }
             if _signal_details in signals:
@@ -695,7 +695,7 @@ class PaidStockIndexOption:
                 "ltp_range": ltps,
                 "target_range": targets,
                 "sl": "|".join(sl_range),
-                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidStockIndexOption.channel_details),
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidStockIndexOption.channel_details, len(targets)),
                 "action": "Cancel" if is_close_msg else "Buy",
             }
             if _signal_details in signals:
