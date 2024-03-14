@@ -6,10 +6,10 @@ import csv
 import traceback
 from datetime import datetime
 from login import get_broker
-from constants import BRKR, FUTL, CHANNEL_DETAILS
+from constants import BRKR, FUTL, CHANNEL_DETAILS, DATA
 from logzero import logger
 
-signals_csv_filename = "data/signals.csv"
+signals_csv_filename = DATA + "signals.csv"
 signals_csv_file_headers = [
     "channel_name",
     "timestamp",
@@ -21,17 +21,21 @@ signals_csv_file_headers = [
     "action",
     "normal_timestamp",
 ]
-failure_csv_filename = "data/failures.csv"
-failure_csv_file_headers = ["channel_name", "timestamp", "message", "exception", "normal_timestamp",]
+failure_csv_filename = DATA + "failures.csv"
+failure_csv_file_headers = ["channel_name", "timestamp",
+                            "message", "exception", "normal_timestamp",]
 signals = []
 spell_checks = {
     "F1NIFTY": "FINNIFTY",
     "N1FTY": "NIFTY",
 }
-close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID", "PROFIT", "LOSS", "TRIAL", "TRAIL", "IGNORE")
+close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID",
+               "PROFIT", "LOSS", "TRIAL", "TRAIL", "IGNORE")
+
 
 class CustomError(Exception):
     pass
+
 
 def download_masters(broker):
     exchanges = ["NFO", "BFO"]
@@ -88,7 +92,8 @@ def get_all_contract_details(exchange=None):
 def write_signals_to_csv(_signal_details):
     with open(signals_csv_filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=signals_csv_file_headers)
-        _signal_details["normal_timestamp"] = datetime.fromtimestamp(int(_signal_details["timestamp"][1:])).strftime('%Y-%m-%d %H:%M:%S')
+        _signal_details["normal_timestamp"] = datetime.fromtimestamp(
+            int(_signal_details["timestamp"][1:])).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
             {k: _signal_details.get(k, "") for k in signals_csv_file_headers}
         )
@@ -97,7 +102,8 @@ def write_signals_to_csv(_signal_details):
 def write_failure_to_csv(failure_details):
     with open(failure_csv_filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=failure_csv_file_headers)
-        failure_details["normal_timestamp"] = datetime.fromtimestamp(failure_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
+        failure_details["normal_timestamp"] = datetime.fromtimestamp(
+            failure_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
             {k: failure_details.get(k, "") for k in failure_csv_file_headers}
         )
@@ -111,7 +117,7 @@ all_symbols = set(scrip_info_df["Symbol"].to_list())
 
 class PremiumJackpot:
     split_words = ["BUY", "ABOVE", "NEAR", "TARGET", "TARGE"]
-    channel_details = CHANNEL_DETAILS["PremiumJackpot"] 
+    channel_details = CHANNEL_DETAILS["PremiumJackpot"]
     channel_number = channel_details["channel_number"]
 
     def __init__(self, msg_received_timestamp, telegram_msg):
@@ -147,7 +153,8 @@ class PremiumJackpot:
             statement = self.message
             is_reply_msg = '$$$$' in statement
             new_msg = self.message.upper().split('$$$$')[-1]
-            is_close_msg = any([word in new_msg.split() for word in close_words])
+            is_close_msg = any([word in new_msg.split()
+                               for word in close_words])
             if is_reply_msg and is_close_msg:
                 # is a reply message and has close words in it:
                 pass
@@ -172,13 +179,18 @@ class PremiumJackpot:
             symbol_from_tg = parts[1].strip().removeprefix("#")
             sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
+            ltps =  "|".join(re.findall(r"\d+\.\d+|\d+", parts[2]))
+            targets = "|".join(
+                    re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
+                )
+            ltp_max = max([float(ltp) for ltp in ltps.split("|") if ltp.replace('.','',1).isdigit()])
+            if targets[0] < ltps[0]:
+                targets = [str(float(target) + ltp_max) for target in targets if target.replace('.','',1).isdigit()]
             __signal_details = {
                 "channel_name": "Premium jackpot",
                 "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
-                "ltp_range": "|".join(re.findall(r"\d+\.\d+|\d+", parts[2])),
-                "target_range": "|".join(
-                    re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
-                ),
+                "ltp_range":ltps,
+                "target_range": targets,
                 "sl": re.findall(r"SL-(\d+)?", parts[3])[0],
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumJackpot.channel_details),
                 "action": "Cancel"
@@ -205,15 +217,15 @@ class PremiumJackpot:
 
 
 class SmsOptionsPremium:
-    split_words = ["BUY", "ONLY IN RANGE @", "TARGET" ,"SL FOR TRADE @ "]
-    channel_details = CHANNEL_DETAILS["SmsOptionsPremium"] 
+    split_words = ["BUY", "ONLY IN RANGE @", "TARGET", "SL FOR TRADE @ "]
+    channel_details = CHANNEL_DETAILS["SmsOptionsPremium"]
     spot_sl = channel_details["spot_sl"]
     channel_number = channel_details["channel_number"]
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
-      
+
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
             symbol = spell_checks[symbol]
@@ -221,7 +233,7 @@ class SmsOptionsPremium:
             return symbol
         raise CustomError("Closest match is not found")
 
-    def get_instrument_name(self, symbol_from_tg): 
+    def get_instrument_name(self, symbol_from_tg):
         # FinNifty 9 Jan 21450 PE
         try:
             # sym, date, month, strike, option_type = symbol_from_tg.split()
@@ -280,18 +292,23 @@ class SmsOptionsPremium:
                         symbol_d = " ".join(statement.split()[:i+1])
                         break
                 if not symbol_d:
-                    continue 
+                    continue
                 # symbol_d = " ".join(statement.split()[:5])
-                symbol_dict = self.get_instrument_name(symbol_d)  
+                symbol_dict = self.get_instrument_name(symbol_d)
                 ltp_range = self.get_float_values(statement, "ABOVE ")
                 sl = float(ltp_range[0]) * (1 - SmsOptionsPremium.spot_sl)
+                ltps =  "|".join(self.get_float_values(statement, "ABOVE "))
+                targets = "|".join(
+                        self.get_float_values(statement, "TARGETS @ ")
+                    )
+                ltp_max = max([float(ltp) for ltp in ltps.split("|") if ltp.replace('.','',1).isdigit()])
+                if targets[0] < ltps[0]:
+                    targets = [str(float(target) + ltp_max) for target in targets if target.replace('.','',1).isdigit()]
                 _signal_details = {
                     "channel_name": "SmsOptionsPremium",
                     "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
-                    "ltp_range": "|".join(self.get_float_values(statement, "ABOVE ")),
-                    "target_range": "|".join(
-                        self.get_float_values(statement, "TARGETS @ ")
-                    ),
+                    "ltp_range": ltps,
+                    "target_range": targets,
                     "sl": sl,
                     "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details),
                     "action": "Buy"
@@ -340,7 +357,7 @@ class SmsOptionsPremium:
                 "exception": "is a reply message but not having close words and sl message. Possible duplicate or junk",
             }
             write_failure_to_csv(failure_details)
-            return 
+            return
 
         for word in SmsOptionsPremium.split_words:
             statement = statement.replace(word, "|")
@@ -351,14 +368,20 @@ class SmsOptionsPremium:
                 sl = re.findall(r"(\d+)?", statement.split("$$$$")[-1])[0]
                 if not sl:
                     raise CustomError(f"SL is not found in {parts[4]}")
-            symbol_dict = self.get_instrument_name(parts[1].upper().strip())          
+            symbol_dict = self.get_instrument_name(parts[1].upper().strip())
+            ltps =  "|".join(re.findall(r"\d+\.\d+|\d+", parts[2]))
+            targets =  "|".join(
+                    self.get_float_values(
+                        self.message.strip().upper(), "TARGET")
+                )
+            ltp_max = max([float(ltp) for ltp in ltps.split("|") if ltp.replace('.','',1).isdigit()])
+            if targets[0] < ltps[0]:
+                targets = [str(float(target) + ltp_max) for target in targets if target.replace('.','',1).isdigit()]
             _signal_details = {
                 "channel_name": "SmsOptionsPremium",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
-                "ltp_range": "|".join(re.findall(r"\d+\.\d+|\d+", parts[2])),
-                "target_range": "|".join(
-                    self.get_float_values(self.message.strip().upper(), "TARGET")
-                ),
+                "ltp_range": ltps,
+                "target_range": targets,
                 "sl": sl,
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details),
                 "action": "Cancel" if is_close_msg else "Buy",
@@ -383,10 +406,10 @@ class SmsOptionsPremium:
 class PaidCallPut:
     channel_details = CHANNEL_DETAILS["PaidCallPut"]
     channel_number = channel_details["channel_number"]
+
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
-
 
     def get_symbol_from_message(self, message):
         for word in message.upper().split():
@@ -436,9 +459,10 @@ class PaidCallPut:
     def get_signal(self):
         try:
             new_msg = self.message.strip().upper().split('$$$$')[-1]
-            is_close_msg = any([word in new_msg.split() for word in close_words])
+            is_close_msg = any([word in new_msg.split()
+                               for word in close_words])
             is_reply_msg = '$$$$' in self.message
-            if is_reply_msg and is_close_msg :
+            if is_reply_msg and is_close_msg:
                 # is a reply message and has close words in it:
                 pass
             elif not is_reply_msg:
@@ -454,7 +478,7 @@ class PaidCallPut:
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
                 write_failure_to_csv(failure_details)
-                return 
+                return
 
             symbol = self.get_symbol_from_message(self.message)
             print(symbol)
@@ -485,7 +509,8 @@ class PaidCallPut:
                 ):
                     strike = req_content[i + 1].strip()
                     option = req_content[i + 2].strip()
-            sl_list = self.get_float_values(self.message.strip().upper().replace("-",""), "SL")
+            sl_list = self.get_float_values(
+                self.message.strip().upper().replace("-", ""), "SL")
             if sl_list:
                 sl = sl_list[0]
             else:
@@ -494,7 +519,8 @@ class PaidCallPut:
                 #     sl = re.findall(r"SL-(\d+)?", word.upper().strip())[0]
             if strike == None or option == None:
                 raise CustomError("Strike or Option is None")
-            targets = self.get_target_values(self.message.replace("TARGTE", "TARGET"), "TARGET")
+            targets = self.get_target_values(
+                self.message.replace("TARGTE", "TARGET"), "TARGET")
             symbol_dict = self.coin_option_name(
                 # scrip_info_df, symbol, date, month, strike, option
                 scrip_info_df, symbol, strike, option
@@ -507,11 +533,16 @@ class PaidCallPut:
                     break
             else:
                 raise CustomError("ltp_range values is not found")
+            ltps =  "|".join(ltp_range)
+            targets =  "|".join(targets)
+            ltp_max = max([float(ltp) for ltp in ltps.split("|") if ltp.replace('.','',1).isdigit()])
+            if targets[0] < ltps[0]:
+                targets = [str(float(target) + ltp_max) for target in targets if target.replace('.','',1).isdigit()]
             _signal_details = {
                 "channel_name": "PaidCallPut",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
-                "ltp_range": "|".join(ltp_range),
-                "target_range": "|".join(targets),
+                "ltp_range": ltps,
+                "target_range": targets,
                 "sl": sl,
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidCallPut.channel_details),
                 "action": "Cancel" if is_close_msg else "Buy",
@@ -539,14 +570,15 @@ class PaidStockIndexOption:
     channel_details = CHANNEL_DETAILS["PaidStockIndexOption"]
     channel_number = channel_details["channel_number"]
     sl = channel_details["default_sl"]
+
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
         try:
-            self.message_upper = telegram_msg.upper().split("BUY ")[1].replace("  "," ").replace("\n", " ").replace("-", " ").replace("/", " ").strip()
+            self.message_upper = telegram_msg.upper().split("BUY ")[1].replace(
+                "  ", " ").replace("\n", " ").replace("-", " ").replace("/", " ").strip()
         except:
             pass
-    
 
     def get_target_values(self, string_val, start_val):
         float_values = []
@@ -560,7 +592,7 @@ class PaidStockIndexOption:
         except:
             pass
         return float_values
-    
+
     def coin_option_name(self, df, symbol, strike, option_type):
         exch = "BFO" if symbol in ["SENSEX", "BANKEX"] else "NFO"
         filtered_df = df[
@@ -572,12 +604,12 @@ class PaidStockIndexOption:
         filtered_df = filtered_df.sort_values(by="Expiry Date")
         first_row = filtered_df.head(1)
         return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
-    
 
     def get_signal(self):
         try:
             new_msg = self.message.strip().upper().split('$$$$')[-1]
-            is_close_msg = any([word in new_msg.split() for word in close_words])
+            is_close_msg = any([word in new_msg.split()
+                               for word in close_words])
             is_reply_msg = '$$$$' in self.message
             if is_reply_msg and is_close_msg:
                 # is a reply message and has close words in it:
@@ -595,7 +627,7 @@ class PaidStockIndexOption:
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
                 write_failure_to_csv(failure_details)
-                return 
+                return
             msg_split = [m.strip() for m in self.message_upper.split()]
             sym = msg_split[0]
             if str(msg_split[1]).endswith('PE'):
@@ -615,7 +647,6 @@ class PaidStockIndexOption:
             target_words = ["TARGET", "TRG"]
             sl_words = ["SL", "STOPLOSS"]
 
-            
             ltp_range = None
             for word in ltp_words:
                 ltp_range = self.get_target_values(self.message_upper, word)
@@ -623,7 +654,7 @@ class PaidStockIndexOption:
                     break
             else:
                 raise CustomError("ltp_range values is not found")
-            
+
             target_range = None
             for word in target_words:
                 target_range = self.get_target_values(self.message_upper, word)
@@ -631,7 +662,7 @@ class PaidStockIndexOption:
                     break
             else:
                 raise CustomError("target_range values is not found")
-            
+
             sl_range = None
             for word in sl_words:
                 sl_range = self.get_target_values(self.message_upper, word)
@@ -645,19 +676,24 @@ class PaidStockIndexOption:
                             continue
                         v_list = [v_.strip() for v_ in v.split() if v_.strip()]
                         if v_list[0] in ("TOMORROW", "PAID"):
-                            sl_range = [str(float(ltp_range[0]) * (1 - PaidStockIndexOption.sl))]
+                            sl_range = [
+                                str(float(ltp_range[0]) * (1 - PaidStockIndexOption.sl))]
                             break
             # else:
             #     if sym in ('SENSEX', 'BANKEX', 'NIFTY', 'BANKNIFTY', 'MIDCPNIFTY', 'FINNIFTY'):
             #         sl_range = [str(float(sl)/2) for sl in sl_range]
             if not sl_range:
                 raise CustomError("sl_range values is not found")
-            
+            ltps =  "|".join(ltp_range)
+            targets =  "|".join(targets)
+            ltp_max = max([float(ltp) for ltp in ltps.split("|") if ltp.replace('.','',1).isdigit()])
+            if targets[0] < ltps[0]:
+                targets = [str(float(target) + ltp_max) for target in targets if target.replace('.','',1).isdigit()]
             _signal_details = {
                 "channel_name": "PaidStockIndexOption",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
-                "ltp_range": "|".join(ltp_range),
-                "target_range": "|".join(target_range),
+                "ltp_range": ltps,
+                "target_range": targets,
                 "sl": "|".join(sl_range),
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidStockIndexOption.channel_details),
                 "action": "Cancel" if is_close_msg else "Buy",

@@ -12,3 +12,4 @@ logging.debug(BRKR)
 TGRM = SETG["telegram"]
 logging.debug(TGRM)
 UTIL = Utilities()
+CHANNEL_DETAILS = SETG["channel_details"]
