@@ -83,7 +83,7 @@ def filtered_orders(api, order_id):
                 for order in lst
                 if order['order_id'] == order_id][0]
     else:
-        return [order for order in lst if order["quantity"] <= 2]
+        return [order for order in lst]
 
 
 def order_modify(lst, order_id):
@@ -109,7 +109,7 @@ def get_ltp(broker, exchange, symbol):
 
 
 if __name__ == "__main__":
-    from constants import BRKR
+    from constants import BRKR, DATA
     from login import get_broker
     import pandas as pd
     from rich import print
@@ -118,17 +118,21 @@ if __name__ == "__main__":
 
     lst = filtered_positions(api)
     if any(lst):
-        print(pd.DataFrame(lst).set_index("symbol"))
+        pos = pd.DataFrame(lst).set_index("symbol")
+        print(pos)
+        pos.to_csv(DATA + "pos.csv")
 
     lst = filtered_orders(api, None)
     if any(lst):
-        print(pd.DataFrame(lst).set_index("order_id"))
+        ord = pd.DataFrame(lst).set_index("order_id")
+        ord.to_csv(DATA + "ord.csv")
+
+    """
 
     updates = {
         "order_type": "MKT",
     }
 
-    """
     print(lst)
     for order in lst:
         UTIL.slp_til_nxt_sec()

@@ -51,6 +51,7 @@ def task_to_order_args(last_price, **task):
         args = {}
         trigger_price = 0.0
         order_type = "LMT"
+        task["entry_range"] = str(task["entry_range"])
         lst_bprc = list(map(float, task["entry_range"].split("|")))
         min_prc = min(lst_bprc)
         max_prc = max(lst_bprc)
@@ -67,7 +68,7 @@ def task_to_order_args(last_price, **task):
                 trigger_price=trigger_price,
                 order_type=order_type,
                 product="N",
-                remarks="entry"
+                remarks=task["channel"]
             )
     except Exception as e:
         log_exception(e, locals())
@@ -106,7 +107,13 @@ def square_off(api, order_id,
 
 
 def is_key_val(dct, key, val):
-    return dct.get(key, None) == val
+    # Check if the key exists in the dictionary
+    if key in dct:
+        # Compare the value associated with the key to the provided value
+        return dct[key] == val
+    else:
+        # If the key doesn't exist, return False
+        return False
 
 
 def show(task):
@@ -154,9 +161,8 @@ class TaskFunc:
             if ltp > 0:
                 task["fn"] = "UNKNOWN"
                 args = task_to_order_args(ltp, **task)
-                trigger = args.get("trigger_price", 0)
-                price = args.get("price", 0)
-                task["price"] = max(trigger, price)
+                task["price"] = max(args['trigger_price'],
+                                    args['price'])
                 task['ltp'] = ltp
                 task['pnl'] = 0
                 if any(args):
@@ -184,6 +190,9 @@ class TaskFunc:
             order_details = filtered_orders(
                 self.api, order_details["order_id"])
             if is_key_val(order_details, "Status", "complete"):
+                task["entry"] = order_details
+                logging.info(
+                    f"entry for {task['symbol']} is {order_details['Status']}")
                 task["fn"] = "stop1"
             elif order_details["Status"] in lst_ignore:
                 logging.error(f"is_entry: {order_details['Status']}")
@@ -204,7 +213,7 @@ class TaskFunc:
                 trigger_price=float(task["sl"]),
                 order_type="SL",
                 product="N",
-                remarks="exit"
+                remarks=task["channel"]
             )
             logging.info(f"stop args: {args}")
             resp = self.api.order_place(**args)
@@ -228,6 +237,7 @@ class TaskFunc:
             stop_order = task["stop"]
             stop_order = filtered_orders(self.api, stop_order["order_id"])
             if is_key_val(stop_order, "Status", "complete"):
+                task["stop"] = stop_order
                 task["fn"] = "STOPPED-OUT"
             else:
                 tgt = float(task["target_range"].split("|")[0])
@@ -271,7 +281,7 @@ class TaskFunc:
                             trigger_price=price,
                             order_type="SL",
                             product="N",
-                            remarks="exit2"
+                            remarks=task["channel"]
                         )
                         logging.info(f"stop loss order: {args}")
                         resp = self.api.order_place(**args)
@@ -300,6 +310,7 @@ class TaskFunc:
             trail_order = task["trail"]
             trail_order = filtered_orders(self.api, trail_order["order_id"])
             if is_key_val(trail_order, "Status", "complete"):
+                task["trail"] = trail_order
                 task["fn"] = "TRAILED-OUT"
             else:
                 tgt = float(task["target_range"].split("|")[1])
