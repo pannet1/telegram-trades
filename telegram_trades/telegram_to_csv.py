@@ -1,7 +1,7 @@
 from telethon.sync import TelegramClient, events
 import csv
 from datetime import datetime
-from constants import TGRM
+from constants import TGRM, DATA
 from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption
 from logzero import logger
 import traceback
@@ -17,7 +17,7 @@ replace_non_ascii = lambda s: ''.join(' ' if ord(i) >= 128 or i == '\n' else i f
 @client.on(events.NewMessage(chats=channel_ids))
 async def my_event_handler(event):
     chat = await event.get_chat()
-    with open(TGRM["output_file"], 'a', encoding='utf-8',  newline='') as csv_file:
+    with open(DATA + TGRM["output_file"], 'a', encoding='utf-8',  newline='') as csv_file:
         csv_writer = csv.writer(csv_file)
         now = int(datetime.now().timestamp())
         if event.reply_to_msg_id is not None:
