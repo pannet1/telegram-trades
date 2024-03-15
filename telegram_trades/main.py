@@ -342,7 +342,7 @@ class Jsondb:
         # input file
         if FUTL.is_file_not_2day(F_SIGNAL):
             # return empty list if file is not modified today
-            FUTL.write_file(filepath=F_TASK, content=[])
+            FUTL.write_file(filepath=F_TASK, content=None)
         # initate output task json file
         if FUTL.is_file_not_2day(F_TASK):
             FUTL.write_file(filepath=F_TASK, content=[])
@@ -386,8 +386,9 @@ class Jsondb:
     def read(self):
         try:
             all_calls = FUTL.read_file(F_TASK)
+            logging.debug("reading task file", all_calls)
             new_calls = self._read_new_buy_fm_csv(all_calls)
-            logging.debug("new calls", new_calls)
+            logging.debug("new calls from csv", new_calls)
             is_updated = False
             for task in self.sync(new_calls):
                 print(f"{task=}")

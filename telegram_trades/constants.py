@@ -3,7 +3,7 @@ from toolkit.logger import Logger
 from toolkit.utilities import Utilities
 
 DATA = "../data/"
-logging = Logger(20, DATA + "file.log")
+logging = Logger(10, DATA + "file.log")
 DIRP = "../../"
 FUTL = Fileutils()
 SETG = FUTL.get_lst_fm_yml(DIRP + "ravikanth.yml")
