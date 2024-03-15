@@ -685,7 +685,7 @@ class PaidStockIndexOption:
             if not sl_range:
                 raise CustomError("sl_range values is not found")
             ltps =  "|".join(ltp_range)
-            targets =  "|".join(targets)
+            targets =  "|".join(target_range)
             ltp_max = max([float(ltp) for ltp in ltps.split("|") if ltp.replace('.','',1).isdigit()])
             if targets[0] < ltps[0]:
                 targets = [str(float(target) + ltp_max) for target in targets if target.replace('.','',1).isdigit()]
