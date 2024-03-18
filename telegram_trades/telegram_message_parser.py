@@ -6,14 +6,14 @@ import shutil
 import csv
 import os
 import traceback
-from datetime import datetime, date
+from datetime import datetime
 from login import get_broker
 from constants import BRKR, FUTL, CHANNEL_DETAILS, DATA
 from logzero import logger
 
 signals_csv_filename = DATA + "signals.csv"
 if os.path.isfile(signals_csv_filename):
-    shutil.move(signals_csv_filename, signals_csv_filename.removesuffix(".csv")+f"_{date.isoformat()}.csv")
+    shutil.move(signals_csv_filename, signals_csv_filename.removesuffix(".csv")+f"_{datetime.now().strftime("%Y%m%d-%H%M%S")}.csv")
 signals_csv_file_headers = [
     "channel_name",
     "timestamp",
