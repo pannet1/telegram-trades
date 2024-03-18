@@ -9,7 +9,7 @@ import inspect
 from typing import List
 
 lst_ignore = ["UNKNOWN", "rejected", "cancelled",
-              "E-TRAIL", "E-STOP", "HARD-STOP",
+              "E-TRAIL", "E-STOP", "HARD-STOP", "XXX",
               "STOPPED-OUT", "TRAILED-OUT", "TRADES_COMPLETED"]
 F_SIGNAL = DATA + "signals.csv"
 F_TASK = DATA + "tasks.json"
@@ -336,6 +336,50 @@ class TaskFunc:
         finally:
             return task
 
+    def do_cancel(self,
+                  tasks,
+                  channel,
+                  symbol
+                  ):
+        try:
+            for task in tasks:
+                if task["symbol"] == symbol and \
+                    task["channel"] == channel and \
+                        task["fn"] not in lst_ignore:
+
+                order = task.get("trail", None)
+                if order:
+                    resp = square_off(
+                        self.api,
+                        order["order_id"],
+                        task["symbol"],
+                        task['q2'])
+                    logging.info(f"cancel trail: {resp}")
+                    task["fn"] = "XXX"
+                    break
+
+                order = task.get("stop", None)
+                if order:
+                    resp = square_off(
+                        self.api,
+                        order["order_id"],
+                        task["symbol"],
+                        task['tq'])
+                    logging.info(f"cancel stop: {resp}")
+                    task["fn"] = "XXX"
+                    break
+
+                order = task.get("entry", None)
+                if order:
+                    resp = self.api.order_cancel(order["order_id"])
+                    logging.info(f"cancel entry: {resp}")
+                    task["fn"] = "XXX"
+                    break
+
+        except Exception as e:
+            log_exception(e, locals())
+            traceback.print_exc()
+
 
 class Jsondb:
     def __init__(self) -> None:
@@ -367,6 +411,20 @@ class Jsondb:
         lst_of_dct = [dct
                       for dct in lst_of_dct
                       if dct["id"] not in ids and dct["action"] == 'Buy']
+        return lst_of_dct
+
+    def _read_cancellation_fm_csv(self, lst_of_dct: List):
+        ids = [task["id"] for task in lst_of_dct]
+        # TODO
+        columns = ['channel', 'id', 'symbol', 'entry_range', 'target_range',
+                   'sl',  'quantity', 'action', 'timestamp']
+        df = pd.read_csv(F_SIGNAL,
+                         names=columns,
+                         index_col=None)
+        lst_of_dct = df.to_dict(orient="records")
+        lst_of_dct = [dct
+                      for dct in lst_of_dct
+                      if dct["id"] not in ids and dct["action"] == 'Cancel']
         return lst_of_dct
 
     def sync(self, new_calls):
@@ -403,6 +461,25 @@ class Jsondb:
             print(e)
             traceback.print_exc()
 
+    def read_cancellation(self):
+        try:
+            all_calls = FUTL.read_file(F_TASK)
+            logging.debug("reading task file", all_calls)
+            new_cancellations = self._read_cancellation_fm_csv(all_calls)
+            new_cancellations = [dct.update({"fn": "do_cancel"})
+                                 for dct in new_cancellations]
+            logging.debug("cancellation from csv", new_cancellations)
+            if any(new_cancellations):
+                for cancellation in new_cancellations:
+                    all_calls.append(cancellation)
+                FUTL.write_file(content=all_calls, filepath=F_TASK)
+                return FUTL.read_file(F_TASK)
+            else:
+                return all_calls
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+
 
 def run():
     try:
@@ -419,6 +496,22 @@ def run():
                         show(task)
                         task = obj_tasks._str_to_func(task)
                         obj_db._update(task, tasks)
+                        UTIL.slp_for(2)
+            # contains all task incl cancellation
+            cancellations = obj_db.read_cancellation()
+            if any(cancellations):
+                for cancellation in cancellations:
+                    if cancellation["fn"] == "do_cancel":
+                        show(cancellation)
+                        closed_position = obj_tasks.do_cancel(
+                            cancellations,
+                            channel=cancellation["channel"],
+                            symbol=cancellation["symbol"]
+                        )
+                        if any(closed_position):
+                            obj_db._update(closed_position, cancellations)
+                            cancellation["fn"] = "XXX"
+                            obj_db._update(cancellation, cancellations)
                         UTIL.slp_for(2)
     except Exception as e:
         print(e)
