@@ -1,5 +1,5 @@
 from typing import List, Dict
-from constants import FUTL, UTIL
+from constants import FUTL, UTIL, logging
 
 SLP = 1
 
@@ -79,11 +79,13 @@ def filtered_orders(api, order_id):
     UTIL.slp_for(SLP)
     lst = filter_by_keys(order_keys, api.orders)
     if order_id:
-        return [order
-                for order in lst
-                if order['order_id'] == order_id][0]
-    else:
-        return [order for order in lst]
+        lst_order = [order
+                     for order in lst
+                     if order['order_id'] == order_id]
+        logging.debug(lst_order)
+        if any(lst_order):
+            return lst_order[0]
+    return [order for order in lst]
 
 
 def order_modify(lst, order_id):

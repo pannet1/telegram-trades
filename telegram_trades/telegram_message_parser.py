@@ -50,17 +50,17 @@ def get_multiplier(symbol, channel_config, num_of_targets=1):
     df = pd.concat([nfo_df, bfo_df])
     lot_size = df.loc[df['Trading Symbol'] == symbol, 'Lot Size'].iloc[0]
     if "BANKNIFTY" in symbol:
-        return "|".join([str(15)] * channel_config.get("BANKNIFTY", 1)) if num_of_targets>1 else str(15*channel_config.get("BANKNIFTY", 1))
+        return "|".join([str(15)] * channel_config.get("BANKNIFTY", 1)) if num_of_targets > 1 else str(15*channel_config.get("BANKNIFTY", 1))
     elif "FINNIFTY" in symbol:
-        return "|".join([str(40)] * channel_config.get("FINNIFTY", 1)) if num_of_targets>1 else str(40*channel_config.get("FINNIFTY", 1))
+        return "|".join([str(40)] * channel_config.get("FINNIFTY", 1)) if num_of_targets > 1 else str(40*channel_config.get("FINNIFTY", 1))
     elif "MIDCPNIFTY" in symbol:
-        return "|".join([str(70)] * channel_config.get("MIDCPNIFTY", 1)) if num_of_targets>1 else str(70*channel_config.get("MIDCPNIFTY", 1))
+        return "|".join([str(75)] * channel_config.get("MIDCPNIFTY", 1)) if num_of_targets > 1 else str(75*channel_config.get("MIDCPNIFTY", 1))
     elif "NIFTY" in symbol:
-        return "|".join([str(50)] * channel_config.get("NIFTY", 1)) if num_of_targets>1 else str(50*channel_config.get("NIFTY", 1))
+        return "|".join([str(50)] * channel_config.get("NIFTY", 1)) if num_of_targets > 1 else str(50*channel_config.get("NIFTY", 1))
     elif "SENSEX" in symbol:
-        return "|".join([str(10)] * channel_config.get("SENSEX", 1)) if num_of_targets>1 else str(10*channel_config.get("SENSEX", 1))
+        return "|".join([str(10)] * channel_config.get("SENSEX", 1)) if num_of_targets > 1 else str(10*channel_config.get("SENSEX", 1))
     elif "BANKEX" in symbol:
-        return "|".join([str(15)] * channel_config.get("BANKEX", 1)) if num_of_targets>1 else str(15*channel_config.get("BANKEX", 1))
+        return "|".join([str(15)] * channel_config.get("BANKEX", 1)) if num_of_targets > 1 else str(15*channel_config.get("BANKEX", 1))
     return lot_size
 
 
@@ -179,17 +179,19 @@ class PremiumJackpot:
             symbol_from_tg = parts[1].strip().removeprefix("#")
             sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
-            ltps =  "|".join(re.findall(r"\d+\.\d+|\d+", parts[2]))
+            ltps = "|".join(re.findall(r"\d+\.\d+|\d+", parts[2]))
             targets = "|".join(
-                    re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
-                )
-            ltp_max = max([float(ltp) for ltp in ltps.split("|") if ltp.replace('.','',1).isdigit()])
+                re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
+            )
+            ltp_max = max([float(ltp) for ltp in ltps.split("|")
+                          if ltp.replace('.', '', 1).isdigit()])
             if targets[0] < ltps[0]:
-                targets = [str(float(target) + ltp_max) for target in targets if target.replace('.','',1).isdigit()]
+                targets = [str(float(target) + ltp_max)
+                           for target in targets if target.replace('.', '', 1).isdigit()]
             __signal_details = {
                 "channel_name": "Premium jackpot",
                 "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
-                "ltp_range":ltps,
+                "ltp_range": ltps,
                 "target_range": targets,
                 "sl": re.findall(r"SL-(\d+)?", parts[3])[0],
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumJackpot.channel_details, len(targets)),
@@ -297,13 +299,15 @@ class SmsOptionsPremium:
                 symbol_dict = self.get_instrument_name(symbol_d)
                 ltp_range = self.get_float_values(statement, "ABOVE ")
                 sl = float(ltp_range[0]) * (1 - SmsOptionsPremium.spot_sl)
-                ltps =  "|".join(self.get_float_values(statement, "ABOVE "))
+                ltps = "|".join(self.get_float_values(statement, "ABOVE "))
                 targets = "|".join(
-                        self.get_float_values(statement, "TARGETS @ ")
-                    )
-                ltp_max = max([float(ltp) for ltp in ltps.split("|") if ltp.replace('.','',1).isdigit()])
+                    self.get_float_values(statement, "TARGETS @ ")
+                )
+                ltp_max = max([float(ltp) for ltp in ltps.split(
+                    "|") if ltp.replace('.', '', 1).isdigit()])
                 if targets[0] < ltps[0]:
-                    targets = [str(float(target) + ltp_max) for target in targets if target.replace('.','',1).isdigit()]
+                    targets = [str(float(target) + ltp_max)
+                               for target in targets if target.replace('.', '', 1).isdigit()]
                 _signal_details = {
                     "channel_name": "SmsOptionsPremium",
                     "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
@@ -369,14 +373,16 @@ class SmsOptionsPremium:
                 if not sl:
                     raise CustomError(f"SL is not found in {parts[4]}")
             symbol_dict = self.get_instrument_name(parts[1].upper().strip())
-            ltps =  "|".join(re.findall(r"\d+\.\d+|\d+", parts[2]))
-            targets =  "|".join(
-                    self.get_float_values(
-                        self.message.strip().upper(), "TARGET")
-                )
-            ltp_max = max([float(ltp) for ltp in ltps.split("|") if ltp.replace('.','',1).isdigit()])
+            ltps = "|".join(re.findall(r"\d+\.\d+|\d+", parts[2]))
+            targets = "|".join(
+                self.get_float_values(
+                    self.message.strip().upper(), "TARGET")
+            )
+            ltp_max = max([float(ltp) for ltp in ltps.split("|")
+                          if ltp.replace('.', '', 1).isdigit()])
             if targets[0] < ltps[0]:
-                targets = [str(float(target) + ltp_max) for target in targets if target.replace('.','',1).isdigit()]
+                targets = [str(float(target) + ltp_max)
+                           for target in targets if target.replace('.', '', 1).isdigit()]
             _signal_details = {
                 "channel_name": "SmsOptionsPremium",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -533,11 +539,13 @@ class PaidCallPut:
                     break
             else:
                 raise CustomError("ltp_range values is not found")
-            ltps =  "|".join(ltp_range)
-            targets =  "|".join(targets)
-            ltp_max = max([float(ltp) for ltp in ltps.split("|") if ltp.replace('.','',1).isdigit()])
+            ltps = "|".join(ltp_range)
+            targets = "|".join(targets)
+            ltp_max = max([float(ltp) for ltp in ltps.split("|")
+                          if ltp.replace('.', '', 1).isdigit()])
             if targets[0] < ltps[0]:
-                targets = [str(float(target) + ltp_max) for target in targets if target.replace('.','',1).isdigit()]
+                targets = [str(float(target) + ltp_max)
+                           for target in targets if target.replace('.', '', 1).isdigit()]
             _signal_details = {
                 "channel_name": "PaidCallPut",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -684,11 +692,13 @@ class PaidStockIndexOption:
             #         sl_range = [str(float(sl)/2) for sl in sl_range]
             if not sl_range:
                 raise CustomError("sl_range values is not found")
-            ltps =  "|".join(ltp_range)
-            targets =  "|".join(target_range)
-            ltp_max = max([float(ltp) for ltp in ltps.split("|") if ltp.replace('.','',1).isdigit()])
+            ltps = "|".join(ltp_range)
+            targets = "|".join(target_range)
+            ltp_max = max([float(ltp) for ltp in ltps.split("|")
+                          if ltp.replace('.', '', 1).isdigit()])
             if targets[0] < ltps[0]:
-                targets = [str(float(target) + ltp_max) for target in targets if target.replace('.','',1).isdigit()]
+                targets = [str(float(target) + ltp_max)
+                           for target in targets if target.replace('.', '', 1).isdigit()]
             _signal_details = {
                 "channel_name": "PaidStockIndexOption",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
