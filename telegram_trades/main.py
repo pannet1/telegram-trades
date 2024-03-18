@@ -346,35 +346,34 @@ class TaskFunc:
                 if task["symbol"] == symbol and \
                     task["channel"] == channel and \
                         task["fn"] not in lst_ignore:
+                    order = task.get("trail", None)
+                    if order:
+                        resp = square_off(
+                            self.api,
+                            order["order_id"],
+                            task["symbol"],
+                            task['q2'])
+                        logging.info(f"cancel trail: {resp}")
+                        task["fn"] = "XXX"
+                        break
 
-                order = task.get("trail", None)
-                if order:
-                    resp = square_off(
-                        self.api,
-                        order["order_id"],
-                        task["symbol"],
-                        task['q2'])
-                    logging.info(f"cancel trail: {resp}")
-                    task["fn"] = "XXX"
-                    break
+                    order = task.get("stop", None)
+                    if order:
+                        resp = square_off(
+                            self.api,
+                            order["order_id"],
+                            task["symbol"],
+                            task['tq'])
+                        logging.info(f"cancel stop: {resp}")
+                        task["fn"] = "XXX"
+                        break
 
-                order = task.get("stop", None)
-                if order:
-                    resp = square_off(
-                        self.api,
-                        order["order_id"],
-                        task["symbol"],
-                        task['tq'])
-                    logging.info(f"cancel stop: {resp}")
-                    task["fn"] = "XXX"
-                    break
-
-                order = task.get("entry", None)
-                if order:
-                    resp = self.api.order_cancel(order["order_id"])
-                    logging.info(f"cancel entry: {resp}")
-                    task["fn"] = "XXX"
-                    break
+                    order = task.get("entry", None)
+                    if order:
+                        resp = self.api.order_cancel(order["order_id"])
+                        logging.info(f"cancel entry: {resp}")
+                        task["fn"] = "XXX"
+                        break
 
         except Exception as e:
             log_exception(e, locals())
