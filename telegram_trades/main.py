@@ -38,7 +38,7 @@ def log_exception(exception, locals, error_message=None):
         Method Name: {method_name}
         Type: {type(exception).__name__}
         Parameters: {locals}
-        Error message: {exception}
+        Error message: {str(exception)}
         {error_message if error_message else ''}
     """
     # Log the exception with appropriate level
@@ -355,7 +355,7 @@ class TaskFunc:
                             task['q2'])
                         logging.info(f"cancel trail: {resp}")
                         task["fn"] = "XXX"
-                        break
+                        return task
 
                     order = task.get("stop", None)
                     if order:
@@ -366,14 +366,14 @@ class TaskFunc:
                             task['tq'])
                         logging.info(f"cancel stop: {resp}")
                         task["fn"] = "XXX"
-                        break
+                        return task
 
                     order = task.get("entry", None)
                     if order:
                         resp = self.api.order_cancel(order["order_id"])
                         logging.info(f"cancel entry: {resp}")
                         task["fn"] = "XXX"
-                        break
+                        return task
 
         except Exception as e:
             log_exception(e, locals())
@@ -462,15 +462,18 @@ class Jsondb:
 
     def read_cancellation(self):
         try:
+            is_updated = False
             all_calls = FUTL.read_file(F_TASK)
-            logging.debug("reading task file", all_calls)
+            logging.debug("reading cancellation", all_calls)
             new_cancellations = self._read_cancellation_fm_csv(all_calls)
-            new_cancellations = [dct.update({"fn": "do_cancel"})
-                                 for dct in new_cancellations]
-            logging.debug("cancellation from csv", new_cancellations)
-            if any(new_cancellations):
-                for cancellation in new_cancellations:
-                    all_calls.append(cancellation)
+            logging.debug("is any cancellation: ",
+                          any(new_cancellations))
+            for dct in new_cancellations:
+                if isinstance(dct, dict):
+                    is_updated = True
+                    dct.update({"fn": "do_cancel"})
+                    all_calls.append(dct)
+            if is_updated:
                 FUTL.write_file(content=all_calls, filepath=F_TASK)
                 return FUTL.read_file(F_TASK)
             else:
@@ -498,20 +501,19 @@ def run():
                         UTIL.slp_for(2)
             # contains all task incl cancellation
             cancellations = obj_db.read_cancellation()
-            if any(cancellations):
-                for cancellation in cancellations:
-                    if cancellation["fn"] == "do_cancel":
-                        show(cancellation)
-                        closed_position = obj_tasks.do_cancel(
-                            cancellations,
-                            channel=cancellation["channel"],
-                            symbol=cancellation["symbol"]
-                        )
-                        if any(closed_position):
-                            obj_db._update(closed_position, cancellations)
-                            cancellation["fn"] = "XXX"
-                            obj_db._update(cancellation, cancellations)
-                        UTIL.slp_for(2)
+            for cancellation in cancellations:
+                if cancellation["fn"] == "do_cancel":
+                    show(cancellation)
+                    closed_position = obj_tasks.do_cancel(
+                        cancellations,
+                        channel=cancellation["channel"],
+                        symbol=cancellation["symbol"]
+                    )
+                    if any(closed_position):
+                        obj_db._update(closed_position, cancellations)
+                        cancellation["fn"] = "XXX"
+                        obj_db._update(cancellation, cancellations)
+            UTIL.slp_for(2)
     except Exception as e:
         print(e)
         traceback.print_exc()
