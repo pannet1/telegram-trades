@@ -1,5 +1,5 @@
 
-input_file = "data/output.csv"
+input_file = "../data/output.csv"
 import pandas as pd
 
 from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption

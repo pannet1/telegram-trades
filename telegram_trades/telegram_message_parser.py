@@ -185,7 +185,7 @@ class PremiumJackpot:
             symbol_dict = self.get_instrument_name(symbol_from_tg)
             ltps = re.findall(r"\d+\.\d+|\d+", parts[2])
             targets = re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
-            ltp_max = max([float(ltp) for ltp in ltps.split("|")
+            ltp_max = max([float(ltp) for ltp in ltps
                           if ltp.replace('.', '', 1).isdigit()])
             if targets[0] < ltps[0]:
                 targets = [str(float(target) + ltp_max)
