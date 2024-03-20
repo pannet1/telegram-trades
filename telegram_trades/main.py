@@ -38,7 +38,7 @@ def log_exception(exception, locals, error_message=None):
         Method Name: {method_name}
         Type: {type(exception).__name__}
         Parameters: {locals}
-        Error message: {str(exception)}
+        Error message: {exception}
         {error_message if error_message else ''}
     """
     # Log the exception with appropriate level
@@ -399,6 +399,7 @@ class Jsondb:
         FUTL.write_file(content=tasks, filepath=F_TASK)
 
     def _read_new_buy_fm_csv(self, lst_of_dct: List):
+        logging.debug(lst_of_dct)
         ids = [task["id"] for task in lst_of_dct]
         # TODO
         columns = ['channel', 'id', 'symbol', 'entry_range', 'target_range',
@@ -466,13 +467,13 @@ class Jsondb:
             all_calls = FUTL.read_file(F_TASK)
             logging.debug("reading cancellation", all_calls)
             new_cancellations = self._read_cancellation_fm_csv(all_calls)
-            logging.debug("is any cancellation: ",
-                          any(new_cancellations))
-            for dct in new_cancellations:
-                if isinstance(dct, dict):
-                    is_updated = True
-                    dct.update({"fn": "do_cancel"})
-                    all_calls.append(dct)
+            logging.debug("new cancellations from csv", new_cancellations)
+            if new_cancellations and any(new_cancellations):
+                for dct in new_cancellations:
+                    if isinstance(dct, dict):
+                        is_updated = True
+                        dct.update({"fn": "do_cancel"})
+                        all_calls.append(dct)
             if is_updated:
                 FUTL.write_file(content=all_calls, filepath=F_TASK)
                 return FUTL.read_file(F_TASK)
@@ -492,27 +493,28 @@ def run():
         obj_tasks = TaskFunc(api)
         while True:
             tasks = obj_db.read()
-            if any(tasks):
+            if tasks and any(tasks):
                 for task in tasks:
-                    if task["fn"] not in lst_ignore:
+                    if task["fn"] not in lst_ignore and task["fn"] != "do_cancel":
                         show(task)
                         task = obj_tasks._str_to_func(task)
                         obj_db._update(task, tasks)
-                        UTIL.slp_for(2)
+            UTIL.slp_for(2)
             # contains all task incl cancellation
             cancellations = obj_db.read_cancellation()
-            for cancellation in cancellations:
-                if cancellation["fn"] == "do_cancel":
-                    show(cancellation)
-                    closed_position = obj_tasks.do_cancel(
-                        cancellations,
-                        channel=cancellation["channel"],
-                        symbol=cancellation["symbol"]
-                    )
-                    if any(closed_position):
-                        obj_db._update(closed_position, cancellations)
-                        cancellation["fn"] = "XXX"
-                        obj_db._update(cancellation, cancellations)
+            if cancellations and any(cancellations):
+                for cancellation in cancellations:
+                    if cancellation["fn"] == "do_cancel":
+                        show(cancellation)
+                        closed_position = obj_tasks.do_cancel(
+                            cancellations,
+                            channel=cancellation["channel"],
+                            symbol=cancellation["symbol"]
+                        )
+                        if closed_position and any(closed_position):
+                            obj_db._update(closed_position, cancellations)
+                            cancellation["fn"] = "XXX"
+                            obj_db._update(cancellation, cancellations)
             UTIL.slp_for(2)
     except Exception as e:
         print(e)
