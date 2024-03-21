@@ -370,6 +370,7 @@ class TaskFunc:
 
                     order = task.get("entry", None)
                     if order:
+                        logging.info(f"entry found to cancel: {order}")
                         resp = self.api.order_cancel(order["order_id"])
                         logging.info(f"cancel entry: {resp}")
                         task["fn"] = "XXX"
@@ -385,7 +386,7 @@ class Jsondb:
         # input file
         if FUTL.is_file_not_2day(F_SIGNAL):
             # return empty list if file is not modified today
-            FUTL.write_file(filepath=F_TASK, content=None)
+            FUTL.write_file(filepath=F_SIGNAL, content=None)
         # initate output task json file
         if FUTL.is_file_not_2day(F_TASK):
             FUTL.write_file(filepath=F_TASK, content=[])
@@ -444,9 +445,7 @@ class Jsondb:
     def read(self):
         try:
             all_calls = FUTL.read_file(F_TASK)
-            logging.debug("reading task file", all_calls)
             new_calls = self._read_new_buy_fm_csv(all_calls)
-            logging.debug("new calls from csv", new_calls)
             is_updated = False
             for task in self.sync(new_calls):
                 print(f"{task=}")
@@ -465,9 +464,7 @@ class Jsondb:
         try:
             is_updated = False
             all_calls = FUTL.read_file(F_TASK)
-            logging.debug("reading cancellation", all_calls)
             new_cancellations = self._read_cancellation_fm_csv(all_calls)
-            logging.debug("new cancellations from csv", new_cancellations)
             if new_cancellations and any(new_cancellations):
                 for dct in new_cancellations:
                     if isinstance(dct, dict):

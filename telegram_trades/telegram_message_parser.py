@@ -13,7 +13,8 @@ from logzero import logger
 
 signals_csv_filename = DATA + "signals.csv"
 if os.path.isfile(signals_csv_filename):
-    shutil.move(signals_csv_filename, signals_csv_filename.removesuffix(".csv")+f'_{datetime.now().strftime("%Y%m%d-%H%M%S")}.csv')
+    shutil.move(signals_csv_filename, signals_csv_filename.removesuffix(
+        ".csv")+f'_{datetime.now().strftime("%Y%m%d-%H%M%S")}.csv')
 signals_csv_file_headers = [
     "channel_name",
     "timestamp",
@@ -99,7 +100,8 @@ def write_signals_to_csv(_signal_details):
         _signal_details["normal_timestamp"] = datetime.fromtimestamp(
             int(_signal_details["timestamp"][1:])).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
-            {k: str(_signal_details.get(k, "")) for k in signals_csv_file_headers}
+            {k: str(_signal_details.get(k, ""))
+             for k in signals_csv_file_headers}
         )
 
 
@@ -109,7 +111,8 @@ def write_failure_to_csv(failure_details):
         failure_details["normal_timestamp"] = datetime.fromtimestamp(
             failure_details["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
         writer.writerow(
-            {k: str(failure_details.get(k, "")) for k in failure_csv_file_headers}
+            {k: str(failure_details.get(k, ""))
+             for k in failure_csv_file_headers}
         )
 
 
@@ -300,10 +303,12 @@ class SmsOptionsPremium:
                 # symbol_d = " ".join(statement.split()[:5])
                 symbol_dict = self.get_instrument_name(symbol_d)
                 ltp_range = self.get_float_values(statement, "ABOVE ")
-                sl = math.floor(float(ltp_range[0]) * (1 - SmsOptionsPremium.spot_sl))
+                sl = math.floor(
+                    float(ltp_range[0]) * (1 - SmsOptionsPremium.spot_sl))
                 ltps = self.get_float_values(statement, "ABOVE ")
                 targets = self.get_float_values(statement, "TARGETS @ ")
-                ltp_max = max([float(ltp) for ltp in ltps if ltp.replace('.', '', 1).isdigit()])
+                ltp_max = max(
+                    [float(ltp) for ltp in ltps if ltp.replace('.', '', 1).isdigit()])
                 if targets[0] < ltps[0]:
                     targets = [str(float(target) + ltp_max)
                                for target in targets if target.replace('.', '', 1).isdigit()]
@@ -374,7 +379,7 @@ class SmsOptionsPremium:
             symbol_dict = self.get_instrument_name(parts[1].upper().strip())
             ltps = re.findall(r"\d+\.\d+|\d+", parts[2])
             targets = self.get_float_values(
-                    self.message.strip().upper(), "TARGET")
+                self.message.strip().upper(), "TARGET")
             ltp_max = max([float(ltp) for ltp in ltps
                           if ltp.replace('.', '', 1).isdigit()])
             if targets[0] < ltps[0]:
@@ -449,7 +454,8 @@ class PaidCallPut:
     def get_target_values(self, string_val, start_val):
         float_values = []
         try:
-            v = string_val.upper().replace("-", " ").replace("+", " ").replace("/", " ").split(start_val)
+            v = string_val.upper().replace("-", " ").replace("+",
+                                                             " ").replace("/", " ").split(start_val)
             for word in v[1].strip().split():
                 if word.replace(".", "", 1).isdigit():
                     float_values.append(word)
@@ -588,7 +594,8 @@ class PaidStockIndexOption:
     def get_target_values(self, string_val, start_val):
         float_values = []
         try:
-            v = string_val.upper().replace("-", " ").replace("+", " ").replace("/", " ").split(start_val)
+            v = string_val.upper().replace("-", " ").replace("+",
+                                                             " ").replace("/", " ").split(start_val)
             for word in v[1].strip().split():
                 if word.replace(".", "", 1).isdigit():
                     float_values.append(word)
