@@ -10,6 +10,7 @@ from datetime import datetime
 from login import get_broker
 from constants import BRKR, FUTL, CHANNEL_DETAILS, DATA
 from logzero import logger
+import random
 
 signals_csv_filename = DATA + "signals.csv"
 if os.path.isfile(signals_csv_filename):
@@ -99,6 +100,7 @@ def write_signals_to_csv(_signal_details):
         writer = csv.DictWriter(file, fieldnames=signals_csv_file_headers)
         _signal_details["normal_timestamp"] = datetime.fromtimestamp(
             int(_signal_details["timestamp"][1:])).strftime('%Y-%m-%d %H:%M:%S')
+        _signal_details["timestamp"] = _signal_details["timestamp"] + ''.join(random.choices('0123456789', k=5))
         writer.writerow(
             {k: str(_signal_details.get(k, ""))
              for k in signals_csv_file_headers}
