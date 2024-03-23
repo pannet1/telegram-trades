@@ -4,6 +4,7 @@ from toolkit.utilities import Utilities
 
 DATA = "../data/"
 logging = Logger(10, DATA + "file.log")
+F_TASK = DATA + "tasks.json"
 DIRP = "../../"
 FUTL = Fileutils()
 SETG = FUTL.get_lst_fm_yml(DIRP + "ravikanth.yml")

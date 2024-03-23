@@ -1,4 +1,4 @@
-from constants import DATA, BRKR, FUTL, UTIL, logging
+from constants import DATA, BRKR, FUTL, F_TASK, UTIL, logging
 from login import get_broker
 from api_helper import (filtered_orders, download_masters, get_ltp,
                         update_lst_of_dct_with_vals)
@@ -12,7 +12,6 @@ lst_ignore = ["UNKNOWN", "rejected", "cancelled",
               "E-TRAIL", "E-STOP", "HARD-STOP", "XXX",
               "STOPPED-OUT", "TRAILED-OUT", "TRADES_COMPLETED"]
 F_SIGNAL = DATA + "signals.csv"
-F_TASK = DATA + "tasks.json"
 SECS = 1  # sleep time
 
 
@@ -156,10 +155,10 @@ class TaskFunc:
         'action': 'Buy',}
         """
         try:
+            task["fn"] = "UNKNOWN"
             ltp = get_ltp(self.api.broker, task["symbol"].split(
                 ":")[0], task["symbol"].split(":")[1])
             if ltp > 0:
-                task["fn"] = "UNKNOWN"
                 args = task_to_order_args(ltp, **task)
                 task["price"] = max(args['trigger_price'],
                                     args['price'])
@@ -386,7 +385,7 @@ class Jsondb:
         # input file
         if FUTL.is_file_not_2day(F_SIGNAL):
             # return empty list if file is not modified today
-            FUTL.write_file(filepath=F_SIGNAL, content=None)
+            FUTL.write_file(filepath=F_SIGNAL, content="")
         # initate output task json file
         if FUTL.is_file_not_2day(F_TASK):
             FUTL.write_file(filepath=F_TASK, content=[])

@@ -34,6 +34,7 @@ order_keys = [
     "order_id",
     "broker_timestamp",
     "product",
+    "remarks",
     "order_type",
     "Status",
 ]
@@ -77,6 +78,9 @@ def filtered_positions(api):
 
 def filtered_orders(api, order_id):
     UTIL.slp_for(SLP)
+    lst = api.orders
+    print(lst[0].keys())
+
     lst = filter_by_keys(order_keys, api.orders)
     if order_id:
         lst_order = [order
@@ -127,6 +131,7 @@ if __name__ == "__main__":
     lst = filtered_orders(api, None)
     if any(lst):
         ord = pd.DataFrame(lst).set_index("order_id")
+        print(ord)
         ord.to_csv(DATA + "ord.csv")
 
     """
