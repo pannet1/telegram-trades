@@ -79,7 +79,7 @@ def filtered_positions(api):
 def filtered_orders(api, order_id):
     UTIL.slp_for(SLP)
     lst = api.orders
-    print(lst[0].keys())
+    # print(lst[0].keys())
 
     lst = filter_by_keys(order_keys, api.orders)
     if order_id:
