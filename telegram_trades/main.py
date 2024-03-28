@@ -393,14 +393,13 @@ class Jsondb:
 
     def _update(self, updated_task, tasks):
         """ to be removed """
-        logging.debug(f'UPDATING \n {updated_task}')
         tasks = update_lst_of_dct_with_vals(
             tasks, "id", **updated_task)
         FUTL.write_file(content=tasks, filepath=F_TASK)
 
     def _read_new_buy_fm_csv(self, lst_of_dct: List):
         logging.debug(lst_of_dct)
-        ids = [task["id"] for task in lst_of_dct]
+        ids = [task["id"] for task in lst_of_dct if isinstance(task, dict)]
         # TODO
         columns = ['channel', 'id', 'symbol', 'entry_range', 'target_range',
                    'sl',  'quantity', 'action', 'timestamp']
@@ -414,8 +413,7 @@ class Jsondb:
         return lst_of_dct
 
     def _read_cancellation_fm_csv(self, lst_of_dct: List):
-        ids = [task["id"] for task in lst_of_dct]
-        # TODO
+        ids = [task["id"] for task in lst_of_dct if (isinstance(task, dict))]
         columns = ['channel', 'id', 'symbol', 'entry_range', 'target_range',
                    'sl',  'quantity', 'action', 'timestamp']
         df = pd.read_csv(F_SIGNAL,
