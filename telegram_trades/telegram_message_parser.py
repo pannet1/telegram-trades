@@ -142,7 +142,13 @@ class PremiumJackpot:
 
     def get_instrument_name(self, symbol_from_tg):
         try:
-            sym, strike, option_type = symbol_from_tg.split()
+            sym_split = symbol_from_tg.split()
+            if len(sym_split) == 3:
+                sym, strike, option_type = sym_split
+            elif len(sym_split) == 2:
+                sym = sym_split[0]
+                strike = sym_split[1].strip()[:-2]
+                option_type = sym_split[1].strip()[-2:]
             sym = self.get_closest_match(sym)
             exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
             filtered_df = scrip_info_df[
