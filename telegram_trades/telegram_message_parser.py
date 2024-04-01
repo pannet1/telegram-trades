@@ -656,6 +656,10 @@ class PaidStockIndexOption:
             elif str(msg_split[1]).endswith('CE'):
                 option_type = "CE"
                 strike = str(msg_split[1])[:-2]
+            elif ("BAJAJ" == msg_split[0] and "AUTO" == msg_split[1]) or ("MCDOWELL" == msg_split[0] and "N" == msg_split[1]):
+                sym=f"{msg_split[0]}-{msg_split[1]}"
+                option_type = msg_split[3]
+                strike = str(msg_split[2])
             else:
                 option_type = str(msg_split[2])
                 strike = msg_split[1]

@@ -1,26 +1,24 @@
-
 input_file = "../data/output.csv"
 import pandas as pd
 
 from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption
 
 
-
-df = pd.read_csv(input_file, header=None)
-for i, row in df.iterrows():
-#     # print(i, row)
-    if row[1] == "PREMIUM JACKPOT":
-        i = PremiumJackpot(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "SMS Options Premium":
-        i = SmsOptionsPremium(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "Paid - CALL & PUT":
-        i = PaidCallPut(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "Paid Stock & Index Option":
-        i = PaidStockIndexOption(row[0], row[2])
-        i.get_signal()
+# df = pd.read_csv(input_file, header=None)
+# for i, row in df.iterrows():
+# #     # print(i, row)
+#     if row[1] == "PREMIUM JACKPOT":
+#         i = PremiumJackpot(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "SMS Options Premium":
+#         i = SmsOptionsPremium(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "Paid - CALL & PUT":
+#         i = PaidCallPut(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "Paid Stock & Index Option":
+#         i = PaidStockIndexOption(row[0], row[2])
+#         i.get_signal()
 
 
 # msg = "BANKNIFTY 7 FEB 45800 CE IF CROSSES & SPOT SUSTAIN ONLY ABOVE 253.85 WILL TRY TO HIT TARGETS @ 275 300 330 360 400 & ABOVE$$$$"
@@ -43,6 +41,31 @@ for i, row in df.iterrows():
 #     i = PaidCallPut(1707192066, msg)
 #     i.get_signal()
 # close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID", "PROFIT", "LOSS", "TRIAL", "TRAIL", "IGNORE")
-# msg = "INTRADAY + BTST STOCK OPTION TRADE   BUY NTPC 350 PE RANGE 6-6.50 TRG 8-11-17 SL 4"
+
+# 01-04-2024
+# msg = "INTRADAY + BTST STOCK OPTION TRADE     BUY MARUTI 11700 PE RANGE 190-200 TRG 270-350-430 SL 140 MARUTI 11700 PE 200 TO 252   26%+ PROFIT 52++ POINTS RUNNING     SAFE TRADERS CAN BOOK PROFIT  OR TRAIL SL   "
+# i = PaidStockIndexOption(1707192066, msg)
+# i.get_signal()
+
+# msg = "	BUY#ABB 6100 CE  ABOVE -160 TARGE-170,190+ SL-145  MAR SERIES  WAIT FOR LEVEL CROSS NOT ACTIVE AVOID   "
+# i = PremiumJackpot(1707192066, msg)
+# i.get_signal()
+
+# msg = "   BUY#RELIANCE 2900 CE  ABOVE -85 TARGE-89,95 SL-73  MAR SERIES  WAIT FOR LEVEL CROSS 96  HIT TARGET     BOOK OR TRAIL SL"
+# i = PremiumJackpot(1707192066, msg)
+# i.get_signal()
+
+# msg = " 	BUY#LUPIN 1620 ABOVE - 85 TARGE-87,90 SL-82  APR  SERIES  WAIT FOR LEVEL CROSS TRAIL SL    "
+# i = PremiumJackpot(1707192066, msg)
+# i.get_signal()
+
+msg = "INTRADAY STOCK OPTION TRADE     BUY BAJAJ-AUTO 9100 PE RANGE 217 TRG 270-350 SL  170"
+i = PaidStockIndexOption(1707192066, msg)
+i.get_signal()
+
+# msg = "INTRADAY STOCK OPTION TRADE     BUY MARUTI 12400 PE RANGE 180-185 TRG 270-350 SL  170"
+# i = PaidStockIndexOption(1707192066, msg)
+# i.get_signal()
+# msg = "INTRADAY STOCK OPTION TRADE     BUY MARUTI 12400 PE RANGE 180-185 TRG 270-350 SL  170"
 # i = PaidStockIndexOption(1707192066, msg)
 # i.get_signal()
