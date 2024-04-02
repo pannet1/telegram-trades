@@ -12,6 +12,7 @@ from constants import BRKR, FUTL, CHANNEL_DETAILS, DATA
 from logzero import logger
 import random
 
+zero_sl = 0.05
 signals_csv_filename = DATA + "signals.csv"
 if os.path.isfile(signals_csv_filename):
     shutil.move(signals_csv_filename, signals_csv_filename.removesuffix(
@@ -101,6 +102,9 @@ def write_signals_to_csv(_signal_details):
         _signal_details["normal_timestamp"] = datetime.fromtimestamp(
             int(_signal_details["timestamp"][1:])).strftime('%Y-%m-%d %H:%M:%S')
         _signal_details["timestamp"] = _signal_details["timestamp"] + ''.join(random.choices('0123456789', k=5))
+        __sl = _signal_details["sl"]
+        if (isinstance(__sl, int) or isinstance(__sl, float)) and __sl == 0:
+            _signal_details["sl"] = zero_sl
         writer.writerow(
             {k: str(_signal_details.get(k, ""))
              for k in signals_csv_file_headers}
