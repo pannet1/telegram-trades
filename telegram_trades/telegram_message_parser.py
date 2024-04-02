@@ -383,11 +383,14 @@ class SmsOptionsPremium:
             statement = statement.replace(word, "|")
         parts = statement.split("|")
         try:
-            sl = re.findall(r"(\d+)?", parts[4])[0]
-            if not sl:
-                sl = re.findall(r"(\d+)?", statement.split("$$$$")[-1])[0]
+            if is_close_msg:
+                sl = zero_sl
+            else:
+                sl = re.findall(r"(\d+)?", parts[4])[0]
                 if not sl:
-                    raise CustomError(f"SL is not found in {parts[4]}")
+                    sl = re.findall(r"(\d+)?", statement.split("$$$$")[-1])[0]
+                    if not sl:
+                        raise CustomError(f"SL is not found in {parts[4]}")
             symbol_dict = self.get_instrument_name(parts[1].upper().strip())
             ltps = re.findall(r"\d+\.\d+|\d+", parts[2])
             targets = self.get_float_values(
