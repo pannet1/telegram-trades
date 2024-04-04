@@ -37,9 +37,9 @@ from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallP
 # i.get_signal()
 
 
-# for msg in ["6th march expiry  BUY 46800 CE ONLY ABV 350 SL- 310 TARGET -460  CMP - 335", "7th march expiry nifty  buy 22150 PE CMP 135/130 SL-120 TARGTE-200-250+"]:
-#     i = PaidCallPut(1707192066, msg)
-#     i.get_signal()
+for msg in ["6th march expiry  BUY 46800 CE ONLY ABV 350 SL- 310 TARGET -460  CMP - 335", "7th march expiry nifty  buy 22150 PE CMP 135/130 SL-120 TARGTE-200-250+"]:
+    i = PaidCallPut(1707192066, msg)
+    i.get_signal()
 # close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID", "PROFIT", "LOSS", "TRIAL", "TRAIL", "IGNORE")
 
 # 01-04-2024
@@ -59,9 +59,9 @@ from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallP
 # i = PremiumJackpot(1707192066, msg)
 # i.get_signal()
 
-msg = "INTRADAY STOCK OPTION TRADE     BUY BAJAJ-AUTO 9100 PE RANGE 217 TRG 270-350 SL  170"
-i = PaidStockIndexOption(1707192066, msg)
-i.get_signal()
+# msg = "BUY#IRCTC 1000 ABOVE -45.5-46 TARGE-48,55 SL-40  APR  SERIES  WAIT FOR LEVEL CROSS"
+# i = PremiumJackpot(1707192066, msg)
+# i.get_signal()
 
 # msg = "INTRADAY STOCK OPTION TRADE     BUY MARUTI 12400 PE RANGE 180-185 TRG 270-350 SL  170"
 # i = PaidStockIndexOption(1707192066, msg)
