@@ -202,7 +202,7 @@ class PremiumJackpot:
             targets = re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
             ltp_max = max([float(ltp) for ltp in ltps
                           if ltp.replace('.', '', 1).isdigit()])
-            if targets[0] < ltps[0]:
+            if float(targets[0]) < float(ltps[0]):
                 targets = [str(float(target) + ltp_max)
                            for target in targets if target.replace('.', '', 1).isdigit()]
             __signal_details = {
@@ -321,7 +321,7 @@ class SmsOptionsPremium:
                 targets = self.get_float_values(statement, "TARGETS @ ")
                 ltp_max = max(
                     [float(ltp) for ltp in ltps if ltp.replace('.', '', 1).isdigit()])
-                if targets[0] < ltps[0]:
+                if float(targets[0]) < float(ltps[0]):
                     targets = [str(float(target) + ltp_max)
                                for target in targets if target.replace('.', '', 1).isdigit()]
                 _signal_details = {
@@ -397,7 +397,7 @@ class SmsOptionsPremium:
                 self.message.strip().upper(), "TARGET")
             ltp_max = max([float(ltp) for ltp in ltps
                           if ltp.replace('.', '', 1).isdigit()])
-            if targets[0] < ltps[0]:
+            if float(targets[0]) < float(ltps[0]):
                 targets = [str(float(target) + ltp_max)
                            for target in targets if target.replace('.', '', 1).isdigit()]
             _signal_details = {
@@ -561,7 +561,7 @@ class PaidCallPut:
             targets = targets
             ltp_max = max([float(ltp) for ltp in ltps
                           if ltp.replace('.', '', 1).isdigit()])
-            if targets[0] < ltps[0]:
+            if float(targets[0]) < float(ltps[0]):
                 targets = [str(float(target) + ltp_max)
                            for target in targets if target.replace('.', '', 1).isdigit()]
             _signal_details = {
@@ -719,7 +719,7 @@ class PaidStockIndexOption:
             targets = target_range
             ltp_max = max([float(ltp) for ltp in ltps
                           if ltp.replace('.', '', 1).isdigit()])
-            if targets[0] < ltps[0]:
+            if float(targets[0]) < float(ltps[0]):
                 targets = [str(float(target) + ltp_max)
                            for target in targets if target.replace('.', '', 1).isdigit()]
             _signal_details = {
