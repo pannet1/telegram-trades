@@ -26,7 +26,7 @@ for i, row in df.iterrows():
 # i = SmsOptionsPremium(1707192066, msg)
 # i.get_signal()
 
-# msg = "BUY #SENSEX 74100 CE ABOVE -180-190 TARGET- 30/70/100/200/250 Point  SL-120  EXPIRY 5TH APR"
+# msg = "BUY #BANKEX 52300 PE ABOVE -10-15 TARGET- 22,30,50 SL-0  EXPIRY 18TH MAR  BUY ONLY 1-3 LOT"
 # i = PremiumJackpot(1707192066, msg)
 # i.get_signal()
 

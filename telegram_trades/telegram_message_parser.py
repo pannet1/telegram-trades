@@ -12,7 +12,7 @@ from constants import BRKR, FUTL, CHANNEL_DETAILS, DATA
 from logzero import logger
 import random
 
-zero_sl = 0.05
+zero_sl = "0.05"
 signals_csv_filename = DATA + "signals.csv"
 if os.path.isfile(signals_csv_filename):
     shutil.move(signals_csv_filename, signals_csv_filename.removesuffix(
@@ -105,10 +105,13 @@ def write_signals_to_csv(_signal_details):
         __sl = _signal_details["sl"]
         if (isinstance(__sl, int) or isinstance(__sl, float)) and __sl == 0:
             _signal_details["sl"] = zero_sl
+        elif isinstance(__sl, str) and __sl.isdigit() and  __sl in ("0", "00"):
+            _signal_details["sl"] = zero_sl
         writer.writerow(
             {k: str(_signal_details.get(k, ""))
              for k in signals_csv_file_headers}
         )
+        logger.info(_signal_details)
 
 
 def write_failure_to_csv(failure_details):
@@ -222,7 +225,6 @@ class PremiumJackpot:
                 signals.append(__signal_details)
             signal_details = __signal_details.copy()
             signal_details["timestamp"] = f"{PremiumJackpot.channel_number}{self.msg_received_timestamp}"
-            logger.info(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
@@ -339,7 +341,6 @@ class SmsOptionsPremium:
                     signals.append(_signal_details)
                 signal_details = _signal_details.copy()
                 signal_details["timestamp"] = f"{SmsOptionsPremium.channel_number}{self.msg_received_timestamp}"
-                logger.info(signal_details)
                 write_signals_to_csv(signal_details)
             except:
                 failure_details = {
@@ -414,7 +415,6 @@ class SmsOptionsPremium:
             signals.append(_signal_details)
             signal_details = _signal_details.copy()
             signal_details["timestamp"] = f"{SmsOptionsPremium.channel_number}{self.msg_received_timestamp}"
-            logger.info(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
@@ -579,7 +579,6 @@ class PaidCallPut:
                 signals.append(_signal_details)
             signal_details = _signal_details.copy()
             signal_details["timestamp"] = f"{PaidCallPut.channel_number}{self.msg_received_timestamp}"
-            logger.info(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
@@ -737,7 +736,6 @@ class PaidStockIndexOption:
                 signals.append(_signal_details)
             signal_details = _signal_details.copy()
             signal_details["timestamp"] = f"{PaidStockIndexOption.channel_number}{self.msg_received_timestamp}"
-            logger.info(signal_details)
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
