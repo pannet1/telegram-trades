@@ -35,6 +35,7 @@ signals = []
 spell_checks = {
     "F1NIFTY": "FINNIFTY",
     "N1FTY": "NIFTY",
+    "MIDCAPNIFTY": "MIDCPNIFTY",
 }
 close_words = ("CANCEL", "EXIT", "BOOK", "HIT", "BREAK", "AVOID",
                "PROFIT", "LOSS", "TRIAL", "TRAIL", "IGNORE")
@@ -621,6 +622,8 @@ class PaidStockIndexOption:
 
     def coin_option_name(self, df, symbol, strike, option_type):
         exch = "BFO" if symbol in ["SENSEX", "BANKEX"] else "NFO"
+        if symbol in spell_checks:
+            symbol = spell_checks[symbol]
         filtered_df = df[
             (df["Exch"] == exch)
             & (df["Symbol"] == symbol)
