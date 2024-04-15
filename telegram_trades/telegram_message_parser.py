@@ -108,6 +108,8 @@ def write_signals_to_csv(_signal_details):
             _signal_details["sl"] = zero_sl
         elif isinstance(__sl, str) and __sl.isdigit() and  __sl in ("0", "00"):
             _signal_details["sl"] = zero_sl
+        elif isinstance(__sl, str) and not __sl.strip():
+            _signal_details["sl"] = zero_sl
         writer.writerow(
             {k: str(_signal_details.get(k, ""))
              for k in signals_csv_file_headers}
