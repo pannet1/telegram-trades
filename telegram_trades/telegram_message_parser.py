@@ -64,7 +64,7 @@ def get_multiplier(symbol, channel_config, num_of_targets=1):
     elif "MIDCPNIFTY" in symbol:
         return "|".join([str(75 * channel_config.get("MIDCPNIFTY", 1))]* num_of_targets) if num_of_targets > 1 else str(75*channel_config.get("MIDCPNIFTY", 1))
     elif "NIFTY" in symbol:
-        return "|".join([str(50 * channel_config.get("NIFTY", 1))]* num_of_targets) if num_of_targets > 1 else str(50*channel_config.get("NIFTY", 1))
+        return "|".join([str(25 * channel_config.get("NIFTY", 1))]* num_of_targets) if num_of_targets > 1 else str(25*channel_config.get("NIFTY", 1))
     elif "SENSEX" in symbol:
         return "|".join([str(10 * channel_config.get("SENSEX", 1))]* num_of_targets) if num_of_targets > 1 else str(10*channel_config.get("SENSEX", 1))
     elif "BANKEX" in symbol:
