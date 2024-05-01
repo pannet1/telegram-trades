@@ -1,16 +1,29 @@
 from constants import DATA, BRKR, FUTL, F_TASK, UTIL, logging
 from login import get_broker
-from api_helper import (filtered_orders, download_masters, get_ltp,
-                        update_lst_of_dct_with_vals)
+from api_helper import (
+    filtered_orders,
+    download_masters,
+    get_ltp,
+    update_lst_of_dct_with_vals,
+)
 from rich import print
 import traceback
 import pandas as pd
 import inspect
 from typing import List
 
-lst_ignore = ["UNKNOWN", "rejected", "cancelled",
-              "E-TRAIL", "E-STOP", "HARD-STOP", "XXX",
-              "STOPPED-OUT", "TRAILED-OUT", "TRADES_COMPLETED"]
+lst_ignore = [
+    "UNKNOWN",
+    "rejected",
+    "cancelled",
+    "E-TRAIL",
+    "E-STOP",
+    "HARD-STOP",
+    "XXX",
+    "STOPPED-OUT",
+    "TRAILED-OUT",
+    "TRADES_COMPLETED",
+]
 F_SIGNAL = DATA + "signals.csv"
 SECS = 1  # sleep time
 
@@ -29,8 +42,7 @@ def log_exception(exception, locals, error_message=None):
         params (dict, tuple, or list): The parameters passed to the method.
         error_message (str, optional): An optional additional message to log with the exception.
     """
-    method_name = inspect.stack(
-    )[1].function  # Get the name of the calling method
+    method_name = inspect.stack()[1].function  # Get the name of the calling method
 
     # Format the message
     message = f"""
@@ -59,6 +71,9 @@ def task_to_order_args(last_price, **task):
             if min_prc > last_price:
                 trigger_price = price - 0.05
                 order_type = "SL"
+            elif max_prc < last_price:
+                price = 0
+                order_type = "MKT"
             args = dict(
                 symbol=task["symbol"],
                 side=side,
@@ -67,7 +82,7 @@ def task_to_order_args(last_price, **task):
                 trigger_price=trigger_price,
                 order_type=order_type,
                 product="N",
-                remarks=task["channel"]
+                remarks=task["channel"],
             )
     except Exception as e:
         log_exception(e, locals())
@@ -90,8 +105,7 @@ def get_order_from_book(api, resp):
         return dct_order
 
 
-def square_off(api, order_id,
-               symbol, quantity):
+def square_off(api, order_id, symbol, quantity):
     args = dict(
         order_id=order_id,
         symbol=symbol,
@@ -141,8 +155,7 @@ class TaskFunc:
             return method(**task)
         else:
             # Raise an error if the method does not exist
-            raise AttributeError(
-                f"{fn} is not a valid method in this class")
+            raise AttributeError(f"{fn} is not a valid method in this class")
 
     def entry(self, **task):
         """
@@ -156,14 +169,16 @@ class TaskFunc:
         """
         try:
             task["fn"] = "UNKNOWN"
-            ltp = get_ltp(self.api.broker, task["symbol"].split(
-                ":")[0], task["symbol"].split(":")[1])
+            ltp = get_ltp(
+                self.api.broker,
+                task["symbol"].split(":")[0],
+                task["symbol"].split(":")[1],
+            )
             if ltp > 0:
                 args = task_to_order_args(ltp, **task)
-                task["price"] = max(args['trigger_price'],
-                                    args['price'])
-                task['ltp'] = ltp
-                task['pnl'] = 0
+                task["price"] = max(args["trigger_price"], args["price"])
+                task["ltp"] = ltp
+                task["pnl"] = 0
                 if any(args):
                     # check order status based on resp
                     logging.info(f"entry args: {args}")
@@ -186,12 +201,10 @@ class TaskFunc:
     def is_entry(self, **task):
         try:
             order_details = task["entry"]
-            order_details = filtered_orders(
-                self.api, order_details["order_id"])
+            order_details = filtered_orders(self.api, order_details["order_id"])
             if is_key_val(order_details, "Status", "complete"):
                 task["entry"] = order_details
-                logging.info(
-                    f"entry for {task['symbol']} is {order_details['Status']}")
+                logging.info(f"entry for {task['symbol']} is {order_details['Status']}")
                 task["fn"] = "stop1"
             elif order_details["Status"] in lst_ignore:
                 logging.error(f"is_entry: {order_details['Status']}")
@@ -207,12 +220,12 @@ class TaskFunc:
             args = dict(
                 symbol=task["symbol"],
                 side="S",
-                quantity=task['tq'],
+                quantity=task["tq"],
                 price=task["sl"] - 0.05,
                 trigger_price=float(task["sl"]),
                 order_type="SL",
                 product="N",
-                remarks=task["channel"]
+                remarks=task["channel"],
             )
             logging.info(f"stop args: {args}")
             resp = self.api.order_place(**args)
@@ -220,11 +233,11 @@ class TaskFunc:
                 stop_order = get_order_from_book(self.api, resp)
                 task["stop"] = stop_order
                 if stop_order["Status"] in lst_ignore:
-                    task['fn'] = stop_order["Status"]
+                    task["fn"] = stop_order["Status"]
                 else:
-                    task['fn'] = "is_stop_or_target1"
+                    task["fn"] = "is_stop_or_target1"
             else:
-                task['fn'] = "E-STOP"
+                task["fn"] = "E-STOP"
         except Exception as e:
             log_exception(e, locals())
             traceback.print_exc()
@@ -240,32 +253,33 @@ class TaskFunc:
                 task["fn"] = "STOPPED-OUT"
             else:
                 tgt = float(task["target_range"].split("|")[0])
-                ltp = get_ltp(self.api.broker, task["symbol"].split(
-                    ":")[0], task["symbol"].split(":")[1])
-                task['ltp'] = ltp
-                task['pnl'] = (ltp * task['tq']) - \
-                    (float(task['entry']['price']) * task['tq'])
+                ltp = get_ltp(
+                    self.api.broker,
+                    task["symbol"].split(":")[0],
+                    task["symbol"].split(":")[1],
+                )
+                task["ltp"] = ltp
+                task["pnl"] = (ltp * task["tq"]) - (
+                    float(task["entry"]["price"]) * task["tq"]
+                )
 
-                is_stopped = (stop_order["side"].upper()
-                              == "S" and ltp < float(task["sl"]))
-                is_target = (stop_order['side'].upper() == "S" and ltp > tgt)
+                is_stopped = stop_order["side"].upper() == "S" and ltp < float(
+                    task["sl"]
+                )
+                is_target = stop_order["side"].upper() == "S" and ltp > tgt
 
                 if is_stopped:
                     quantity = task["tq"]
-                    task['fn'] = "HARD-STOP"
-                    logging.info(
-                        f"market jumped the stop loss for {task['symbol']}")
+                    task["fn"] = "HARD-STOP"
+                    logging.info(f"market jumped the stop loss for {task['symbol']}")
                 elif is_target:
                     quantity = task["q1"]
-                    logging.info(
-                        f"target1 reached {task['symbol']}")
+                    logging.info(f"target1 reached {task['symbol']}")
 
                 if is_stopped or is_target:
                     resp = square_off(
-                        self.api,
-                        stop_order["order_id"],
-                        task["symbol"],
-                        quantity)
+                        self.api, stop_order["order_id"], task["symbol"], quantity
+                    )
                     logging.info(f"modify resp: {resp}")
 
                 if is_target:
@@ -275,12 +289,12 @@ class TaskFunc:
                         args = dict(
                             symbol=task["symbol"],
                             side="S",
-                            quantity=task['q2'],
+                            quantity=task["q2"],
                             price=price - 0.05,
                             trigger_price=price,
                             order_type="SL",
                             product="N",
-                            remarks=task["channel"]
+                            remarks=task["channel"],
                         )
                         logging.info(f"stop loss order: {args}")
                         resp = self.api.order_place(**args)
@@ -288,15 +302,15 @@ class TaskFunc:
                             trail_order = get_order_from_book(self.api, resp)
                             task["trail"] = trail_order
                             if trail_order["Status"] in lst_ignore:
-                                task['fn'] = stop_order["Status"]
+                                task["fn"] = stop_order["Status"]
                             else:
-                                task['fn'] = "trail_or_target2"
+                                task["fn"] = "trail_or_target2"
                         else:
                             logging.error("placing trailing stop", resp)
-                            task['fn'] = "E-TRAIL"
+                            task["fn"] = "E-TRAIL"
                     else:
                         # target1 reached
-                        task['fn'] = "TRADES_COMPLETED"
+                        task["fn"] = "TRADES_COMPLETED"
 
         except Exception as e:
             log_exception(e, locals())
@@ -313,45 +327,43 @@ class TaskFunc:
                 task["fn"] = "TRAILED-OUT"
             else:
                 tgt = float(task["target_range"].split("|")[1])
-                ltp = get_ltp(self.api.broker, task["symbol"].split(
-                    ":")[0], task["symbol"].split(":")[1])
-                task['ltp'] = ltp
-                is_trail = (trail_order['side'].upper() ==
-                            "S" and ltp < float(task["price"]))
-                is_target = (trail_order['side'].upper() == "S" and ltp > tgt)
+                ltp = get_ltp(
+                    self.api.broker,
+                    task["symbol"].split(":")[0],
+                    task["symbol"].split(":")[1],
+                )
+                task["ltp"] = ltp
+                is_trail = trail_order["side"].upper() == "S" and ltp < float(
+                    task["price"]
+                )
+                is_target = trail_order["side"].upper() == "S" and ltp > tgt
                 if is_trail:
                     logging.info("market hit the trailing stop")
                 if is_trail or is_target:
                     resp = square_off(
-                        self.api,
-                        trail_order["order_id"],
-                        task["symbol"],
-                        task["q2"])
+                        self.api, trail_order["order_id"], task["symbol"], task["q2"]
+                    )
                     logging.info(f"target 2: {resp}")
-                    task['fn'] = "TRADES_COMPLETED"
+                    task["fn"] = "TRADES_COMPLETED"
         except Exception as e:
             log_exception(e, locals())
             traceback.print_exc()
         finally:
             return task
 
-    def do_cancel(self,
-                  tasks,
-                  channel,
-                  symbol
-                  ):
+    def do_cancel(self, tasks, channel, symbol):
         try:
             for task in tasks:
-                if task["symbol"] == symbol and \
-                    task["channel"] == channel and \
-                        task["fn"] not in lst_ignore:
+                if (
+                    task["symbol"] == symbol
+                    and task["channel"] == channel
+                    and task["fn"] not in lst_ignore
+                ):
                     order = task.get("trail", None)
                     if order:
                         resp = square_off(
-                            self.api,
-                            order["order_id"],
-                            task["symbol"],
-                            task['q2'])
+                            self.api, order["order_id"], task["symbol"], task["q2"]
+                        )
                         logging.info(f"cancel trail: {resp}")
                         task["fn"] = "XXX"
                         return task
@@ -359,10 +371,8 @@ class TaskFunc:
                     order = task.get("stop", None)
                     if order:
                         resp = square_off(
-                            self.api,
-                            order["order_id"],
-                            task["symbol"],
-                            task['tq'])
+                            self.api, order["order_id"], task["symbol"], task["tq"]
+                        )
                         logging.info(f"cancel stop: {resp}")
                         task["fn"] = "XXX"
                         return task
@@ -392,37 +402,52 @@ class Jsondb:
         # marker to find if json file is dirty
 
     def _update(self, updated_task, tasks):
-        """ to be removed """
-        tasks = update_lst_of_dct_with_vals(
-            tasks, "id", **updated_task)
+        """to be removed"""
+        tasks = update_lst_of_dct_with_vals(tasks, "id", **updated_task)
         FUTL.write_file(content=tasks, filepath=F_TASK)
 
     def _read_new_buy_fm_csv(self, lst_of_dct: List):
         logging.debug(lst_of_dct)
         ids = [task["id"] for task in lst_of_dct if isinstance(task, dict)]
         # TODO
-        columns = ['channel', 'id', 'symbol', 'entry_range', 'target_range',
-                   'sl',  'quantity', 'action', 'timestamp']
-        df = pd.read_csv(F_SIGNAL,
-                         names=columns,
-                         index_col=None)
+        columns = [
+            "channel",
+            "id",
+            "symbol",
+            "entry_range",
+            "target_range",
+            "sl",
+            "quantity",
+            "action",
+            "timestamp",
+        ]
+        df = pd.read_csv(F_SIGNAL, names=columns, index_col=None)
         lst_of_dct = df.to_dict(orient="records")
-        lst_of_dct = [dct
-                      for dct in lst_of_dct
-                      if dct["id"] not in ids and dct["action"] == 'Buy']
+        lst_of_dct = [
+            dct for dct in lst_of_dct if dct["id"] not in ids and dct["action"] == "Buy"
+        ]
         return lst_of_dct
 
     def _read_cancellation_fm_csv(self, lst_of_dct: List):
         ids = [task["id"] for task in lst_of_dct if (isinstance(task, dict))]
-        columns = ['channel', 'id', 'symbol', 'entry_range', 'target_range',
-                   'sl',  'quantity', 'action', 'timestamp']
-        df = pd.read_csv(F_SIGNAL,
-                         names=columns,
-                         index_col=None)
+        columns = [
+            "channel",
+            "id",
+            "symbol",
+            "entry_range",
+            "target_range",
+            "sl",
+            "quantity",
+            "action",
+            "timestamp",
+        ]
+        df = pd.read_csv(F_SIGNAL, names=columns, index_col=None)
         lst_of_dct = df.to_dict(orient="records")
-        lst_of_dct = [dct
-                      for dct in lst_of_dct
-                      if dct["id"] not in ids and dct["action"] == 'Cancel']
+        lst_of_dct = [
+            dct
+            for dct in lst_of_dct
+            if dct["id"] not in ids and dct["action"] == "Cancel"
+        ]
         return lst_of_dct
 
     def sync(self, new_calls):
@@ -430,12 +455,12 @@ class Jsondb:
         for task in new_calls:
             if "|" in str(task["quantity"]):
                 lst_qty = task["quantity"].split("|")
-                task['q1'] = int(lst_qty[0])
-                task['q2'] = int(lst_qty[1])
-                task['tq'] = task['q1'] + task['q2']
+                task["q1"] = int(lst_qty[0])
+                task["q2"] = int(lst_qty[1])
+                task["tq"] = task["q1"] + task["q2"]
             else:
-                task['q1'] = int(task["quantity"])
-                task['tq'] = task['q1']
+                task["q1"] = int(task["quantity"])
+                task["tq"] = task["q1"]
             task["fn"] = "entry"
             yield task
 
@@ -503,7 +528,7 @@ def run():
                         closed_position = obj_tasks.do_cancel(
                             cancellations,
                             channel=cancellation["channel"],
-                            symbol=cancellation["symbol"]
+                            symbol=cancellation["symbol"],
                         )
                         if closed_position and any(closed_position):
                             obj_db._update(closed_position, cancellations)
