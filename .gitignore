@@ -1,5 +1,6 @@
 # ignore data folder
 data/
+**/anon.session
 
 *.csv
 # ignore telegram session files
@@ -7,7 +8,7 @@ data/
 *.session-journal
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
+**/__pycache__/**
 *.py[cod]
 *$py.class
 
