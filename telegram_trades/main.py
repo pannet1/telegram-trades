@@ -72,7 +72,7 @@ def task_to_order_args(last_price, **task):
                 trigger_price = price - 0.05
                 order_type = "SL"
             elif max_prc < last_price:
-                price = 0
+                price = 0.0
                 order_type = "MKT"
             args = dict(
                 symbol=task["symbol"],
@@ -84,6 +84,7 @@ def task_to_order_args(last_price, **task):
                 product="N",
                 remarks=task["channel"],
             )
+            logging.debug(args)
     except Exception as e:
         log_exception(e, locals())
         traceback.print_exc()
