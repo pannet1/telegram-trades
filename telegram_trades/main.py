@@ -16,6 +16,7 @@ lst_ignore = [
     "UNKNOWN",
     "rejected",
     "cancelled",
+    "E-ENTRY",
     "E-TRAIL",
     "E-STOP",
     "HARD-STOP",
@@ -53,7 +54,7 @@ def log_exception(exception, locals, error_message=None):
         {error_message if error_message else ''}
     """
     # Log the exception with appropriate level
-    logging.error(message, exc_info=True)
+    logging.error(str(message), exc_info=True)
 
 
 def task_to_order_args(last_price, **task):
@@ -84,7 +85,9 @@ def task_to_order_args(last_price, **task):
                 product="N",
                 remarks=task["channel"],
             )
-            logging.debug(args)
+            if args["order_type"] == "MKT":
+                args["price"] = min_prc
+            logging.info(args)
     except Exception as e:
         log_exception(e, locals())
         traceback.print_exc()
@@ -94,7 +97,6 @@ def task_to_order_args(last_price, **task):
 
 def get_order_from_book(api, resp):
     try:
-        logging.debug(resp)
         dct_order = {"Status": "UNKNOWN"}
         if order_id := resp.get("NOrdNo", None):
             UTIL.slp_for(SECS)
@@ -117,7 +119,7 @@ def square_off(api, order_id, symbol, quantity):
         product="N",
     )
     resp = api.order_modify(**args)
-    logging.debug("modify SL to TGT", resp)
+    logging.info(f"modify SL {args} to tgt got {resp}")
 
 
 def is_key_val(dct, key, val):
@@ -169,7 +171,7 @@ class TaskFunc:
         'action': 'Buy',}
         """
         try:
-            task["fn"] = "UNKNOWN"
+            task["fn"] = "E-ENTRY"
             ltp = get_ltp(
                 self.api.broker,
                 task["symbol"].split(":")[0],
@@ -408,7 +410,6 @@ class Jsondb:
         FUTL.write_file(content=tasks, filepath=F_TASK)
 
     def _read_new_buy_fm_csv(self, lst_of_dct: List):
-        logging.debug(lst_of_dct)
         ids = [task["id"] for task in lst_of_dct if isinstance(task, dict)]
         # TODO
         columns = [

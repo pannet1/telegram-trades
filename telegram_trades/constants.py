@@ -3,7 +3,7 @@ from toolkit.logger import Logger
 from toolkit.utilities import Utilities
 
 DATA = "../data/"
-logging = Logger(10, DATA + "file.log")
+logging = Logger(20, DATA + "file.log")
 F_TASK = DATA + "tasks.json"
 DIRP = "../../"
 FUTL = Fileutils()
