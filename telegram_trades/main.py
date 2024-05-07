@@ -85,14 +85,12 @@ def task_to_order_args(last_price, **task):
                 product="N",
                 remarks=task["channel"],
             )
-            if args["order_type"] == "MKT":
-                args["price"] = min_prc
             logging.info(args)
     except Exception as e:
         log_exception(e, locals())
         traceback.print_exc()
     finally:
-        return args
+        return min_prc, args
 
 
 def get_order_from_book(api, resp):
@@ -178,8 +176,12 @@ class TaskFunc:
                 task["symbol"].split(":")[1],
             )
             if ltp > 0:
-                args = task_to_order_args(ltp, **task)
-                task["price"] = max(args["trigger_price"], args["price"])
+                min_prc, args = task_to_order_args(ltp, **task)
+                if args["order_type"] == "MKT":
+                    task["price"] = min_prc
+                    logging.info("mkt price: " + str(min_prc))
+                else:
+                    task["price"] = max(args["trigger_price"], args["price"])
                 task["ltp"] = ltp
                 task["pnl"] = 0
                 if any(args):
