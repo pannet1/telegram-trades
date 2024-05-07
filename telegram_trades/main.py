@@ -179,7 +179,7 @@ class TaskFunc:
                 min_prc, args = task_to_order_args(ltp, **task)
                 if args["order_type"] == "MKT":
                     task["price"] = min_prc
-                    logging.info("mkt price: " + str(min_prc))
+                    logging.info("task price update for market order: " + str(min_prc))
                 else:
                     task["price"] = max(args["trigger_price"], args["price"])
                 task["ltp"] = ltp
@@ -290,7 +290,7 @@ class TaskFunc:
                 if is_target:
                     if task.get("q2", None):
                         # we  still have more legs to manage
-                        price = float(task["entry"]["price"])
+                        price = task["price"]
                         args = dict(
                             symbol=task["symbol"],
                             side="S",
