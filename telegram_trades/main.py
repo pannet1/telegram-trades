@@ -90,7 +90,7 @@ def task_to_order_args(last_price, **task):
         log_exception(e, locals())
         traceback.print_exc()
     finally:
-        return min_prc, args
+        return max_prc, args
 
 
 def get_order_from_book(api, resp):
