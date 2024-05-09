@@ -120,6 +120,35 @@ def square_off(api, order_id, symbol, quantity):
     logging.info(f"modify SL {args} to tgt got {resp}")
 
 
+def market_order(api, order, action: str):
+    """
+    input:
+        api: broker object
+        order: order details
+        action: condition for param switch
+    output:
+        resp
+    """
+    if action == "exit":
+        side = "S"
+        price = 0.0
+        trigger_price = 0.0
+        order_type = "MKT"
+
+    args = dict(
+        side=side,
+        price=price,
+        trigger_price=trigger_price,
+        order_type=order_type,
+        symbol=order["exchange"] + ":" + order["symbol"],
+        quantity=order["quantity"],
+        product="N",
+        remarks=order["remarks"],
+    )
+    resp = api.order_place(**args)
+    logging.info(f"order {action} {args} got {resp}")
+
+
 def is_key_val(dct, key, val):
     # Check if the key exists in the dictionary
     if key in dct:
@@ -384,11 +413,15 @@ class TaskFunc:
 
                     order = task.get("entry", None)
                     if order:
-                        logging.info(f"entry found to cancel: {order}")
-                        resp = self.api.order_cancel(order["order_id"])
-                        logging.info(f"cancel entry: {resp}")
-                        task["fn"] = "XXX"
-                        return task
+                        if is_key_val(order, "Status", "complete"):
+                            market_order(self.api, order, "opposite")
+                            logging.info(f"entry found for opposite: {order}")
+                        else:
+                            logging.info(f"entry found to cancel: {order}")
+                            resp = self.api.order_cancel(order["order_id"])
+                            logging.info(f"cancel entry: {resp}")
+                            task["fn"] = "XXX"
+                            return task
 
         except Exception as e:
             log_exception(e, locals())
