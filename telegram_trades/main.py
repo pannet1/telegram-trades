@@ -129,7 +129,7 @@ def market_order(api, order, action: str):
     output:
         resp
     """
-    if action == "exit":
+    if action == "opposite":
         side = "S"
         price = 0.0
         trigger_price = 0.0
@@ -147,6 +147,7 @@ def market_order(api, order, action: str):
     )
     resp = api.order_place(**args)
     logging.info(f"order {action} {args} got {resp}")
+    return resp
 
 
 def is_key_val(dct, key, val):
@@ -413,15 +414,20 @@ class TaskFunc:
 
                     order = task.get("entry", None)
                     if order:
+                        logging.info(f"entry found to cancel: {order}")
+                        resp = self.api.order_cancel(order["order_id"])
+                        logging.debug(f"cancel entry: {resp}")
+                        order = get_order_from_book(self.api, resp)
                         if is_key_val(order, "Status", "complete"):
-                            market_order(self.api, order, "opposite")
-                            logging.info(f"entry found for opposite: {order}")
-                        else:
-                            logging.info(f"entry found to cancel: {order}")
-                            resp = self.api.order_cancel(order["order_id"])
-                            logging.info(f"cancel entry: {resp}")
-                            task["fn"] = "XXX"
-                            return task
+                            action = "opposite"
+                            logging.info(f"entry {order} found for {action}")
+                            resp = market_order(self.api, order, action)
+                            logging.info(f"{action} says {resp}")
+                            if isinstance(resp, dict):
+                                task[action] = get_order_from_book(self.api, resp)
+                        logging.info("not following this task anyway")
+                        task["fn"] = "XXX"
+                        return task
 
         except Exception as e:
             log_exception(e, locals())
