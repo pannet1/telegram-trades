@@ -96,7 +96,10 @@ def task_to_order_args(last_price, **task):
 def get_order_from_book(api, resp):
     try:
         dct_order = {"Status": "UNKNOWN"}
-        if order_id := resp.get("NOrdNo", None):
+        order_1 = resp.get("NOrdNo", None)
+        order_2 = resp.get("nestOrderNumber", None)
+        order_id = order_1 if order_1 else order_2
+        if order_id:
             UTIL.slp_for(SECS)
             dct_order = filtered_orders(api, order_id)
     except Exception as e:
