@@ -10,7 +10,7 @@ trade_keys = [
     "filled_quantity",
     "exchange_order_id",
     "price",
-    "side"
+    "side",
 ]
 position_keys = [
     "symbol",
@@ -83,9 +83,7 @@ def filtered_orders(api, order_id):
 
     lst = filter_by_keys(order_keys, api.orders)
     if order_id:
-        lst_order = [order
-                     for order in lst
-                     if order['order_id'] == order_id]
+        lst_order = [order for order in lst if order["order_id"] == order_id]
         logging.debug(lst_order)
         if any(lst_order):
             return lst_order[0]

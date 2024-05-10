@@ -394,6 +394,13 @@ class TaskFunc:
                     and task["channel"] == channel
                     and task["fn"] not in lst_ignore
                 ):
+                    """
+                    task["ltp"] = get_ltp(
+                        self.api.broker,
+                        task["symbol"].split(":")[0],
+                        task["symbol"].split(":")[1],
+                    )
+                    """
                     order = task.get("trail", None)
                     if order:
                         resp = square_off(
@@ -414,12 +421,12 @@ class TaskFunc:
 
                     order = task.get("entry", None)
                     if order:
-                        task["entry"] = order
-                        logging.info(f"entry found to cancel: {order}")
+                        logging.info(f"trying to cancel {order}")
                         resp = self.api.order_cancel(order["order_id"])
-                        logging.info(f"cancel entry: {resp}")
+                        logging.info(f"cancel response was {resp}")
                         task["cancel"] = resp
                         order = get_order_from_book(self.api, resp)
+                        task["entry"] = order
                         if is_key_val(order, "Status", "complete"):
                             action = "opposite"
                             logging.info(f"entry {order} found for {action}")
