@@ -414,9 +414,11 @@ class TaskFunc:
 
                     order = task.get("entry", None)
                     if order:
+                        task["entry"] = order
                         logging.info(f"entry found to cancel: {order}")
                         resp = self.api.order_cancel(order["order_id"])
-                        logging.debug(f"cancel entry: {resp}")
+                        logging.info(f"cancel entry: {resp}")
+                        task["cancel"] = resp
                         order = get_order_from_book(self.api, resp)
                         if is_key_val(order, "Status", "complete"):
                             action = "opposite"
@@ -425,7 +427,7 @@ class TaskFunc:
                             logging.info(f"{action} says {resp}")
                             if isinstance(resp, dict):
                                 task[action] = get_order_from_book(self.api, resp)
-                        logging.info("not following this task anyway")
+                            logging.info("not following this task anyway")
                         task["fn"] = "XXX"
                         return task
 
