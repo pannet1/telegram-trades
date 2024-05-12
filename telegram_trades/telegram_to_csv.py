@@ -20,27 +20,37 @@ async def my_event_handler(event):
     with open(DATA + TGRM["output_file"], 'a', encoding='utf-8',  newline='') as csv_file:
         csv_writer = csv.writer(csv_file)
         now = int(datetime.now().timestamp())
+        try:
+            chat_title = chat.title
+        except:
+            if chat.id == "493143987":
+                chat_title = "user-schoudhry12"
+            else:
+                chat_title = chat.id
         if event.reply_to_msg_id is not None:
             original_message = await client.get_messages(chat.id, ids=event.reply_to_msg_id)
-            msg = replace_non_ascii(original_message.raw_text) +" "+ replace_non_ascii(event.raw_text)
-            csv_writer.writerow([now, chat.title, msg,])
+            msg = replace_non_ascii(original_message.raw_text) +"$$$$"+ replace_non_ascii(event.raw_text)
+            csv_writer.writerow([now, chat_title, msg,])
         else:
             msg = replace_non_ascii(event.raw_text)
-            csv_writer.writerow([now, chat.title, msg])
-        logger.info(f"{chat.title} ===> {msg}")
+            csv_writer.writerow([now, chat_title, msg])
+        logger.info(f"{chat_title} ===> {msg}")
         try:
-            if chat.title == "PREMIUM JACKPOT":
+            if chat_title == "PREMIUM JACKPOT":
                 i = PremiumJackpot(now, msg)
                 i.get_signal()
-            elif chat.title == "SMS Options Premium":
+            elif chat_title == "SMS Options Premium":
                 i = SmsOptionsPremium(now, msg)
                 i.get_signal()
-            elif chat.title == "Paid - CALL & PUT":
+            elif chat_title == "Paid - CALL & PUT":
                 i = PaidCallPut(now, msg)
                 i.get_signal()
-            elif chat.title == "Paid Stock & Index Option":
+            elif chat_title == "Paid Stock & Index Option":
                 i = PaidStockIndexOption(now, msg)
                 i.get_signal()
+            # elif chat_title == "BNO PREMIUM":
+            #     i = BnoPremium(now, msg)
+            #     i.get_signal()
         except:
             logger.error(traceback.format_exc())
 
