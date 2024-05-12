@@ -1,7 +1,7 @@
 input_file = "../data/output.csv"
 import pandas as pd
 
-from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption
+from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption, BnoPremium, StockPremium, PremiumGroup, PremiumMembershipGroup, LiveTradingGroup, SChoudhry12
 
 
 df = pd.read_csv(input_file, header=None)
@@ -18,6 +18,24 @@ for i, row in df.iterrows():
         i.get_signal()
     elif row[1] == "Paid Stock & Index Option":
         i = PaidStockIndexOption(row[0], row[2])
+        i.get_signal()
+    elif row[1] == "PREMIUM MEMBERSHIP GROUP 🏆":
+        i = PremiumMembershipGroup(row[0], row[2])
+        i.get_signal()
+    elif row[1] == "💵 LIVE TRADING+ LOSS RECOVERY GROUP":
+        i = LiveTradingGroup(row[0], row[2])
+        i.get_signal()
+    elif row[1] == "PREMIUM GROUP™":
+        i = PremiumGroup(row[0], row[2])
+        i.get_signal()
+    elif row[1] == "STOCK PREMIUM":
+        i = StockPremium(row[0], row[2])
+        i.get_signal()
+    elif row[1] == "user-schoudhry12":
+        i = SChoudhry12(row[0], row[2])
+        i.get_signal()
+    elif row[1] == "BNO PREMIUM":
+        i = BnoPremium(row[0], row[2])
         i.get_signal()
 
 
