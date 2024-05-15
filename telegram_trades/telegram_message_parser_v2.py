@@ -609,7 +609,7 @@ class PaidStockIndexOption:
             self.message_upper = telegram_msg.upper().split("BUY ")[1].replace(
                 "  ", " ").replace("\n", " ").replace("-", " ").replace("/", " ").strip()
         except:
-            pass
+            self.message_upper = telegram_msg.upper()
 
     def get_target_values(self, string_val, start_val):
         float_values = []
@@ -1006,9 +1006,14 @@ class PremiumGroup:
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
-        self.message = (
-            telegram_msg.upper().replace("-", " ").replace(",", " ").replace("/", " ")
-        )
+        try:
+            self.message = (
+                telegram_msg.upper().split("BUY ")[1].replace("-", " ").replace(",", " ").replace("/", " ")
+            )
+        except:
+            self.message = (
+                telegram_msg.upper().replace("-", " ").replace(",", " ").replace("/", " ")
+            )
 
     def get_float_values(self, string_val, start_val, split_values):
         float_values = []
