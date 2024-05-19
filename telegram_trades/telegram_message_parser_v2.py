@@ -46,7 +46,7 @@ spell_checks = {
     "NF": "NIFTY",
     "MIDCP": "MIDCPNIFTY"
 }
-close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", "SAFE")
+close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", "SAFE", "LOW RISK")
 
 
 class CustomError(Exception):
@@ -237,7 +237,7 @@ class PremiumJackpot:
                 "sl": re.findall(r"SL-(\d+)?", parts[3])[0],
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumJackpot.channel_details, len(targets)),
                 "action": "Cancel"
-                if is_close_msg
+                if is_reply_msg and is_close_msg
                 else "Buy",
             }
             if __signal_details in signals:
@@ -411,7 +411,7 @@ class SmsOptionsPremium:
             statement = statement.replace(word, "|")
         parts = statement.split("|")
         try:
-            if is_close_msg:
+            if is_reply_msg and is_close_msg:
                 sl = zero_sl
             else:
                 sl = re.findall(r"(\d+)?", parts[4])[0]
@@ -435,7 +435,7 @@ class SmsOptionsPremium:
                 "target_range": "|".join(targets),
                 "sl": sl,
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details, len(targets)),
-                "action": "Cancel" if is_close_msg else "Buy",
+                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if _signal_details in signals:
                 raise CustomError("Signal already exists")
@@ -603,7 +603,7 @@ class PaidCallPut:
                 "target_range": "|".join(targets),
                 "sl": sl,
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidCallPut.channel_details, len(targets)),
-                "action": "Cancel" if is_close_msg else "Buy",
+                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if _signal_details in signals:
                 raise CustomError("Signal already exists")
@@ -768,7 +768,7 @@ class PaidStockIndexOption:
                 "target_range": "|".join(targets),
                 "sl": sl_range[0],
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidStockIndexOption.channel_details, len(targets)),
-                "action": "Cancel" if is_close_msg else "Buy",
+                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if _signal_details in signals:
                 raise CustomError("Signal already exists")
@@ -886,7 +886,7 @@ class BnoPremium:
                     BnoPremium.channel_details,
                     len(targets),
                 ),
-                "action": "Cancel" if is_close_msg else "Buy",
+                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if __signal_details in signals:
                 raise CustomError("Signal already exists")
@@ -1006,7 +1006,7 @@ class StockPremium:
                     StockPremium.channel_details,
                     len(targets),
                 ),
-                "action": "Cancel" if is_close_msg else "Buy",
+                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if __signal_details in signals:
                 raise CustomError("Signal already exists")
@@ -1167,7 +1167,7 @@ class PremiumGroup:
                     PremiumGroup.channel_details,
                     len(targets),
                 ),
-                "action": "Cancel" if is_close_msg else "Buy",
+                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if __signal_details in signals:
                 raise CustomError("Signal already exists")
@@ -1300,7 +1300,7 @@ class PremiumMembershipGroup:
                     PremiumMembershipGroup.channel_details,
                     len(targets),
                 ),
-                "action": "Cancel" if is_close_msg else "Buy",
+                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if __signal_details in signals:
                 raise CustomError("Signal already exists")
@@ -1422,7 +1422,7 @@ class LiveTradingGroup:
                     LiveTradingGroup.channel_details,
                     len(targets),
                 ),
-                "action": "Cancel" if is_close_msg else "Buy",
+                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if __signal_details in signals:
                 raise CustomError("Signal already exists")
@@ -1542,7 +1542,7 @@ class SChoudhry12:
                     SChoudhry12.channel_details,
                     len(targets),
                 ),
-                "action": "Cancel" if is_close_msg else "Buy",
+                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if __signal_details in signals:
                 raise CustomError("Signal already exists")
@@ -1664,7 +1664,7 @@ class VipPremiumPaidCalls:
                     VipPremiumPaidCalls.channel_details,
                     len(targets),
                 ),
-                "action": "Cancel" if is_close_msg else "Buy",
+                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if __signal_details in signals:
                 raise CustomError("Signal already exists")
@@ -1786,7 +1786,7 @@ class PlatinumMembers:
                     PlatinumMembers.channel_details,
                     len(targets),
                 ),
-                "action": "Cancel" if is_close_msg else "Buy",
+                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if __signal_details in signals:
                 raise CustomError("Signal already exists")

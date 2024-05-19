@@ -84,6 +84,11 @@ from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCa
 # msg = "INTRADAY STOCK OPTION TRADE     BUY MARUTI 12400 PE RANGE 180-185 TRG 270-350 SL  170"
 # i = PaidStockIndexOption(1707192066, msg)
 # i.get_signal()
-msg = "INTRADAY STOCK OPTION TRADE     BUY MARUTI 12400 PE RANGE 180-185 TRG 270-350 SL  170"
-i = PaidStockIndexOption(1707192066, msg)
+# msg = "INTRADAY STOCK OPTION TRADE     BUY MARUTI 12400 PE RANGE 180-185 TRG 270-350 SL  170"
+# i = PaidStockIndexOption(1707192066, msg)
+# i.get_signal()
+
+
+msg = "BUY #BANKNIFTY 48800 CE ABOVE -440-450 TARGET- 30/70/100/200/250 Point  SL-400  EXPIRY 8TH MAY  Loss recover call HIT TARGET  "
+i = PremiumJackpot(1707192066, msg)
 i.get_signal()
