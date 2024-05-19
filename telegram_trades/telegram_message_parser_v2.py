@@ -14,7 +14,7 @@ import random
 import numpy as np
 
 zero_sl = "0.50"
-signals_csv_filename = DATA + "signals_v2.csv"
+signals_csv_filename = DATA + "signals.csv"
 if os.path.isfile(signals_csv_filename):
     shutil.move(signals_csv_filename, signals_csv_filename.removesuffix(
         ".csv")+f'_{datetime.now().strftime("%Y%m%d-%H%M%S")}.csv')
@@ -29,7 +29,7 @@ signals_csv_file_headers = [
     "action",
     "normal_timestamp",
 ]
-failure_csv_filename = DATA + "failures_v2.csv"
+failure_csv_filename = DATA + "failures.csv"
 failure_csv_file_headers = ["channel_name", "timestamp",
                             "message", "exception", "normal_timestamp",]
 signals = []
