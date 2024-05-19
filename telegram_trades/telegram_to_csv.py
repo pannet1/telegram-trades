@@ -2,7 +2,10 @@ from telethon.sync import TelegramClient, events
 import csv
 from datetime import datetime
 from constants import TGRM, DATA
-from telegram_message_parser import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption
+from telegram_message_parser_v2 import (
+    PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption,
+    BnoPremium, StockPremium, PremiumGroup, PremiumMembershipGroup, 
+    LiveTradingGroup, SChoudhry12, VipPremiumPaidCalls, PlatinumMembers)
 from logzero import logger
 import traceback
 
@@ -12,7 +15,7 @@ channel_ids = TGRM['channel_ids']
 
 client = TelegramClient('anon', api_id, api_hash)
 
-replace_non_ascii = lambda s: ''.join(' ' if ord(i) >= 128 or i == '\n' else i for i in s)
+replace_non_ascii = lambda s: str(''.join(' ' if ord(i) >= 128 or i == '\n' or i == "₹" else i.upper() for i in s))
 
 @client.on(events.NewMessage(chats=channel_ids))
 async def my_event_handler(event):
@@ -21,10 +24,10 @@ async def my_event_handler(event):
         csv_writer = csv.writer(csv_file)
         now = int(datetime.now().timestamp())
         try:
-            chat_title = chat.title
+            chat_title = replace_non_ascii(chat.title).strip().upper()
         except:
             if chat.id == "493143987":
-                chat_title = "user-schoudhry12"
+                chat_title = "USER-SCHOUDHRY12"
             else:
                 chat_title = chat.id
         if event.reply_to_msg_id is not None:
@@ -34,23 +37,46 @@ async def my_event_handler(event):
         else:
             msg = replace_non_ascii(event.raw_text)
             csv_writer.writerow([now, chat_title, msg])
-        logger.info(f"{chat_title} ===> {msg}")
+        
         try:
             if chat_title == "PREMIUM JACKPOT":
                 i = PremiumJackpot(now, msg)
                 i.get_signal()
-            elif chat_title == "SMS Options Premium":
+            elif chat_title == "SMS OPTIONS PREMIUM":
                 i = SmsOptionsPremium(now, msg)
                 i.get_signal()
-            elif chat_title == "Paid - CALL & PUT":
+            elif chat_title == "PAID - CALL & PUT":
                 i = PaidCallPut(now, msg)
                 i.get_signal()
-            elif chat_title == "Paid Stock & Index Option":
+            elif chat_title == "PAID STOCK & INDEX OPTION":
                 i = PaidStockIndexOption(now, msg)
                 i.get_signal()
-            # elif chat_title == "BNO PREMIUM":
-            #     i = BnoPremium(now, msg)
-            #     i.get_signal()
+            elif chat_title == "PREMIUM MEMBERSHIP GROUP":
+                i = PremiumMembershipGroup(now, msg)
+                i.get_signal()
+            elif chat_title == "LIVE TRADING+ LOSS RECOVERY GROUP":
+                i = LiveTradingGroup(now, msg)
+                i.get_signal()
+            elif chat_title == "PREMIUM GROUP":
+                i = PremiumGroup(now, msg)
+                i.get_signal()
+            elif chat_title == "STOCK PREMIUM":
+                i = StockPremium(now, msg)
+                i.get_signal()
+            elif chat_title == "USER-SCHOUDHRY12":
+                i = SChoudhry12(now, msg)
+                i.get_signal()
+            elif chat_title == "BNO PREMIUM":
+                i = BnoPremium(now, msg)
+                i.get_signal()
+            elif chat_title == "VIP PREMIUM PAID CALLS":
+                i = VipPremiumPaidCalls(now, msg)
+                i.get_signal()
+            elif chat_title == "PLATINUM MEMBERS":
+                i = PlatinumMembers(now, msg)
+                i.get_signal()
+            else:
+                logger.info(f"{chat_title} ===> {msg}")
         except:
             logger.error(traceback.format_exc())
 

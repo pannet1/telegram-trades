@@ -11,6 +11,7 @@ from login import get_broker
 from constants import BRKR, FUTL, CHANNEL_DETAILS, DATA
 from logzero import logger
 import random
+import numpy as np
 
 zero_sl = "0.50"
 signals_csv_filename = DATA + "signals_v2.csv"
@@ -36,6 +37,14 @@ spell_checks = {
     "F1NIFTY": "FINNIFTY",
     "N1FTY": "NIFTY",
     "MIDCAPNIFTY": "MIDCPNIFTY",
+    "BANINIFTY": "BANKNIFTY",
+    "MIDCAP": "MIDCPNIFTY",
+    "NIFTU": "NIFTY",
+    "FIN NIFTY": "FINNIFTY",
+    "BANK NIFTY": "BANKNIFTY",
+    "BNF": "BANKNIFTY",
+    "NF": "NIFTY",
+    "MIDCP": "MIDCPNIFTY"
 }
 close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", "SAFE")
 
@@ -145,6 +154,10 @@ class PremiumJackpot:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                break
 
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
@@ -171,6 +184,8 @@ class PremiumJackpot:
                 & (scrip_info_df["Option Type"] == option_type)
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
+            sorted_df['Expiry Date'] = pd.to_datetime(sorted_df['Expiry Date'], format='%Y-%m-%d')
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -252,6 +267,10 @@ class SmsOptionsPremium:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                break
 
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
@@ -286,6 +305,8 @@ class SmsOptionsPremium:
                 # & (scrip_info_df["Expiry Date"] == f"2024-{month}-{date}")
             ]
             filtered_df = filtered_df.sort_values(by="Expiry Date")
+            filtered_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+            filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now())]
             first_row = filtered_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -439,6 +460,10 @@ class PaidCallPut:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                break
 
     def get_symbol_from_message(self, message):
         for word in message.upper().split():
@@ -469,6 +494,8 @@ class PaidCallPut:
             # & (df["Expiry Date"] == f"2024-{month}-{date}")
         ]
         filtered_df = filtered_df.sort_values(by="Expiry Date")
+        filtered_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+        filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now())]
         first_row = filtered_df.head(1)
         return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
 
@@ -511,7 +538,6 @@ class PaidCallPut:
                 return
 
             symbol = self.get_symbol_from_message(self.message)
-            print(symbol)
             # req_content = self.message.split("expiry")
             # req_content_list = req_content[0].strip().split()
             # if len(req_content_list) >= 2:
@@ -610,6 +636,10 @@ class PaidStockIndexOption:
                 "  ", " ").replace("\n", " ").replace("-", " ").replace("/", " ").strip()
         except:
             self.message_upper = telegram_msg.upper()
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                break
 
     def get_target_values(self, string_val, start_val):
         float_values = []
@@ -636,6 +666,8 @@ class PaidStockIndexOption:
             & (df["Option Type"] == option_type)
         ]
         filtered_df = filtered_df.sort_values(by="Expiry Date")
+        filtered_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+        filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now())]
         first_row = filtered_df.head(1)
         return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
 
@@ -764,7 +796,10 @@ class BnoPremium:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
-
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                break
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
             symbol = spell_checks[symbol]
@@ -792,6 +827,8 @@ class BnoPremium:
                 & (scrip_info_df["Option Type"] == option_type)
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
+            sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -824,7 +861,6 @@ class BnoPremium:
             for word in BnoPremium.split_words:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
-            print(parts)
             symbol_from_tg = parts[1].strip().removeprefix("#")
             sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
@@ -880,7 +916,10 @@ class StockPremium:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
-
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                break
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
             symbol = spell_checks[symbol]
@@ -908,6 +947,8 @@ class StockPremium:
                 & (scrip_info_df["Option Type"] == option_type)
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
+            sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -940,7 +981,6 @@ class StockPremium:
             for word in StockPremium.split_words:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
-            print(parts)
             symbol_from_tg = parts[1].strip().removeprefix("#")
             sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
@@ -1014,7 +1054,10 @@ class PremiumGroup:
             self.message = (
                 telegram_msg.upper().replace("-", " ").replace(",", " ").replace("/", " ")
             )
-
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                break
     def get_float_values(self, string_val, start_val, split_values):
         float_values = []
         v = string_val.split(start_val)
@@ -1052,6 +1095,8 @@ class PremiumGroup:
                 & (scrip_info_df["Option Type"] == option_type)
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
+            sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -1084,7 +1129,6 @@ class PremiumGroup:
             for word in PremiumGroup.split_words:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
-            print(parts)
             symbol_from_tg = parts[1].strip().removeprefix("BUY").strip()
             sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
@@ -1153,7 +1197,10 @@ class PremiumMembershipGroup:
         self.msg_received_timestamp = msg_received_timestamp
         self.message = re.sub(r"\.+", ".", telegram_msg.upper())
         self.message = self.message.replace(":-", " ").replace(":", " ")
-
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                break
     def get_float_values(self, string_val, start_val, split_values):
         float_values = []
         v = string_val.split(start_val)
@@ -1191,6 +1238,8 @@ class PremiumMembershipGroup:
                 & (scrip_info_df["Option Type"] == option_type)
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
+            sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -1223,7 +1272,6 @@ class PremiumMembershipGroup:
             for word in PremiumMembershipGroup.split_words:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
-            print(parts)
             symbol_from_tg = parts[0].strip().removeprefix("#")
             sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
@@ -1281,7 +1329,10 @@ class LiveTradingGroup:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = re.sub(r"\.+", ".", telegram_msg.upper())
-
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                break
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
             symbol = spell_checks[symbol]
@@ -1309,6 +1360,8 @@ class LiveTradingGroup:
                 & (scrip_info_df["Option Type"] == option_type)
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
+            sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -1343,7 +1396,6 @@ class LiveTradingGroup:
             for word in LiveTradingGroup.split_words:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
-            print(parts)
             symbol_from_tg = parts[0].strip().removeprefix("#")
             sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
@@ -1399,7 +1451,10 @@ class SChoudhry12:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = re.sub(r"\.+", ".", telegram_msg.upper())
-
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                break
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
             symbol = spell_checks[symbol]
@@ -1427,6 +1482,8 @@ class SChoudhry12:
                 & (scrip_info_df["Option Type"] == option_type)
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
+            sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -1459,7 +1516,6 @@ class SChoudhry12:
             for word in SChoudhry12.split_words:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
-            print(parts)
             symbol_from_tg = parts[1].strip().removeprefix("#")
             sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
@@ -1505,3 +1561,249 @@ class SChoudhry12:
             }
             logger.error(failure_details)
             write_failure_to_csv(failure_details)
+
+
+class VipPremiumPaidCalls:
+    split_words = ["ABOVE", "TGT", "TARGET", "SL"]
+    channel_details = CHANNEL_DETAILS["VipPremiumPaidCalls"]
+    channel_number = channel_details["channel_number"]
+
+    def __init__(self, msg_received_timestamp, telegram_msg):
+        self.msg_received_timestamp = msg_received_timestamp
+        self.message = re.sub(r"-+", "", telegram_msg.upper())
+        self.message = self.message.removeprefix("BUY").strip()
+        self.message = self.message.removeprefix("#").strip()
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                break
+    def get_closest_match(self, symbol):
+        if symbol in spell_checks:
+            symbol = spell_checks[symbol]
+        if symbol in all_symbols:
+            return symbol
+        raise CustomError("Closest match is not found")
+
+    def get_instrument_name(self, symbol_from_tg):
+        try:
+            sym_split = [s.strip() for s in symbol_from_tg.split() if s.strip()]
+            if len(sym_split) == 3:
+                sym, strike, option_type = sym_split
+            elif len(sym_split) > 3:
+                sym, strike, option_type, *_ = sym_split
+            elif len(sym_split) == 2:
+                sym = sym_split[0]
+                strike = sym_split[1].strip()[:-2]
+                option_type = sym_split[1].strip()[-2:]
+            sym = self.get_closest_match(sym)
+            exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
+            filtered_df = scrip_info_df[
+                (scrip_info_df["Exch"] == exch)
+                & (scrip_info_df["Symbol"] == sym)
+                & (scrip_info_df["Strike Price"] == float(strike))
+                & (scrip_info_df["Option Type"] == option_type)
+            ]
+            sorted_df = filtered_df.sort_values(by="Expiry Date")
+            sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
+            first_row = sorted_df.head(1)
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+        except:
+            raise CustomError(traceback.format_exc())
+
+    def get_signal(self):
+        try:
+            statement = self.message
+            is_reply_msg = "$$$$" in statement
+            new_msg = self.message.upper().split("$$$$")[-1]
+            is_close_msg = any([word in new_msg.split() for word in close_words])
+            if is_reply_msg and is_close_msg:
+                # is a reply message and has close words in it:
+                pass
+            elif not is_reply_msg:
+                # is not a reply message
+                pass
+            elif is_reply_msg and not is_close_msg:
+                # is a reply message but not having close words
+                # duplicate or junk
+                failure_details = {
+                    "channel_name": "VipPremiumPaidCalls",
+                    "timestamp": self.msg_received_timestamp,
+                    "message": self.message,
+                    "exception": "is a reply message but not having close words. Possible duplicate or junk",
+                }
+                write_failure_to_csv(failure_details)
+                return
+
+            for word in VipPremiumPaidCalls.split_words:
+                statement = statement.replace(word, "|")
+            parts = statement.split("|")
+            symbol_from_tg = parts[0].strip().removeprefix("#")
+            # sym, *_ = symbol_from_tg.upper().split()
+            symbol_dict = self.get_instrument_name(symbol_from_tg)
+            ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
+            targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
+            ltp_max = max(
+                [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
+            )
+            if float(targets[0]) < float(ltps[0]):
+                targets = [
+                    str(float(target) + ltp_max)
+                    for target in targets
+                    if target.replace(".", "", 1).isdigit()
+                ]
+            __signal_details = {
+                "channel_name": "VipPremiumPaidCalls",
+                "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
+                "ltp_range": "|".join(ltps),
+                "target_range": "|".join(targets),
+                "sl": re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0],
+                "quantity": get_multiplier(
+                    symbol_dict["Trading Symbol"],
+                    VipPremiumPaidCalls.channel_details,
+                    len(targets),
+                ),
+                "action": "Cancel" if is_close_msg else "Buy",
+            }
+            if __signal_details in signals:
+                raise CustomError("Signal already exists")
+            else:
+                signals.append(__signal_details)
+            signal_details = __signal_details.copy()
+            signal_details["timestamp"] = (
+                f"{VipPremiumPaidCalls.channel_number}{self.msg_received_timestamp}"
+            )
+            write_signals_to_csv(signal_details)
+        except:
+            failure_details = {
+                "channel_name": "VipPremiumPaidCalls",
+                "timestamp": self.msg_received_timestamp,
+                "message": self.message,
+                "exception": traceback.format_exc().strip(),
+            }
+            logger.error(failure_details)
+            write_failure_to_csv(failure_details)
+
+
+class PlatinumMembers:
+    split_words = ["ABOVE", "TGT", "TARGET", "SL"]
+    channel_details = CHANNEL_DETAILS["PlatinumMembers"]
+    channel_number = channel_details["channel_number"]
+
+    def __init__(self, msg_received_timestamp, telegram_msg):
+        self.msg_received_timestamp = msg_received_timestamp
+        self.message = re.sub(r"=", "", telegram_msg.upper())
+        self.message = self.message.removeprefix("BUY").strip()
+        self.message = self.message.removeprefix("#").strip()
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                break
+    def get_closest_match(self, symbol):
+        if symbol in spell_checks:
+            symbol = spell_checks[symbol]
+        if symbol in all_symbols:
+            return symbol
+        raise CustomError("Closest match is not found")
+
+    def get_instrument_name(self, symbol_from_tg):
+        try:
+            sym_split = [s.strip() for s in symbol_from_tg.split() if s.strip()]
+            if len(sym_split) == 3:
+                sym, strike, option_type = sym_split
+            elif len(sym_split) > 3:
+                sym, strike, option_type, *_ = sym_split
+            elif len(sym_split) == 2:
+                sym = sym_split[0]
+                strike = sym_split[1].strip()[:-2]
+                option_type = sym_split[1].strip()[-2:]
+            sym = self.get_closest_match(sym)
+            exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
+            filtered_df = scrip_info_df[
+                (scrip_info_df["Exch"] == exch)
+                & (scrip_info_df["Symbol"] == sym)
+                & (scrip_info_df["Strike Price"] == float(strike))
+                & (scrip_info_df["Option Type"] == option_type)
+            ]
+            sorted_df = filtered_df.sort_values(by="Expiry Date")
+            sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
+            first_row = sorted_df.head(1)
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+        except:
+            raise CustomError(traceback.format_exc())
+
+    def get_signal(self):
+        try:
+            statement = self.message
+            is_reply_msg = "$$$$" in statement
+            new_msg = self.message.upper().split("$$$$")[-1]
+            is_close_msg = any([word in new_msg.split() for word in close_words])
+            if is_reply_msg and is_close_msg:
+                # is a reply message and has close words in it:
+                pass
+            elif not is_reply_msg:
+                # is not a reply message
+                pass
+            elif is_reply_msg and not is_close_msg:
+                # is a reply message but not having close words
+                # duplicate or junk
+                failure_details = {
+                    "channel_name": "PlatinumMembers",
+                    "timestamp": self.msg_received_timestamp,
+                    "message": self.message,
+                    "exception": "is a reply message but not having close words. Possible duplicate or junk",
+                }
+                write_failure_to_csv(failure_details)
+                return
+
+            for word in PlatinumMembers.split_words:
+                statement = statement.replace(word, "|")
+            parts = statement.split("|")
+            symbol_from_tg = parts[0].strip().removeprefix("#")
+            # sym, *_ = symbol_from_tg.upper().split()
+            symbol_dict = self.get_instrument_name(symbol_from_tg)
+            ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
+            targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
+            ltp_max = max(
+                [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
+            )
+            if float(targets[0]) < float(ltps[0]):
+                targets = [
+                    str(float(target) + ltp_max)
+                    for target in targets
+                    if target.replace(".", "", 1).isdigit()
+                ]
+            __signal_details = {
+                "channel_name": "PlatinumMembers",
+                "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
+                "ltp_range": "|".join(ltps),
+                "target_range": "|".join(targets),
+                "sl": re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0],
+                "quantity": get_multiplier(
+                    symbol_dict["Trading Symbol"],
+                    PlatinumMembers.channel_details,
+                    len(targets),
+                ),
+                "action": "Cancel" if is_close_msg else "Buy",
+            }
+            if __signal_details in signals:
+                raise CustomError("Signal already exists")
+            else:
+                signals.append(__signal_details)
+            signal_details = __signal_details.copy()
+            signal_details["timestamp"] = (
+                f"{PlatinumMembers.channel_number}{self.msg_received_timestamp}"
+            )
+            write_signals_to_csv(signal_details)
+        except:
+            failure_details = {
+                "channel_name": "PlatinumMembers",
+                "timestamp": self.msg_received_timestamp,
+                "message": self.message,
+                "exception": traceback.format_exc().strip(),
+            }
+            logger.error(failure_details)
+            write_failure_to_csv(failure_details)
+
+
