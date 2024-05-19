@@ -1050,6 +1050,7 @@ class PremiumGroup:
             self.message = (
                 telegram_msg.upper().split("BUY ")[1].replace("-", " ").replace(",", " ").replace("/", " ")
             )
+            self.message = self.message.replace("BELOW","")
         except:
             self.message = (
                 telegram_msg.upper().replace("-", " ").replace(",", " ").replace("/", " ")
