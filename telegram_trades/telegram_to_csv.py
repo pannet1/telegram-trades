@@ -6,9 +6,10 @@ from telegram_message_parser_v2 import (
     PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption,
     BnoPremium, StockPremium, PremiumGroup, PremiumMembershipGroup, 
     LiveTradingGroup, SChoudhry12, VipPremiumPaidCalls, PlatinumMembers)
-from logzero import logger
+from logzero import setup_logger
 import traceback
 
+logger = setup_logger(logfile="telegram_to_csv.log")
 api_id = TGRM['api_id']
 api_hash = TGRM['api_hash']
 channel_ids = TGRM['channel_ids']
@@ -16,6 +17,7 @@ channel_ids = TGRM['channel_ids']
 client = TelegramClient('anon', api_id, api_hash)
 
 replace_non_ascii = lambda s: str(''.join(' ' if ord(i) >= 128 or i == '\n' or i == "₹" else i.upper() for i in s))
+# replace_non_ascii = lambda s: str(''.join(' ' if str(i).isalnum() or str(i).strip().isspace() or i == '\n' or i == "₹" else i.upper() for i in s))
 
 @client.on(events.NewMessage(chats=channel_ids))
 async def my_event_handler(event):
@@ -52,6 +54,7 @@ async def my_event_handler(event):
                 i = PaidStockIndexOption(now, msg)
                 i.get_signal()
             elif chat_title == "PREMIUM MEMBERSHIP GROUP":
+                logger.info(f"Premium Memebership group - {msg} - vs - {event.raw_text}")
                 i = PremiumMembershipGroup(now, msg)
                 i.get_signal()
             elif chat_title == "LIVE TRADING+ LOSS RECOVERY GROUP":

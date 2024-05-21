@@ -44,7 +44,8 @@ spell_checks = {
     "BANK NIFTY": "BANKNIFTY",
     "BNF": "BANKNIFTY",
     "NF": "NIFTY",
-    "MIDCP": "MIDCPNIFTY"
+    "MIDCP": "MIDCPNIFTY",
+    "BANKNIFT": "BANKNIFTY"
 }
 close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", "SAFE", "LOW RISK")
 
