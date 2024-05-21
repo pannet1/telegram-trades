@@ -185,7 +185,7 @@ class PremiumJackpot:
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
             sorted_df['Expiry Date'] = pd.to_datetime(sorted_df['Expiry Date'], format='%Y-%m-%d')
-            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -306,7 +306,7 @@ class SmsOptionsPremium:
             ]
             filtered_df = filtered_df.sort_values(by="Expiry Date")
             filtered_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
-            filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now())]
+            filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = filtered_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -495,7 +495,7 @@ class PaidCallPut:
         ]
         filtered_df = filtered_df.sort_values(by="Expiry Date")
         filtered_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
-        filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now())]
+        filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
         first_row = filtered_df.head(1)
         return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
 
@@ -667,7 +667,7 @@ class PaidStockIndexOption:
         ]
         filtered_df = filtered_df.sort_values(by="Expiry Date")
         filtered_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
-        filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now())]
+        filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
         first_row = filtered_df.head(1)
         return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
 
@@ -828,7 +828,7 @@ class BnoPremium:
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
-            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -948,7 +948,7 @@ class StockPremium:
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
-            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -1097,7 +1097,7 @@ class PremiumGroup:
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
-            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -1240,7 +1240,7 @@ class PremiumMembershipGroup:
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
-            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -1362,7 +1362,7 @@ class LiveTradingGroup:
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
-            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -1484,7 +1484,7 @@ class SChoudhry12:
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
-            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -1606,7 +1606,7 @@ class VipPremiumPaidCalls:
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
-            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:
@@ -1728,7 +1728,7 @@ class PlatinumMembers:
             ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
-            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now())]
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
         except:

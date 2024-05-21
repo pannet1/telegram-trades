@@ -89,6 +89,6 @@ from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCa
 # i.get_signal()
 
 
-msg = "BUY #BANKNIFTY 48800 CE ABOVE -440-450 TARGET- 30/70/100/200/250 Point  SL-400  EXPIRY 8TH MAY  Loss recover call HIT TARGET  "
+msg = "BUY #FINNIFTY 21000 CE ABOVE -440-450 TARGET- 30/70/100/200/250 Point  SL-400  EXPIRY 8TH MAY  Loss recover call HIT TARGET  "
 i = PremiumJackpot(1707192066, msg)
 i.get_signal()
