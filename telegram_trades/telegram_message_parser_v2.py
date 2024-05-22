@@ -45,7 +45,7 @@ spell_checks = {
     "BNF": "BANKNIFTY",
     "NF": "NIFTY",
     "MIDCP": "MIDCPNIFTY",
-    "BANKNIFT": "BANKNIFTY"
+    "BANKNIFT ": "BANKNIFTY "
 }
 close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", "SAFE", "LOW RISK")
 
@@ -1064,8 +1064,10 @@ class PremiumGroup:
         float_values = []
         v = string_val.split(start_val)
         for word in re.split(split_values, v[1]):
+            if not word.strip():
+                continue
             if word.replace("+", "").replace(".", "", 1).isdigit():
-                float_values.append(word)
+                float_values.append(word.replace("+", ""))
             else:
                 break
         return float_values
@@ -1131,12 +1133,16 @@ class PremiumGroup:
             for word in PremiumGroup.split_words:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
-            symbol_from_tg = parts[1].strip().removeprefix("BUY").strip()
+            symbol_from_tg = parts[0].strip().removeprefix("BUY").strip()
             sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
             ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
+            targets = []
             for target_keyword in ["TARGETS", "TARGET", "TRT", "TRG"]:
-                targets = self.get_float_values(self.message, target_keyword, " ")
+                try:
+                    targets = self.get_float_values(self.message, target_keyword, " ")
+                except:
+                    pass
                 if targets:
                     break
             else:
