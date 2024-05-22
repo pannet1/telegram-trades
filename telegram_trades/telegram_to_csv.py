@@ -1,5 +1,6 @@
 from telethon.sync import TelegramClient, events
 import csv
+import unicodedata
 from datetime import datetime
 from constants import TGRM, DATA
 from telegram_message_parser_v2 import (
@@ -16,7 +17,7 @@ channel_ids = TGRM['channel_ids']
 
 client = TelegramClient('anon', api_id, api_hash)
 
-replace_non_ascii = lambda s: str(''.join(' ' if ord(i) >= 128 or i == '\n' or i == "₹" else i.upper() for i in s))
+replace_non_ascii = lambda s: str(''.join(' ' if ord(unicodedata.normalize('NFKD', i).encode('ASCII', 'ignore').decode('utf-8')) >= 128 or i == '\n' or i == "₹" else i.upper() for i in s))
 # replace_non_ascii = lambda s: str(''.join(' ' if str(i).isalnum() or str(i).strip().isspace() or i == '\n' or i == "₹" else i.upper() for i in s))
 
 @client.on(events.NewMessage(chats=channel_ids))
