@@ -17,7 +17,9 @@ channel_ids = TGRM['channel_ids']
 
 client = TelegramClient('anon', api_id, api_hash)
 
-replace_non_ascii = lambda s: str(''.join(' ' if ord(unicodedata.normalize('NFKD', i).encode('ASCII', 'ignore').decode('utf-8')) >= 128 or i == '\n' or i == "₹" else i.upper() for i in s))
+replace_non_ascii = lambda s: str(''.join(' ' if ord(i) >= 128 or i == '\n' or i == "₹" else i.upper() for i in s))
+
+replace_unicode = lambda s: unicodedata.normalize('NFKD', s).encode('ASCII', 'ignore').decode('utf-8')
 # replace_non_ascii = lambda s: str(''.join(' ' if str(i).isalnum() or str(i).strip().isspace() or i == '\n' or i == "₹" else i.upper() for i in s))
 
 @client.on(events.NewMessage(chats=channel_ids))
@@ -33,12 +35,19 @@ async def my_event_handler(event):
                 chat_title = "USER-SCHOUDHRY12"
             else:
                 chat_title = chat.id
+        
         if event.reply_to_msg_id is not None:
             original_message = await client.get_messages(chat.id, ids=event.reply_to_msg_id)
-            msg = replace_non_ascii(original_message.raw_text) +"$$$$"+ replace_non_ascii(event.raw_text)
+            if chat_title == "PREMIUM MEMBERSHIP GROUP":
+                msg = replace_non_ascii(replace_unicode(original_message.raw_text)) + replace_non_ascii(replace_unicode(event.raw_text))
+            else:
+                msg = replace_non_ascii(original_message.raw_text) +"$$$$"+ replace_non_ascii(event.raw_text)
             csv_writer.writerow([now, chat_title, msg,])
         else:
-            msg = replace_non_ascii(event.raw_text)
+            if chat_title == "PREMIUM MEMBERSHIP GROUP":
+                msg = replace_non_ascii(replace_unicode(event.raw_text))
+            else:
+                msg = replace_non_ascii(event.raw_text)
             csv_writer.writerow([now, chat_title, msg])
         
         try:
