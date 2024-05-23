@@ -30,6 +30,8 @@ async def my_event_handler(event):
         now = int(datetime.now().timestamp())
         try:
             chat_title = replace_non_ascii(chat.title).strip().upper()
+            if not chat_title:
+                chat_title = replace_non_ascii(replace_unicode(chat.title)).strip().upper()
         except:
             if chat.id == 493143987:
                 chat_title = "USER-SCHOUDHRY12"
