@@ -44,54 +44,57 @@ async def my_event_handler(event):
                 msg = replace_non_ascii(replace_unicode(original_message.raw_text)) + replace_non_ascii(replace_unicode(event.raw_text))
             else:
                 msg = replace_non_ascii(original_message.raw_text) +"$$$$"+ replace_non_ascii(event.raw_text)
-            csv_writer.writerow([now, chat_title, msg,])
+            if msg.strip():
+                csv_writer.writerow([now, chat_title, msg,])
         else:
             if chat_title == "PREMIUM MEMBERSHIP GROUP":
                 msg = replace_non_ascii(replace_unicode(event.raw_text))
             else:
                 msg = replace_non_ascii(event.raw_text)
-            csv_writer.writerow([now, chat_title, msg])
+            if msg.strip():
+                csv_writer.writerow([now, chat_title, msg])
         
         try:
-            if chat_title == "PREMIUM JACKPOT":
-                i = PremiumJackpot(now, msg)
-                i.get_signal()
-            elif chat_title == "SMS OPTIONS PREMIUM":
-                i = SmsOptionsPremium(now, msg)
-                i.get_signal()
-            elif chat_title == "PAID - CALL & PUT":
-                i = PaidCallPut(now, msg)
-                i.get_signal()
-            elif chat_title == "PAID STOCK & INDEX OPTION":
-                i = PaidStockIndexOption(now, msg)
-                i.get_signal()
-            elif chat_title == "PREMIUM MEMBERSHIP GROUP":
-                logger.info(f"Premium Memebership group - {msg} - vs - {event.raw_text}")
-                i = PremiumMembershipGroup(now, msg)
-                i.get_signal()
-            elif chat_title == "LIVE TRADING+ LOSS RECOVERY GROUP":
-                i = LiveTradingGroup(now, msg)
-                i.get_signal()
-            elif chat_title == "PREMIUM GROUP":
-                i = PremiumGroup(now, msg)
-                i.get_signal()
-            elif chat_title == "STOCK PREMIUM":
-                i = StockPremium(now, msg)
-                i.get_signal()
-            elif chat_title == "USER-SCHOUDHRY12":
-                i = SChoudhry12(now, msg)
-                i.get_signal()
-            elif chat_title == "BNO PREMIUM":
-                i = BnoPremium(now, msg)
-                i.get_signal()
-            elif chat_title == "VIP PREMIUM PAID CALLS":
-                i = VipPremiumPaidCalls(now, msg)
-                i.get_signal()
-            elif chat_title == "PLATINUM MEMBERS":
-                i = PlatinumMembers(now, msg)
-                i.get_signal()
-            else:
-                logger.info(f"{chat_title} ===> {msg}")
+            if msg.strip():
+                if chat_title == "PREMIUM JACKPOT":
+                    i = PremiumJackpot(now, msg)
+                    i.get_signal()
+                elif chat_title == "SMS OPTIONS PREMIUM":
+                    i = SmsOptionsPremium(now, msg)
+                    i.get_signal()
+                elif chat_title == "PAID - CALL & PUT":
+                    i = PaidCallPut(now, msg)
+                    i.get_signal()
+                elif chat_title == "PAID STOCK & INDEX OPTION":
+                    i = PaidStockIndexOption(now, msg)
+                    i.get_signal()
+                elif chat_title == "PREMIUM MEMBERSHIP GROUP":
+                    logger.info(f"Premium Memebership group - {msg} - vs - {event.raw_text}")
+                    i = PremiumMembershipGroup(now, msg)
+                    i.get_signal()
+                elif chat_title == "LIVE TRADING+ LOSS RECOVERY GROUP":
+                    i = LiveTradingGroup(now, msg)
+                    i.get_signal()
+                elif chat_title == "PREMIUM GROUP":
+                    i = PremiumGroup(now, msg)
+                    i.get_signal()
+                elif chat_title == "STOCK PREMIUM":
+                    i = StockPremium(now, msg)
+                    i.get_signal()
+                elif chat_title == "USER-SCHOUDHRY12":
+                    i = SChoudhry12(now, msg)
+                    i.get_signal()
+                elif chat_title == "BNO PREMIUM":
+                    i = BnoPremium(now, msg)
+                    i.get_signal()
+                elif chat_title == "VIP PREMIUM PAID CALLS":
+                    i = VipPremiumPaidCalls(now, msg)
+                    i.get_signal()
+                elif chat_title == "PLATINUM MEMBERS":
+                    i = PlatinumMembers(now, msg)
+                    i.get_signal()
+                else:
+                    logger.info(f"{chat_title} ===> {msg}")
         except:
             logger.error(traceback.format_exc())
 

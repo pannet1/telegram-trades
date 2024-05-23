@@ -260,7 +260,7 @@ class PremiumJackpot:
 
 
 class SmsOptionsPremium:
-    split_words = ["BUY", "ONLY IN RANGE @", "TARGET", "SL FOR TRADE @ "]
+    split_words = ["BUY", "ONLY IN RANGE @", "ABOVE @", "TARGET", "SL FOR TRADE @ "]
     channel_details = CHANNEL_DETAILS["SmsOptionsPremium"]
     spot_sl = channel_details["spot_sl"]
     channel_number = channel_details["channel_number"]
