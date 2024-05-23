@@ -5,6 +5,9 @@ from api_helper import (
     download_masters,
     get_ltp,
     update_lst_of_dct_with_vals,
+    get_order_from_book,
+    square_off,
+    market_order,
 )
 from rich import print
 import traceback
@@ -13,7 +16,7 @@ import inspect
 from typing import List
 
 lst_ignore = [
-    "UNKNOWN",
+    "E-ORDERBOOK",
     "rejected",
     "cancelled",
     "E-ENTRY",
@@ -91,66 +94,6 @@ def task_to_order_args(last_price, **task):
         traceback.print_exc()
     finally:
         return max_prc, args
-
-
-def get_order_from_book(api, resp):
-    try:
-        dct_order = {"Status": "UNKNOWN"}
-        order_1 = resp.get("NOrdNo", None)
-        order_2 = resp.get("nestOrderNumber", None)
-        order_id = order_1 if order_1 else order_2
-        if order_id:
-            UTIL.slp_for(SECS)
-            dct_order = filtered_orders(api, order_id)
-    except Exception as e:
-        log_exception(e, locals())
-        traceback.print_exc()
-    finally:
-        return dct_order
-
-
-def square_off(api, order_id, symbol, quantity):
-    args = dict(
-        order_id=order_id,
-        symbol=symbol,
-        side="S",
-        quantity=quantity,
-        price=0.0,
-        order_type="MKT",
-        product="N",
-    )
-    resp = api.order_modify(**args)
-    logging.info(f"modify SL {args} to tgt got {resp}")
-
-
-def market_order(api, order, action: str):
-    """
-    input:
-        api: broker object
-        order: order details
-        action: condition for param switch
-    output:
-        resp
-    """
-    if action == "opposite":
-        side = "S"
-        price = 0.0
-        trigger_price = 0.0
-        order_type = "MKT"
-
-    args = dict(
-        side=side,
-        price=price,
-        trigger_price=trigger_price,
-        order_type=order_type,
-        symbol=order["exchange"] + ":" + order["symbol"],
-        quantity=order["quantity"],
-        product="N",
-        remarks=order["remarks"],
-    )
-    resp = api.order_place(**args)
-    logging.info(f"order {action} {args} got {resp}")
-    return resp
 
 
 def is_key_val(dct, key, val):
