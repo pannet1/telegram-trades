@@ -1038,6 +1038,8 @@ class PremiumGroup:
         "TARGETS",
         "TARGET",
         "TRT",
+        "TARTE",
+        "TG",
         "STOPLOSS",
         "TRG",
         "NEAR",
@@ -1138,7 +1140,7 @@ class PremiumGroup:
             symbol_dict = self.get_instrument_name(symbol_from_tg)
             ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
             targets = []
-            for target_keyword in ["TARGETS", "TARGET", "TRT", "TRG"]:
+            for target_keyword in ["TARGETS", "TARGET", "TRT", "TRG", "TARTE", "TG"]:
                 try:
                     targets = self.get_float_values(self.message, target_keyword, " ")
                 except:
