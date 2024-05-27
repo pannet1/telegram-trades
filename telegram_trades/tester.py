@@ -4,39 +4,39 @@ import pandas as pd
 from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption, BnoPremium, StockPremium, PremiumGroup, PremiumMembershipGroup, LiveTradingGroup, SChoudhry12
 
 
-df = pd.read_csv(input_file, header=None)
-for i, row in df.iterrows():
-    #     # print(i, row)
-    if row[1] == "PREMIUM JACKPOT":
-        i = PremiumJackpot(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "SMS OPTIONS PREMIUM":
-        i = SmsOptionsPremium(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "PAID - CALL & PUT":
-        i = PaidCallPut(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "PAID STOCK & INDEX OPTION":
-        i = PaidStockIndexOption(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "PREMIUM MEMBERSHIP GROUP":
-        i = PremiumMembershipGroup(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "LIVE TRADING+ LOSS RECOVERY GROUP":
-        i = LiveTradingGroup(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "PREMIUM GROUP":
-        i = PremiumGroup(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "STOCK PREMIUM":
-        i = StockPremium(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "USER-SCHOUDHRY12":
-        i = SChoudhry12(row[0], row[2])
-        i.get_signal()
-    elif row[1] == "BNO PREMIUM":
-        i = BnoPremium(row[0], row[2])
-        i.get_signal()
+# df = pd.read_csv(input_file, header=None)
+# for i, row in df.iterrows():
+#     #     # print(i, row)
+#     if row[1] == "PREMIUM JACKPOT":
+#         i = PremiumJackpot(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "SMS OPTIONS PREMIUM":
+#         i = SmsOptionsPremium(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "PAID - CALL & PUT":
+#         i = PaidCallPut(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "PAID STOCK & INDEX OPTION":
+#         i = PaidStockIndexOption(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "PREMIUM MEMBERSHIP GROUP":
+#         i = PremiumMembershipGroup(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "LIVE TRADING+ LOSS RECOVERY GROUP":
+#         i = LiveTradingGroup(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "PREMIUM GROUP":
+#         i = PremiumGroup(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "STOCK PREMIUM":
+#         i = StockPremium(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "USER-SCHOUDHRY12":
+#         i = SChoudhry12(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "BNO PREMIUM":
+#         i = BnoPremium(row[0], row[2])
+#         i.get_signal()
 
 
 # msg = "BANKNIFTY 7 FEB 45800 CE IF CROSSES & SPOT SUSTAIN ONLY ABOVE 253.85 WILL TRY TO HIT TARGETS @ 275 300 330 360 400 & ABOVE$$$$"
@@ -89,6 +89,6 @@ for i, row in df.iterrows():
 # i.get_signal()
 
 
-# msg = "BUY #BALKRISIND 2800  CE  ABOVE - 210 TARGET- 215,250 SL-200  EXPIRY MAY"
-# i = SmsOptionsPremium(1707192066, msg)
-# i.get_signal()
+msg = "	BUY BANKNIFTY 49400 CE (  29 MAY EX)   ABOVE 200  TARGET 250/300  SL  170"
+i = PremiumMembershipGroup(1707192066, msg)
+i.get_signal()

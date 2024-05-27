@@ -1218,14 +1218,14 @@ class PremiumGroup:
 
 
 class PremiumMembershipGroup:
-    split_words = ["BUY", "ABOVE", "TARGET", "SL"]
+    split_words = ["ABOVE", "TARGET", "SL"]
     channel_details = CHANNEL_DETAILS["PremiumMembershipGroup"]
     channel_number = channel_details["channel_number"]
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = re.sub(r"\.+", ".", telegram_msg.upper())
-        self.message = self.message.replace(":-", " ").replace(":", " ")
+        self.message = self.message.strip().removeprefix("BUY ").replace(":-", " ").replace(":", " ").strip()
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
@@ -1234,6 +1234,8 @@ class PremiumMembershipGroup:
         float_values = []
         v = string_val.split(start_val)
         for word in re.split(split_values, v[1]):
+            if not word.strip():
+                continue
             if word.replace("+", "").replace(".", "", 1).isdigit():
                 float_values.append(word)
             else:
@@ -1304,9 +1306,10 @@ class PremiumMembershipGroup:
             symbol_from_tg = parts[0].strip().removeprefix("#")
             sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
-            ltps = re.findall(r"\d+\.\d+|\d+", parts[2].strip())
-            targets = self.get_float_values(self.message, "TARGET", "/")
-            sl = self.get_float_values(self.message, "SL", "/")[0]
+            ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
+            
+            targets = self.get_float_values(self.message, "TARGET", "/| ")
+            sl = self.get_float_values(self.message, "SL", " ")[0]
             # targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
@@ -1473,13 +1476,14 @@ class LiveTradingGroup:
 
 
 class SChoudhry12:
-    split_words = ["BUY", "ABOVE", "TGT", "SL"]
+    split_words = ["ABOVE", "TGT", "SL"]
     channel_details = CHANNEL_DETAILS["SChoudhry12"]
     channel_number = channel_details["channel_number"]
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = re.sub(r"\.+", ".", telegram_msg.upper())
+        self.message = self.message.strip().removeprefix("BUY ").strip()
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
@@ -1545,11 +1549,11 @@ class SChoudhry12:
             for word in SChoudhry12.split_words:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
-            symbol_from_tg = parts[1].strip().removeprefix("#")
+            symbol_from_tg = parts[0].strip().removeprefix("#")
             sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
-            ltps = re.findall(r"\d+\.\d+|\d+", parts[2].strip())
-            targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
+            ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
+            targets = re.findall(r"\d+\.\d+|\d+", parts[2].strip())
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
