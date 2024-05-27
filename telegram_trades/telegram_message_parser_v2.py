@@ -47,8 +47,10 @@ spell_checks = {
     "NF": "NIFTY",
     "MIDCP": "MIDCPNIFTY",
     "BANKNIFT ": "BANKNIFTY ",
-    "MIDCPNIFTYNIFTY": "MIDCPNIFTY"
+    "MIDCPNIFTYNIFTY": "MIDCPNIFTY",
+    "BAJAJAUTO": "BAJAJ-AUTO",
 }
+index_options = ('FINNIFTY', 'NIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX', 'BANKNIFTY')
 close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", "SAFE", "LOW RISK")
 
 
@@ -144,7 +146,8 @@ def write_failure_to_csv(failure_details):
 
 
 def round_to_point_five(value):
-    return round((value*2)/2)
+    rounded_value = round((value*2)/2)
+    return int(rounded_value) if rounded_value==int(rounded_value) else rounded_value
 
 def get_sl_target_from_csv(symbol_name, max_ltp):
     try:
@@ -929,13 +932,13 @@ class BnoPremium:
 
 
 class StockPremium:
-    split_words = ["BUY", "ABOVE", "SL", "TGT"]
+    split_words = ["ABOVE", "SL", "TGT"]
     channel_details = CHANNEL_DETAILS["StockPremium"]
     channel_number = channel_details["channel_number"]
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
-        self.message = telegram_msg
+        self.message = telegram_msg.strip().removeprefix("#").strip().removeprefix('BUY').strip()
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
@@ -1001,11 +1004,11 @@ class StockPremium:
             for word in StockPremium.split_words:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
-            symbol_from_tg = parts[1].strip().removeprefix("#")
+            symbol_from_tg = parts[0].strip()
             sym, *_ = symbol_from_tg.upper().split()
             symbol_dict = self.get_instrument_name(symbol_from_tg)
-            ltps = re.findall(r"\d+\.\d+|\d+", parts[2].strip())
-            targets = re.findall(r"\d+\.\d+|\d+", parts[4].strip())
+            ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
+            targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
@@ -1020,7 +1023,7 @@ class StockPremium:
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
-                "sl": re.findall(r"\d+\.\d+|\d+", parts[3].strip())[0],
+                "sl": re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0],
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     StockPremium.channel_details,
@@ -1726,8 +1729,8 @@ class PlatinumMembers:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = re.sub(r"=", "", telegram_msg.upper())
-        self.message = self.message.removeprefix("BUY").strip()
-        self.message = self.message.removeprefix("#").strip()
+        if "BUY" in self.message:
+            self.message = self.message.split("BUY", 1)[1].strip()
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
