@@ -15,6 +15,7 @@ import numpy as np
 
 zero_sl = "0.50"
 signals_csv_filename = DATA + "signals.csv"
+sl_tgt_csv_filename = DATA + "sl_tgt.csv"
 if os.path.isfile(signals_csv_filename):
     shutil.move(signals_csv_filename, signals_csv_filename.removesuffix(
         ".csv")+f'_{datetime.now().strftime("%Y%m%d-%H%M%S")}.csv')
@@ -141,6 +142,23 @@ def write_failure_to_csv(failure_details):
              for k in failure_csv_file_headers}
         )
 
+
+def round_to_point_five(value):
+    return round((value*2)/2)
+
+def get_sl_target_from_csv(symbol_name, max_ltp):
+    try:
+        df = pd.read_csv(sl_tgt_csv_filename, header=0)
+        df = df[(df["Instrument"] == symbol_name) & (df["To"] >= int(max_ltp))]
+        output = df.sort_values(by="To")[:1].to_dict(orient="records")[0]
+        _ = output.pop('Instrument')
+        _ = output.pop('To')
+        
+        sl = round_to_point_five(int(max_ltp) * output.pop('SL') / 100)
+        target = "|".join([str(round_to_point_five(i * int(max_ltp) / 100) for i in output.values())])
+        return sl, target
+    except:
+        return None, None
 
 api = get_broker(BRKR)
 download_masters(api.broker)
@@ -1575,7 +1593,7 @@ class SChoudhry12:
 
 
 class VipPremiumPaidCalls:
-    split_words = ["ABOVE", "TGT", "TARGET", "SL"]
+    split_words = ["ABOVE", "TGT", "TARGET", "TG", "SL"]
     channel_details = CHANNEL_DETAILS["VipPremiumPaidCalls"]
     channel_number = channel_details["channel_number"]
 
