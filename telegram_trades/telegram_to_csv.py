@@ -41,7 +41,7 @@ async def my_event_handler(event):
         if event.reply_to_msg_id is not None:
             original_message = await client.get_messages(chat.id, ids=event.reply_to_msg_id)
             if chat_title == "PREMIUM MEMBERSHIP GROUP":
-                msg = replace_non_ascii(replace_unicode(original_message.raw_text)) + replace_non_ascii(replace_unicode(event.raw_text))
+                msg = replace_non_ascii(replace_unicode(original_message.raw_text)) +"$$$$"+ replace_non_ascii(replace_unicode(event.raw_text))
             else:
                 msg = replace_non_ascii(original_message.raw_text) +"$$$$"+ replace_non_ascii(event.raw_text)
             if msg.strip():
@@ -54,6 +54,7 @@ async def my_event_handler(event):
             if msg.strip():
                 csv_writer.writerow([now, chat_title, msg])
         
+        msg = msg.strip().removeprefix('#').strip()
         try:
             if msg.strip():
                 if chat_title == "PREMIUM JACKPOT":

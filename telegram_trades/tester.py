@@ -84,23 +84,28 @@ from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCa
 # msg = "INTRADAY STOCK OPTION TRADE     BUY MARUTI 12400 PE RANGE 180-185 TRG 270-350 SL  170"
 # i = PaidStockIndexOption(1707192066, msg)
 # i.get_signal()
-msg = "BANKNIFTY 49300 CE  ABOVE 255  SL 220  TG 275/300/350++++"
-i = VipPremiumPaidCalls(1707192066, msg)
-i.get_signal()
+# msg = "BANKNIFTY 49300 CE  ABOVE 255  SL 220  TG 275/300/350++++"
+# i = VipPremiumPaidCalls(1707192066, msg)
+# i.get_signal()
 
 
-msg = "BUY BANKNIFTY 49400 CE (  29 MAY EX)   ABOVE 200  TARGET 250/300  SL  170"
-i = PremiumMembershipGroup(1707192066, msg)
-i.get_signal()
+# msg = "BUY BANKNIFTY 49400 CE (  29 MAY EX)   ABOVE 200  TARGET 250/300  SL  170"
+# i = PremiumMembershipGroup(1707192066, msg)
+# i.get_signal()
 
-msg = "BUY MIDCPNIFTY 11650 CE ( 27 MAY EX)  ABOVE  50  TARGET  75/100  SL 40"
-i = PremiumMembershipGroup(1707192066, msg)
-i.get_signal()
+# msg = "BUY MIDCPNIFTY 11650 CE ( 27 MAY EX)  ABOVE  50  TARGET  75/100  SL 40"
+# i = PremiumMembershipGroup(1707192066, msg)
+# i.get_signal()
 
-msg = "BUY BAJAJAUTO 9100 CE ABOVE 100 SL 84 TGT 110/130    "
-i = StockPremium(1707192066, msg)
-i.get_signal()
+# msg = "BUY BAJAJAUTO 9100 CE ABOVE 100 SL 84 TGT 110/130    "
+# i = StockPremium(1707192066, msg)
+# i.get_signal()
 
-msg = "BANKNIFTY EXPIRY SPECIAL ZERO TO HERO JACKPOT TRADE     BUY BANKNIFTY 50500 CE    BUY ABOVE  73   SL  46/00   TGT  100/130/160+"
-i = PlatinumMembers(1707192066, msg)
+# msg = "BANKNIFTY EXPIRY SPECIAL ZERO TO HERO JACKPOT TRADE     BUY BANKNIFTY 50500 CE    BUY ABOVE  73   SL  46/00   TGT  100/130/160+"
+# i = PlatinumMembers(1707192066, msg)
+# i.get_signal()
+
+
+msg = "NIFTY 22900 PE ABOVE 115  SL   TRT 125 140 170+"
+i = PremiumGroup(1707192066, msg)
 i.get_signal()

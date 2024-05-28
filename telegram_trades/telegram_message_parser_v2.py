@@ -15,7 +15,7 @@ import numpy as np
 
 zero_sl = "0.50"
 signals_csv_filename = DATA + "signals.csv"
-sl_tgt_csv_filename = DATA + "sl_tgt.csv"
+sl_tgt_csv_filename = DATA + "SL-TGT.csv"
 if os.path.isfile(signals_csv_filename):
     shutil.move(signals_csv_filename, signals_csv_filename.removesuffix(
         ".csv")+f'_{datetime.now().strftime("%Y%m%d-%H%M%S")}.csv')
@@ -156,11 +156,11 @@ def get_sl_target_from_csv(symbol_name, max_ltp):
         output = df.sort_values(by="To")[:1].to_dict(orient="records")[0]
         _ = output.pop('Instrument')
         _ = output.pop('To')
-        
-        sl = round_to_point_five(int(max_ltp) * output.pop('SL') / 100)
-        target = "|".join([str(round_to_point_five(i * int(max_ltp) / 100) for i in output.values())])
-        return sl, target
+        sl = round_to_point_five(int(max_ltp) - (int(max_ltp) * output.pop('SL') / 100))
+        targets = [str(int(max_ltp) + round_to_point_five(i * int(max_ltp) / 100)) for i in list(output.values())]
+        return sl, targets
     except:
+        logger.error(traceback.format_exc())
         return None, None
 
 api = get_broker(BRKR)
@@ -210,7 +210,7 @@ class PremiumJackpot:
             sorted_df['Expiry Date'] = pd.to_datetime(sorted_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
-            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
 
@@ -243,21 +243,27 @@ class PremiumJackpot:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
             symbol_from_tg = parts[1].strip().removeprefix("#")
-            sym, *_ = symbol_from_tg.upper().split()
-            symbol_dict = self.get_instrument_name(symbol_from_tg)
+            symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
             ltps = re.findall(r"\d+\.\d+|\d+", parts[2])
-            targets = re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
             ltp_max = max([float(ltp) for ltp in ltps
                           if ltp.replace('.', '', 1).isdigit()])
-            if float(targets[0]) < float(ltps[0]):
-                targets = [str(float(target) + ltp_max)
-                           for target in targets if target.replace('.', '', 1).isdigit()]
+            sl, targets = None, None
+            if sym in index_options:
+                sl, targets = get_sl_target_from_csv(sym, ltp_max)
+                print(sl, targets)
+            if not sl and not targets:
+                targets = re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
+                
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [str(float(target) + ltp_max)
+                                for target in targets if target.replace('.', '', 1).isdigit()]
+                sl = re.findall(r"SL-(\d+)?", parts[3])[0]
             __signal_details = {
                 "channel_name": "Premium jackpot",
                 "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
-                "sl": re.findall(r"SL-(\d+)?", parts[3])[0],
+                "sl": sl,
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumJackpot.channel_details, len(targets)),
                 "action": "Cancel"
                 if is_reply_msg and is_close_msg
@@ -331,7 +337,7 @@ class SmsOptionsPremium:
             filtered_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
             filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = filtered_df.head(1)
-            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
 
@@ -365,17 +371,21 @@ class SmsOptionsPremium:
                 if not symbol_d:
                     continue
                 # symbol_d = " ".join(statement.split()[:5])
-                symbol_dict = self.get_instrument_name(symbol_d)
+                symbol_dict, sym = self.get_instrument_name(symbol_d)
                 ltp_range = self.get_float_values(statement, "ABOVE ")
-                sl = math.floor(
-                    float(ltp_range[0]) * (1 - SmsOptionsPremium.spot_sl))
+                
                 ltps = self.get_float_values(statement, "ABOVE ")
-                targets = self.get_float_values(statement, "TARGETS @ ")
                 ltp_max = max(
                     [float(ltp) for ltp in ltps if ltp.replace('.', '', 1).isdigit()])
-                if float(targets[0]) < float(ltps[0]):
-                    targets = [str(float(target) + ltp_max)
-                               for target in targets if target.replace('.', '', 1).isdigit()]
+                sl, targets = None, None
+                if sym in index_options:
+                    sl, targets = get_sl_target_from_csv(sym, ltp_max)
+                if not sl and not targets:
+                    targets = self.get_float_values(statement, "TARGETS @ ")
+                    if float(targets[0]) < float(ltps[0]):
+                        targets = [str(float(target) + ltp_max)
+                                for target in targets if target.replace('.', '', 1).isdigit()]
+                    sl = math.floor(float(ltp_range[0]) * (1 - SmsOptionsPremium.spot_sl))
                 _signal_details = {
                     "channel_name": "SmsOptionsPremium",
                     "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
@@ -436,21 +446,35 @@ class SmsOptionsPremium:
         try:
             if is_reply_msg and is_close_msg:
                 sl = zero_sl
-            else:
-                sl = re.findall(r"(\d+)?", parts[4])[0]
-                if not sl:
-                    sl = re.findall(r"(\d+)?", statement.split("$$$$")[-1])[0]
-                    if not sl:
-                        raise CustomError(f"SL is not found in {parts[4]}")
-            symbol_dict = self.get_instrument_name(parts[1].upper().strip())
+            # else:
+            #     sl = re.findall(r"(\d+)?", parts[4])[0]
+            #     if not sl:
+            #         sl = re.findall(r"(\d+)?", statement.split("$$$$")[-1])[0]
+            #         if not sl:
+            #             raise CustomError(f"SL is not found in {parts[4]}")
+            symbol_dict, sym = self.get_instrument_name(parts[1].upper().strip())
             ltps = re.findall(r"\d+\.\d+|\d+", parts[2])
-            targets = self.get_float_values(
-                self.message.strip().upper(), "TARGET")
             ltp_max = max([float(ltp) for ltp in ltps
                           if ltp.replace('.', '', 1).isdigit()])
-            if float(targets[0]) < float(ltps[0]):
-                targets = [str(float(target) + ltp_max)
-                           for target in targets if target.replace('.', '', 1).isdigit()]
+            
+            sl, targets = None, None
+            if sym in index_options:
+                sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            if not sl and not targets:
+                targets = self.get_float_values(
+                    self.message.strip().upper(), "TARGET")
+                
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [str(float(target) + ltp_max)
+                            for target in targets if target.replace('.', '', 1).isdigit()]
+                if is_reply_msg and is_close_msg:
+                    sl = zero_sl
+                else:
+                    sl = re.findall(r"(\d+)?", parts[4])[0]
+                    if not sl:
+                        sl = re.findall(r"(\d+)?", statement.split("$$$$")[-1])[0]
+                        if not sl:
+                            raise CustomError(f"SL is not found in {parts[4]}")
             _signal_details = {
                 "channel_name": "SmsOptionsPremium",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -588,18 +612,12 @@ class PaidCallPut:
                 ):
                     strike = req_content[i + 1].strip()
                     option = req_content[i + 2].strip()
-            sl_list = self.get_float_values(
-                self.message.strip().upper().replace("-", ""), "SL")
-            if sl_list:
-                sl = sl_list[0]
-            else:
-                raise CustomError("SL is not available")
+            
                 # if word.upper().strip().startswith("SL-"):
                 #     sl = re.findall(r"SL-(\d+)?", word.upper().strip())[0]
             if strike == None or option == None:
                 raise CustomError("Strike or Option is None")
-            targets = self.get_target_values(
-                self.message.replace("TARGTE", "TARGET"), "TARGET")
+            
             symbol_dict = self.coin_option_name(
                 # scrip_info_df, symbol, date, month, strike, option
                 scrip_info_df, symbol, strike, option
@@ -613,12 +631,24 @@ class PaidCallPut:
             else:
                 raise CustomError("ltp_range values is not found")
             ltps = ltp_range
-            targets = targets
             ltp_max = max([float(ltp) for ltp in ltps
                           if ltp.replace('.', '', 1).isdigit()])
-            if float(targets[0]) < float(ltps[0]):
-                targets = [str(float(target) + ltp_max)
-                           for target in targets if target.replace('.', '', 1).isdigit()]
+            sl, targets = None, None
+            if symbol in index_options:
+                sl, targets = get_sl_target_from_csv(symbol, ltp_max)
+            if not sl and not targets:
+                sl_list = self.get_float_values(
+                    self.message.strip().upper().replace("-", ""), "SL")
+                if sl_list:
+                    sl = sl_list[0]
+                else:
+                    raise CustomError("SL is not available")
+
+                targets = self.get_target_values(
+                    self.message.replace("TARGTE", "TARGET"), "TARGET")
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [str(float(target) + ltp_max)
+                            for target in targets if target.replace('.', '', 1).isdigit()]
             _signal_details = {
                 "channel_name": "PaidCallPut",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -748,48 +778,52 @@ class PaidStockIndexOption:
             else:
                 raise CustomError("ltp_range values is not found")
 
-            target_range = None
-            for word in target_words:
-                target_range = self.get_target_values(self.message_upper, word)
-                if target_range:
-                    break
-            else:
-                raise CustomError("target_range values is not found")
-
-            sl_range = None
-            for word in sl_words:
-                sl_range = self.get_target_values(self.message_upper, word)
-                if sl_range:
-                    break
-            if not sl_range:
-                for word in sl_words:
-                    if word in self.message_upper:
-                        v = self.message_upper.split(word)[1]
-                        if not v.strip():
-                            continue
-                        v_list = [v_.strip() for v_ in v.split() if v_.strip()]
-                        if v_list[0] in ("TOMORROW", "PAID"):
-                            sl_range = [
-                                str(math.floor(float(ltp_range[0]) * (1 - PaidStockIndexOption.sl)))]
-                            break
-            # else:
-            #     if sym in ('SENSEX', 'BANKEX', 'NIFTY', 'BANKNIFTY', 'MIDCPNIFTY', 'FINNIFTY'):
-            #         sl_range = [str(float(sl)/2) for sl in sl_range]
-            if not sl_range:
-                raise CustomError("sl_range values is not found")
             ltps = ltp_range
-            targets = target_range
             ltp_max = max([float(ltp) for ltp in ltps
                           if ltp.replace('.', '', 1).isdigit()])
-            if float(targets[0]) < float(ltps[0]):
-                targets = [str(float(target) + ltp_max)
-                           for target in targets if target.replace('.', '', 1).isdigit()]
+            sl, targets = None, None
+            if sym in index_options:
+                sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            if not sl and not targets:
+                sl_range = None
+                for word in sl_words:
+                    sl_range = self.get_target_values(self.message_upper, word)
+                    if sl_range:
+                        break
+                if not sl_range:
+                    for word in sl_words:
+                        if word in self.message_upper:
+                            v = self.message_upper.split(word)[1]
+                            if not v.strip():
+                                continue
+                            v_list = [v_.strip() for v_ in v.split() if v_.strip()]
+                            if v_list[0] in ("TOMORROW", "PAID"):
+                                sl_range = [
+                                    str(math.floor(float(ltp_range[0]) * (1 - PaidStockIndexOption.sl)))]
+                                break
+                # else:
+                #     if sym in ('SENSEX', 'BANKEX', 'NIFTY', 'BANKNIFTY', 'MIDCPNIFTY', 'FINNIFTY'):
+                #         sl_range = [str(float(sl)/2) for sl in sl_range]
+                if not sl_range:
+                    raise CustomError("sl_range values is not found")
+                sl = sl_range[0]
+                target_range = None
+                for word in target_words:
+                    target_range = self.get_target_values(self.message_upper, word)
+                    if target_range:
+                        break
+                else:
+                    raise CustomError("target_range values is not found")
+                targets = target_range
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [str(float(target) + ltp_max)
+                            for target in targets if target.replace('.', '', 1).isdigit()]
             _signal_details = {
                 "channel_name": "PaidStockIndexOption",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
-                "sl": sl_range[0],
+                "sl": sl,
                 "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidStockIndexOption.channel_details, len(targets)),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
@@ -853,7 +887,7 @@ class BnoPremium:
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
-            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
 
@@ -885,25 +919,30 @@ class BnoPremium:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
             symbol_from_tg = parts[1].strip().removeprefix("#")
-            sym, *_ = symbol_from_tg.upper().split()
-            symbol_dict = self.get_instrument_name(symbol_from_tg)
-            ltps = re.findall(r"\d+\.\d+|\d+", " ".join(parts[1].strip().split()[3:]))
-            targets = re.findall(r"\d+\.\d+|\d+", parts[3])
+            symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
+            ltps = re.findall(r"\d+\.\d+|\d+", " ".join(parts[2].strip().split()[3:]))
+            print(ltps)
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
-            if float(targets[0]) < float(ltps[0]):
-                targets = [
-                    str(float(target) + ltp_max)
-                    for target in targets
-                    if target.replace(".", "", 1).isdigit()
-                ]
+            sl, targets = None, None
+            if sym in index_options:
+                sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            if not sl and not targets:
+                targets = re.findall(r"\d+\.\d+|\d+", parts[3])
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [
+                        str(float(target) + ltp_max)
+                        for target in targets
+                        if target.replace(".", "", 1).isdigit()
+                    ]
+                sl = re.findall(r"\d+\.\d+|\d+", parts[2])[0]
             __signal_details = {
                 "channel_name": "BnoPremium",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
-                "sl": re.findall(r"\d+\.\d+|\d+", parts[2])[0],
+                "sl": sl,
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     BnoPremium.channel_details,
@@ -973,7 +1012,7 @@ class StockPremium:
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
-            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
 
@@ -1005,25 +1044,29 @@ class StockPremium:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
             symbol_from_tg = parts[0].strip()
-            sym, *_ = symbol_from_tg.upper().split()
-            symbol_dict = self.get_instrument_name(symbol_from_tg)
+            symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
             ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
-            targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
-            if float(targets[0]) < float(ltps[0]):
-                targets = [
-                    str(float(target) + ltp_max)
-                    for target in targets
-                    if target.replace(".", "", 1).isdigit()
-                ]
+            sl, targets = None, None
+            if sym in index_options:
+                sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            if not sl and not targets:
+                targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [
+                        str(float(target) + ltp_max)
+                        for target in targets
+                        if target.replace(".", "", 1).isdigit()
+                    ]
+                sl = re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0]
             __signal_details = {
                 "channel_name": "StockPremium",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
-                "sl": re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0],
+                "sl": sl,
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     StockPremium.channel_details,
@@ -1126,7 +1169,7 @@ class PremiumGroup:
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
-            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
 
@@ -1158,35 +1201,38 @@ class PremiumGroup:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
             symbol_from_tg = parts[0].strip().removeprefix("BUY").strip()
-            sym, *_ = symbol_from_tg.upper().split()
-            symbol_dict = self.get_instrument_name(symbol_from_tg)
+            symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
             ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
-            targets = []
-            for target_keyword in ["TARGETS", "TARGET", "TRT", "TRG", "TARTE", "TG"]:
-                try:
-                    targets = self.get_float_values(self.message, target_keyword, " ")
-                except:
-                    pass
-                if targets:
-                    break
-            else:
-                raise CustomError("TARGET not found")
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
-            if float(targets[0]) < float(ltps[0]):
-                targets = [
-                    str(float(target) + ltp_max)
-                    for target in targets
-                    if target.replace(".", "", 1).isdigit()
-                ]
-            for sl_keyword in ["SL", "STOPLOSS"]:
-                sl = self.get_float_values(self.message, sl_keyword, " ")
-                if sl:
-                    sl = sl[0]
-                    break
-            else:
-                raise CustomError("SL not found")
+            sl, targets = None, None
+            if sym in index_options:
+                sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            if not sl and not targets:
+                targets = []
+                for target_keyword in ["TARGETS", "TARGET", "TRT", "TRG", "TARTE", "TG"]:
+                    try:
+                        targets = self.get_float_values(self.message, target_keyword, " ")
+                    except:
+                        pass
+                    if targets:
+                        break
+                else:
+                    raise CustomError("TARGET not found")    
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [
+                        str(float(target) + ltp_max)
+                        for target in targets
+                        if target.replace(".", "", 1).isdigit()
+                    ]
+                for sl_keyword in ["SL", "STOPLOSS"]:
+                    sl = self.get_float_values(self.message, sl_keyword, " ")
+                    if sl:
+                        sl = sl[0]
+                        break
+                else:
+                    raise CustomError("SL not found")
             __signal_details = {
                 "channel_name": "PremiumGroup",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -1275,7 +1321,7 @@ class PremiumMembershipGroup:
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
-            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
 
@@ -1307,22 +1353,24 @@ class PremiumMembershipGroup:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
             symbol_from_tg = parts[0].strip().removeprefix("#")
-            sym, *_ = symbol_from_tg.upper().split()
-            symbol_dict = self.get_instrument_name(symbol_from_tg)
+            symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
             ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
-            
-            targets = self.get_float_values(self.message, "TARGET", "/| ")
-            sl = self.get_float_values(self.message, "SL", " ")[0]
-            # targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
-            if float(targets[0]) < float(ltps[0]):
-                targets = [
-                    str(float(target) + ltp_max)
-                    for target in targets
-                    if target.replace(".", "", 1).isdigit()
-                ]
+            sl, targets = None, None
+            if sym in index_options:
+                sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            if not sl and not targets:
+                targets = self.get_float_values(self.message, "TARGET", "/| ")
+                sl = self.get_float_values(self.message, "SL", " ")[0]
+                # targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [
+                        str(float(target) + ltp_max)
+                        for target in targets
+                        if target.replace(".", "", 1).isdigit()
+                    ]
             __signal_details = {
                 "channel_name": "PremiumMembershipGroup",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -1398,7 +1446,7 @@ class LiveTradingGroup:
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
-            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
 
@@ -1432,25 +1480,29 @@ class LiveTradingGroup:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
             symbol_from_tg = parts[0].strip().removeprefix("#")
-            sym, *_ = symbol_from_tg.upper().split()
-            symbol_dict = self.get_instrument_name(symbol_from_tg)
+            symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
             ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
-            targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
-            if float(targets[0]) < float(ltps[0]):
-                targets = [
-                    str(float(target) + ltp_max)
-                    for target in targets
-                    if target.replace(".", "", 1).isdigit()
-                ]
+            sl, targets = None, None
+            if sym in index_options:
+                sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            if not sl and not targets:
+                targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [
+                        str(float(target) + ltp_max)
+                        for target in targets
+                        if target.replace(".", "", 1).isdigit()
+                    ]
+                sl = re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0]
             __signal_details = {
                 "channel_name": "LiveTradingGroup",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
-                "sl": re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0],
+                "sl": sl,
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     LiveTradingGroup.channel_details,
@@ -1521,7 +1573,7 @@ class SChoudhry12:
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
-            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
 
@@ -1553,25 +1605,29 @@ class SChoudhry12:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
             symbol_from_tg = parts[0].strip().removeprefix("#")
-            sym, *_ = symbol_from_tg.upper().split()
-            symbol_dict = self.get_instrument_name(symbol_from_tg)
+            symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
             ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
-            targets = re.findall(r"\d+\.\d+|\d+", parts[2].strip())
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
-            if float(targets[0]) < float(ltps[0]):
-                targets = [
-                    str(float(target) + ltp_max)
-                    for target in targets
-                    if target.replace(".", "", 1).isdigit()
-                ]
+            sl, targets = None, None
+            if sym in index_options:
+                sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            if not sl and not targets:
+                targets = re.findall(r"\d+\.\d+|\d+", parts[2].strip())
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [
+                        str(float(target) + ltp_max)
+                        for target in targets
+                        if target.replace(".", "", 1).isdigit()
+                    ]
+                sl = re.findall(r"\d+\.\d+|\d+", parts[3].strip())[0]
             __signal_details = {
                 "channel_name": "SChoudhry12",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
-                "sl": re.findall(r"\d+\.\d+|\d+", parts[4].strip())[0],
+                "sl": sl,
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     SChoudhry12.channel_details,
@@ -1643,7 +1699,7 @@ class VipPremiumPaidCalls:
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
-            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
 
@@ -1676,18 +1732,22 @@ class VipPremiumPaidCalls:
             parts = statement.split("|")
             symbol_from_tg = parts[0].strip().removeprefix("#")
             # sym, *_ = symbol_from_tg.upper().split()
-            symbol_dict = self.get_instrument_name(symbol_from_tg)
+            symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
             ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
-            targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
-            if float(targets[0]) < float(ltps[0]):
-                targets = [
-                    str(float(target) + ltp_max)
-                    for target in targets
-                    if target.replace(".", "", 1).isdigit()
-                ]
+            sl, targets = None, None
+            if sym in index_options:
+                sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            if not sl and not targets:
+                targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [
+                        str(float(target) + ltp_max)
+                        for target in targets
+                        if target.replace(".", "", 1).isdigit()
+                    ]
             __signal_details = {
                 "channel_name": "VipPremiumPaidCalls",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -1765,7 +1825,7 @@ class PlatinumMembers:
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
-            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
 
@@ -1798,24 +1858,29 @@ class PlatinumMembers:
             parts = statement.split("|")
             symbol_from_tg = parts[0].strip().removeprefix("#")
             # sym, *_ = symbol_from_tg.upper().split()
-            symbol_dict = self.get_instrument_name(symbol_from_tg)
+            symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
             ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
-            targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
-            if float(targets[0]) < float(ltps[0]):
-                targets = [
-                    str(float(target) + ltp_max)
-                    for target in targets
-                    if target.replace(".", "", 1).isdigit()
-                ]
+            sl, targets = None, None
+            if sym in index_options:
+                sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            if not sl and not targets:
+                targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [
+                        str(float(target) + ltp_max)
+                        for target in targets
+                        if target.replace(".", "", 1).isdigit()
+                    ]
+                sl = re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0]
             __signal_details = {
                 "channel_name": "PlatinumMembers",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
-                "sl": re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0],
+                "sl": sl,
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     PlatinumMembers.channel_details,
