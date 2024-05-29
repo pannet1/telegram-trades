@@ -97,15 +97,15 @@ from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCa
 # i = PremiumMembershipGroup(1707192066, msg)
 # i.get_signal()
 
-# msg = "BUY BAJAJAUTO 9100 CE ABOVE 100 SL 84 TGT 110/130    "
-# i = StockPremium(1707192066, msg)
-# i.get_signal()
+msg = "BANKNIFTY  49100 PE  BUY PRICE  295  SL  265  TARGET  315 350 40 "
+i = VipPremiumPaidCalls(1707192066, msg)
+i.get_signal()
 
 # msg = "BANKNIFTY EXPIRY SPECIAL ZERO TO HERO JACKPOT TRADE     BUY BANKNIFTY 50500 CE    BUY ABOVE  73   SL  46/00   TGT  100/130/160+"
 # i = PlatinumMembers(1707192066, msg)
 # i.get_signal()
 
 
-msg = "NIFTY 22900 PE ABOVE 115  SL   TRT 125 140 170+"
-i = PremiumGroup(1707192066, msg)
-i.get_signal()
+# msg = "BUY IRCTC 1040 CE  ABOVE 18.50 SL "
+# i = BnoPremium(1707192066, msg)
+# i.get_signal()

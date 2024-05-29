@@ -70,10 +70,10 @@ async def my_event_handler(event):
                     i = PaidStockIndexOption(now, msg)
                     i.get_signal()
                 elif chat_title == "PREMIUM MEMBERSHIP GROUP":
-                    logger.info(f"Premium Memebership group - {msg} - vs - {event.raw_text}")
+                    # logger.info(f"Premium Memebership group - {msg} - vs - {event.raw_text}")
                     i = PremiumMembershipGroup(now, msg)
                     i.get_signal()
-                elif chat_title == "LIVE TRADING+ LOSS RECOVERY GROUP":
+                elif chat_title == "ALL IN 1 GROUP":
                     i = LiveTradingGroup(now, msg)
                     i.get_signal()
                 elif chat_title == "PREMIUM GROUP":

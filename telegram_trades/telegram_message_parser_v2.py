@@ -65,7 +65,7 @@ def download_masters(broker):
             broker.get_contract_master(exchange)
 
 
-def get_multiplier(symbol, channel_config, num_of_targets=1):
+def get_multiplier(symbol, channel_config, num_of_targets=2):
     nfo_df = pd.read_csv("NFO.csv")
     bfo_df = pd.read_csv("BFO.csv")
     df = pd.concat([nfo_df, bfo_df])
@@ -156,7 +156,7 @@ def get_sl_target_from_csv(symbol_name, max_ltp):
         output = df.sort_values(by="To")[:1].to_dict(orient="records")[0]
         _ = output.pop('Instrument')
         _ = output.pop('To')
-        sl = round_to_point_five(int(max_ltp) - (int(max_ltp) * output.pop('SL') / 100))
+        sl = str(round_to_point_five(int(max_ltp) - (int(max_ltp) * output.pop('SL') / 100)))
         targets = [str(int(max_ltp) + round_to_point_five(i * int(max_ltp) / 100)) for i in list(output.values())]
         return sl, targets
     except:
@@ -264,7 +264,7 @@ class PremiumJackpot:
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
                 "sl": sl,
-                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumJackpot.channel_details, len(targets)),
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumJackpot.channel_details),
                 "action": "Cancel"
                 if is_reply_msg and is_close_msg
                 else "Buy",
@@ -392,7 +392,7 @@ class SmsOptionsPremium:
                     "ltp_range": "|".join(ltps),
                     "target_range": "|".join(targets),
                     "sl": sl if sl > 0 else 0.05,
-                    "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details, len(targets)),
+                    "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details),
                     "action": "Buy"
                 }
                 if _signal_details in signals:
@@ -481,7 +481,7 @@ class SmsOptionsPremium:
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
                 "sl": sl,
-                "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details, len(targets)),
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if _signal_details in signals:
@@ -655,7 +655,7 @@ class PaidCallPut:
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
                 "sl": sl,
-                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidCallPut.channel_details, len(targets)),
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidCallPut.channel_details),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if _signal_details in signals:
@@ -824,7 +824,7 @@ class PaidStockIndexOption:
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
                 "sl": sl,
-                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidStockIndexOption.channel_details, len(targets)),
+                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidStockIndexOption.channel_details),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
             if _signal_details in signals:
@@ -920,8 +920,8 @@ class BnoPremium:
             parts = statement.split("|")
             symbol_from_tg = parts[1].strip().removeprefix("#")
             symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
-            ltps = re.findall(r"\d+\.\d+|\d+", " ".join(parts[2].strip().split()[3:]))
-            print(ltps)
+            parts_statement = statement.replace("CE", "|").replace("PE", "|").split("|")
+            ltps = re.findall(r"\d+\.\d+|\d+", parts_statement[2].strip())
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
@@ -946,7 +946,6 @@ class BnoPremium:
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     BnoPremium.channel_details,
-                    len(targets),
                 ),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
@@ -1070,7 +1069,6 @@ class StockPremium:
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     StockPremium.channel_details,
-                    len(targets),
                 ),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
@@ -1242,7 +1240,6 @@ class PremiumGroup:
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     PremiumGroup.channel_details,
-                    len(targets),
                 ),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
@@ -1380,7 +1377,6 @@ class PremiumMembershipGroup:
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     PremiumMembershipGroup.channel_details,
-                    len(targets),
                 ),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
@@ -1506,7 +1502,6 @@ class LiveTradingGroup:
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     LiveTradingGroup.channel_details,
-                    len(targets),
                 ),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
@@ -1631,7 +1626,6 @@ class SChoudhry12:
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     SChoudhry12.channel_details,
-                    len(targets),
                 ),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
@@ -1656,7 +1650,7 @@ class SChoudhry12:
 
 
 class VipPremiumPaidCalls:
-    split_words = ["ABOVE", "TGT", "TARGET", "TG", "SL"]
+    split_words = ["ABOVE", "BUY PRICE", "TGT", "TARGET", "TG", "SL"]
     channel_details = CHANNEL_DETAILS["VipPremiumPaidCalls"]
     channel_number = channel_details["channel_number"]
 
@@ -1756,8 +1750,7 @@ class VipPremiumPaidCalls:
                 "sl": re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0],
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
-                    VipPremiumPaidCalls.channel_details,
-                    len(targets),
+                    VipPremiumPaidCalls.channel_details
                 ),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
@@ -1883,8 +1876,7 @@ class PlatinumMembers:
                 "sl": sl,
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
-                    PlatinumMembers.channel_details,
-                    len(targets),
+                    PlatinumMembers.channel_details
                 ),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
