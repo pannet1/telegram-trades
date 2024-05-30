@@ -37,6 +37,7 @@ signals = []
 spell_checks = {
     "F1NIFTY": "FINNIFTY",
     "N1FTY": "NIFTY",
+    "NIFITY": "NIFTY",
     "MIDCAPNIFTY": "MIDCPNIFTY",
     "BANINIFTY": "BANKNIFTY",
     "MIDCAP": "MIDCPNIFTY",
@@ -163,8 +164,8 @@ def get_sl_target_from_csv(symbol_name, max_ltp):
         logger.error(traceback.format_exc())
         return None, None
 
-api = get_broker(BRKR)
-download_masters(api.broker)
+# api = get_broker(BRKR)
+# download_masters(api.broker)
 scrip_info_df = get_all_contract_details()
 all_symbols = set(scrip_info_df["Symbol"].to_list())
 
@@ -507,6 +508,8 @@ class PaidCallPut:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
+        if "  BUY " in self.message:
+            self.message = "BUY " + self.message.split("  BUY ")[1]
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
@@ -610,9 +613,8 @@ class PaidCallPut:
                     and i + 2 <= len(req_content) + 1
                     and strike == None
                 ):
-                    strike = req_content[i + 1].strip()
-                    option = req_content[i + 2].strip()
-            
+                    strike = req_content[i + 1].strip() if req_content[i + 1].strip().isdigit() else req_content[i + 2].strip()
+                    option = req_content[i + 2].strip() if req_content[i + 1].strip().isdigit() else req_content[i + 3].strip()
                 # if word.upper().strip().startswith("SL-"):
                 #     sl = re.findall(r"SL-(\d+)?", word.upper().strip())[0]
             if strike == None or option == None:
@@ -1400,9 +1402,9 @@ class PremiumMembershipGroup:
             write_failure_to_csv(failure_details)
 
 
-class LiveTradingGroup:
+class AllIn1Group:
     split_words = ["ABOVE", "TARGET", "SL"]
-    channel_details = CHANNEL_DETAILS["LiveTradingGroup"]
+    channel_details = CHANNEL_DETAILS["AllIn1Group"]
     channel_number = channel_details["channel_number"]
 
     def __init__(self, msg_received_timestamp, telegram_msg):
@@ -1464,7 +1466,7 @@ class LiveTradingGroup:
                 # is a reply message but not having close words
                 # duplicate or junk
                 failure_details = {
-                    "channel_name": "LiveTradingGroup",
+                    "channel_name": "AllIn1Group",
                     "timestamp": self.msg_received_timestamp,
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
@@ -1472,7 +1474,7 @@ class LiveTradingGroup:
                 write_failure_to_csv(failure_details)
                 return
 
-            for word in LiveTradingGroup.split_words:
+            for word in AllIn1Group.split_words:
                 statement = statement.replace(word, "|")
             parts = statement.split("|")
             symbol_from_tg = parts[0].strip().removeprefix("#")
@@ -1494,14 +1496,14 @@ class LiveTradingGroup:
                     ]
                 sl = re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0]
             __signal_details = {
-                "channel_name": "LiveTradingGroup",
+                "channel_name": "AllIn1Group",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                 "ltp_range": "|".join(ltps),
                 "target_range": "|".join(targets),
                 "sl": sl,
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
-                    LiveTradingGroup.channel_details,
+                    AllIn1Group.channel_details,
                 ),
                 "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
             }
@@ -1511,12 +1513,12 @@ class LiveTradingGroup:
                 signals.append(__signal_details)
             signal_details = __signal_details.copy()
             signal_details["timestamp"] = (
-                f"{LiveTradingGroup.channel_number}{self.msg_received_timestamp}"
+                f"{AllIn1Group.channel_number}{self.msg_received_timestamp}"
             )
             write_signals_to_csv(signal_details)
         except:
             failure_details = {
-                "channel_name": "LiveTradingGroup",
+                "channel_name": "AllIn1Group",
                 "timestamp": self.msg_received_timestamp,
                 "message": self.message,
                 "exception": traceback.format_exc().strip(),

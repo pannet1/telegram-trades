@@ -6,7 +6,7 @@ from constants import TGRM, DATA
 from telegram_message_parser_v2 import (
     PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption,
     BnoPremium, StockPremium, PremiumGroup, PremiumMembershipGroup, 
-    LiveTradingGroup, SChoudhry12, VipPremiumPaidCalls, PlatinumMembers)
+    AllIn1Group, SChoudhry12, VipPremiumPaidCalls, PlatinumMembers)
 from logzero import setup_logger
 import traceback
 
@@ -74,7 +74,7 @@ async def my_event_handler(event):
                     i = PremiumMembershipGroup(now, msg)
                     i.get_signal()
                 elif chat_title == "ALL IN 1 GROUP":
-                    i = LiveTradingGroup(now, msg)
+                    i = AllIn1Group(now, msg)
                     i.get_signal()
                 elif chat_title == "PREMIUM GROUP":
                     i = PremiumGroup(now, msg)

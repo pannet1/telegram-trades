@@ -1,7 +1,7 @@
 input_file = "../data/output.csv"
 import pandas as pd
 
-from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption, BnoPremium, StockPremium, PremiumGroup, PremiumMembershipGroup, LiveTradingGroup, SChoudhry12, VipPremiumPaidCalls, PlatinumMembers
+from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption, BnoPremium, StockPremium, PremiumGroup, PremiumMembershipGroup, AllIn1Group, SChoudhry12, VipPremiumPaidCalls, PlatinumMembers
 
 
 # df = pd.read_csv(input_file, header=None)
@@ -50,9 +50,9 @@ from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCa
 
 # msg = "14th feb expiry  BUY 45200 CE only abv 220 SL-180 TARGET -400-500-750  cmp - 190"
 # msg = "21st feb expiry  BUY 45600 PE only abv 330 SL-290 TARGET -400-500++  cmp - 310"
-# msg = "28th feb expiry  BUY 47500 PE only abv 250 SL - 210 TARGET -450-550+  cmp - 240"
-# i = PaidCallPut(1707192066, msg)
-# i.get_signal()
+msg = "28th feb expiry  BUY 47500 PE only abv 250 SL - 210 TARGET -450-550+  cmp - 240"
+i = PaidCallPut(1707192066, msg)
+i.get_signal()
 
 
 # for msg in ["6th march expiry  BUY 46800 CE ONLY ABV 350 SL- 310 TARGET -460  CMP - 335", "7th march expiry nifty  buy 22150 PE CMP 135/130 SL-120 TARGTE-200-250+"]:
@@ -97,8 +97,8 @@ from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCa
 # i = PremiumMembershipGroup(1707192066, msg)
 # i.get_signal()
 
-msg = "BANKNIFTY  49100 PE  BUY PRICE  295  SL  265  TARGET  315 350 40 "
-i = VipPremiumPaidCalls(1707192066, msg)
+msg = "BUY NIFTY 22550 PE ONLY ABV 65 SL-55 TARGTE-120-150+  CMP- 62"
+i = PaidCallPut(1707192066, msg)
 i.get_signal()
 
 # msg = "BANKNIFTY EXPIRY SPECIAL ZERO TO HERO JACKPOT TRADE     BUY BANKNIFTY 50500 CE    BUY ABOVE  73   SL  46/00   TGT  100/130/160+"
