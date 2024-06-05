@@ -498,6 +498,7 @@ class SmsOptionsPremium:
                 "message": self.message,
                 "exception": traceback.format_exc().strip(),
             }
+            logger.error(failure_details)
             write_failure_to_csv(failure_details)
 
 
@@ -584,6 +585,7 @@ class PaidCallPut:
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
+                logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
 
@@ -747,6 +749,7 @@ class PaidStockIndexOption:
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
+                logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
             msg_split = [m.strip() for m in self.message_upper.split()]
@@ -914,6 +917,7 @@ class BnoPremium:
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
+                logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
 
@@ -1041,6 +1045,7 @@ class StockPremium:
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
+                logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
 
@@ -1198,6 +1203,7 @@ class PremiumGroup:
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
+                logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
 
@@ -1349,6 +1355,7 @@ class PremiumMembershipGroup:
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
+                logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
 
@@ -1475,6 +1482,7 @@ class AllIn1Group:
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
+                logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
 
@@ -1599,6 +1607,7 @@ class SChoudhry12:
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
+                logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
 
@@ -1724,6 +1733,7 @@ class VipPremiumPaidCalls:
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
+                logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
 
@@ -1849,6 +1859,7 @@ class PlatinumMembers:
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
+                logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
 
