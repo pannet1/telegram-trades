@@ -1547,6 +1547,8 @@ class SChoudhry12:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = re.sub(r"\.+", ".", telegram_msg.upper())
+        if "BUY " in self.message:
+            self.message = self.message.strip().split("BUY ")[1]
         self.message = self.message.strip().removeprefix("BUY ").strip()
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:

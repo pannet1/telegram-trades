@@ -53,7 +53,7 @@ from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCa
 # msg = "BUY BANKNIFTY 50500 CE  ABOVE 490     SL 450 TGT 530/600"
 # i = BnoPremium(1707192066, msg)
 # i.get_signal()
-msg = "BANKNIFTY 5 JUN 50000 CE IF CROSSES & SUSTAIN ONLY ABOVE 233.85 WILL TRY TO HIT TARGETS @ 255 280 310 350 400 & ABOVE"
+msg = "BANKNIFTY 5 JUN 46800 PE IF CROSSES & SUSTAIN ONLY ABOVE 283.85 WILL TRY TO HIT TARGETS @ 305 330 360 400 & ABOVE"
 i = SmsOptionsPremium(1707192066, msg)
 i.get_signal()
 
