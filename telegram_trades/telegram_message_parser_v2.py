@@ -923,7 +923,10 @@ class BnoPremium:
             symbol_from_tg = parts[1].strip().removeprefix("#")
             symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
             parts_statement = statement.replace("CE", "|").replace("PE", "|").split("|")
-            ltps = re.findall(r"\d+\.\d+|\d+", parts_statement[2].strip())
+            if "ABOVE" in self.message or "NEAR" in self.message:
+                ltps = re.findall(r"\d+\.\d+|\d+", parts_statement[3].strip())
+            else:
+                ltps = re.findall(r"\d+\.\d+|\d+", parts_statement[2].strip())
             ltp_max = max(
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
