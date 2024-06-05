@@ -392,7 +392,7 @@ class SmsOptionsPremium:
                     "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
                     "ltp_range": "|".join(ltps),
                     "target_range": "|".join(targets),
-                    "sl": sl if sl > 0 else 0.05,
+                    "sl": sl if sl and float(sl) > 0 else 0.05,
                     "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details),
                     "action": "Buy"
                 }
@@ -768,7 +768,7 @@ class PaidStockIndexOption:
                 scrip_info_df, sym, strike, option_type
             )
 
-            ltp_words = ["RANGE", "ABOVE", "NEAR LEVEL"]
+            ltp_words = ["RANGE", "ABOVE", "NEAR LEVEL", "NEAR"]
             target_words = ["TARGET", "TRG"]
             sl_words = ["SL", "STOPLOSS"]
 
@@ -1098,6 +1098,7 @@ class PremiumGroup:
     split_words = [
         "ABOVE",
         "ABV",
+        "@",
         " AT",
         "SL",
         "TARGETS",

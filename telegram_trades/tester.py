@@ -50,8 +50,8 @@ from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCa
 
 # msg = "14th feb expiry  BUY 45200 CE only abv 220 SL-180 TARGET -400-500-750  cmp - 190"
 # msg = "21st feb expiry  BUY 45600 PE only abv 330 SL-290 TARGET -400-500++  cmp - 310"
-msg = "28th feb expiry  BUY 47500 PE only abv 250 SL - 210 TARGET -450-550+  cmp - 240"
-i = PaidCallPut(1707192066, msg)
+msg = "BUY BANKNIFTY 50500 CE  ABOVE 490     SL 450 TGT 530/600"
+i = BnoPremium(1707192066, msg)
 i.get_signal()
 
 
@@ -97,9 +97,9 @@ i.get_signal()
 # i = PremiumMembershipGroup(1707192066, msg)
 # i.get_signal()
 
-msg = "BUY NIFTY 22550 PE ONLY ABV 65 SL-55 TARGTE-120-150+  CMP- 62"
-i = PaidCallPut(1707192066, msg)
-i.get_signal()
+# msg = "BUY NIFTY 22550 PE ONLY ABV 65 SL-55 TARGTE-120-150+  CMP- 62"
+# i = PaidCallPut(1707192066, msg)
+# i.get_signal()
 
 # msg = "BANKNIFTY EXPIRY SPECIAL ZERO TO HERO JACKPOT TRADE     BUY BANKNIFTY 50500 CE    BUY ABOVE  73   SL  46/00   TGT  100/130/160+"
 # i = PlatinumMembers(1707192066, msg)
