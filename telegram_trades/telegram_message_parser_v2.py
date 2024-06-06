@@ -169,7 +169,44 @@ def get_sl_target_from_csv(symbol_name, max_ltp):
 scrip_info_df = get_all_contract_details()
 all_symbols = set(scrip_info_df["Symbol"].to_list())
 
+def get_closest_match(symbol):
+    if symbol in spell_checks:
+        symbol = spell_checks[symbol]
+    if symbol in all_symbols:
+        return symbol
+    raise CustomError("Closest match is not found")
 
+
+def get_fut_instrument_name(sym):
+    try:
+        sym = get_closest_match(sym)
+        exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
+        filtered_df = scrip_info_df[
+            (scrip_info_df["Exch"] == exch)
+            & (scrip_info_df["Symbol"] == sym)
+            & (scrip_info_df["Option Type"] == "XX")
+        ]
+        sorted_df = filtered_df.sort_values(by="Expiry Date")
+        sorted_df['Expiry Date'] = pd.to_datetime(sorted_df['Expiry Date'], format='%Y-%m-%d')
+        sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
+        first_row = sorted_df.head(1)
+        return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+    except:
+        raise CustomError(traceback.format_exc())
+
+def get_float_values(string_val, start_val):
+    float_values = []
+    if start_val not in string_val:
+        return []
+    v = string_val.split(start_val)
+    for word in re.split(" |-|,|/",v[1]):
+        if not word:
+            continue
+        if word.replace("+", "").replace("-", "").replace(".", "", 1).isdigit():
+            float_values.append(word.replace("+", "").replace("-", ""))
+        else:
+            break
+    return float_values
 class PremiumJackpot:
     split_words = ["BUY", "ABOVE", "NEAR", "TARGET", "TARGE"]
     channel_details = CHANNEL_DETAILS["PremiumJackpot"]
@@ -214,7 +251,7 @@ class PremiumJackpot:
             return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
-
+    
     def get_signal(self):
         try:
             statement = self.message
@@ -237,46 +274,93 @@ class PremiumJackpot:
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
                 }
+                logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
-
-            for word in PremiumJackpot.split_words:
-                statement = statement.replace(word, "|")
-            parts = statement.split("|")
-            symbol_from_tg = parts[1].strip().removeprefix("#")
-            symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
-            ltps = re.findall(r"\d+\.\d+|\d+", parts[2])
-            ltp_max = max([float(ltp) for ltp in ltps
-                          if ltp.replace('.', '', 1).isdigit()])
-            sl, targets = None, None
-            if sym in index_options:
-                sl, targets = get_sl_target_from_csv(sym, ltp_max)
-                print(sl, targets)
-            if not sl and not targets:
-                targets = re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
+            
+            if " FUT " in self.message or " FUTURES " in self.message:
+                statement = self.message.strip().removeprefix("BUY").removeprefix("SELL").strip().removeprefix("#")
+                symbol_dict = get_fut_instrument_name(statement.split()[0])
+                ltps = get_float_values(statement, "ABOVE")
+                if not ltps:
+                    ltps = get_float_values(statement, "NEAR")
+                if not ltps:
+                    raise CustomError(f"ltps is not found in {statement}")
+                targets = get_float_values(statement, "TARGET")
+                if not targets:
+                    targets = get_float_values(statement, "TARGE")
+                if not targets:
+                    raise CustomError(f"targets is not found in {statement}")
+                sl = get_float_values(statement, "SL")
+                if not sl:
+                    raise CustomError(f"SL is not found in {statement}")
+                sl = sl[0]
+                if self.message.startswith('SELL'):
+                    action = "SHORT"
+                elif self.message.startswith('BUY'):
+                    action = "BUY"
+                else:
+                    action = None
+                if is_reply_msg and is_close_msg:
+                    action = "CANCEL"
                 
-                if float(targets[0]) < float(ltps[0]):
-                    targets = [str(float(target) + ltp_max)
-                                for target in targets if target.replace('.', '', 1).isdigit()]
-                sl = re.findall(r"SL-(\d+)?", parts[3])[0]
-            __signal_details = {
-                "channel_name": "Premium jackpot",
-                "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
-                "ltp_range": "|".join(ltps),
-                "target_range": "|".join(targets),
-                "sl": sl,
-                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumJackpot.channel_details),
-                "action": "Cancel"
-                if is_reply_msg and is_close_msg
-                else "Buy",
-            }
-            if __signal_details in signals:
-                raise CustomError("Signal already exists")
+                if not action:
+                    raise CustomError(f"could not decide action in {statement}")
+
+                __signal_details = {
+                    "channel_name": "Premium jackpot",
+                    "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                    "ltp_range": "|".join(ltps),
+                    "target_range": "|".join(targets),
+                    "sl": sl,
+                    "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumJackpot.channel_details),
+                    "action": action,
+                }
+                if __signal_details in signals:
+                    raise CustomError("Signal already exists")
+                else:
+                    signals.append(__signal_details)
+                signal_details = __signal_details.copy()
+                signal_details["timestamp"] = f"{PremiumJackpot.channel_number}{self.msg_received_timestamp}"
+                write_signals_to_csv(signal_details)
             else:
-                signals.append(__signal_details)
-            signal_details = __signal_details.copy()
-            signal_details["timestamp"] = f"{PremiumJackpot.channel_number}{self.msg_received_timestamp}"
-            write_signals_to_csv(signal_details)
+                for word in PremiumJackpot.split_words:
+                    statement = statement.replace(word, "|")
+                parts = statement.split("|")
+                symbol_from_tg = parts[1].strip().removeprefix("#")
+                symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
+                ltps = re.findall(r"\d+\.\d+|\d+", parts[2])
+                ltp_max = max([float(ltp) for ltp in ltps
+                            if ltp.replace('.', '', 1).isdigit()])
+                sl, targets = None, None
+                if sym in index_options:
+                    sl, targets = get_sl_target_from_csv(sym, ltp_max)
+                    print(sl, targets)
+                if not sl and not targets:
+                    targets = re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
+                    
+                    if float(targets[0]) < float(ltps[0]):
+                        targets = [str(float(target) + ltp_max)
+                                    for target in targets if target.replace('.', '', 1).isdigit()]
+                    sl = re.findall(r"SL-(\d+)?", parts[3])[0]
+                __signal_details = {
+                    "channel_name": "Premium jackpot",
+                    "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                    "ltp_range": "|".join(ltps),
+                    "target_range": "|".join(targets),
+                    "sl": sl,
+                    "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumJackpot.channel_details),
+                    "action": "Cancel"
+                    if is_reply_msg and is_close_msg
+                    else "Buy",
+                }
+                if __signal_details in signals:
+                    raise CustomError("Signal already exists")
+                else:
+                    signals.append(__signal_details)
+                signal_details = __signal_details.copy()
+                signal_details["timestamp"] = f"{PremiumJackpot.channel_number}{self.msg_received_timestamp}"
+                write_signals_to_csv(signal_details)
         except:
             failure_details = {
                 "channel_name": "Premium jackpot",
@@ -752,93 +836,137 @@ class PaidStockIndexOption:
                 logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
-            msg_split = [m.strip() for m in self.message_upper.split()]
-            sym = msg_split[0]
-            if str(msg_split[1]).endswith('PE'):
-                option_type = "PE"
-                strike = str(msg_split[1])[:-2]
-            elif str(msg_split[1]).endswith('CE'):
-                option_type = "CE"
-                strike = str(msg_split[1])[:-2]
-            elif ("BAJAJ" == msg_split[0] and "AUTO" == msg_split[1]) or ("MCDOWELL" == msg_split[0] and "N" == msg_split[1]):
-                sym=f"{msg_split[0]}-{msg_split[1]}"
-                option_type = msg_split[3]
-                strike = str(msg_split[2])
+            
+            if "FUTURE TRADE" in self.message:
+                sym_fut = self.message.split('RANGE')
+                sym = sym_fut[0].split()[-1]
+                symbol_dict = get_fut_instrument_name(sym)
+                ltps = get_float_values(self.message, "RANGE")
+                if not ltps:
+                    raise CustomError(f"ltps is not found in {self.message}")
+                targets = get_float_values(self.message, "TRG")
+                if not targets:
+                    raise CustomError(f"targets is not found in {self.message}")
+                sl = get_float_values(self.message, "SL")
+                if not sl:
+                    raise CustomError(f"SL is not found in {self.message}")
+                sl = sl[0]
+                if 'SELL' in self.message.split():
+                    action = "SHORT"
+                elif 'BUY' in self.message.split():
+                    action = "BUY"
+                else:
+                    action = None
+                if is_reply_msg and is_close_msg:
+                    action = "CANCEL"
+                
+                if not action:
+                    raise CustomError(f"could not decide action in {self.message}")
+
+                __signal_details = {
+                    "channel_name": "PaidStockIndexOption",
+                    "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                    "ltp_range": "|".join(ltps),
+                    "target_range": "|".join(targets),
+                    "sl": sl,
+                    "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidStockIndexOption.channel_details),
+                    "action": action,
+                }
+                if __signal_details in signals:
+                    raise CustomError("Signal already exists")
+                else:
+                    signals.append(__signal_details)
+                signal_details = __signal_details.copy()
+                signal_details["timestamp"] = f"{PaidStockIndexOption.channel_number}{self.msg_received_timestamp}"
+                write_signals_to_csv(signal_details)
             else:
-                option_type = str(msg_split[2])
-                strike = msg_split[1]
-            symbol_dict = self.coin_option_name(
-                scrip_info_df, sym, strike, option_type
-            )
+                msg_split = [m.strip() for m in self.message_upper.split()]
+                sym = msg_split[0]
+                if str(msg_split[1]).endswith('PE'):
+                    option_type = "PE"
+                    strike = str(msg_split[1])[:-2]
+                elif str(msg_split[1]).endswith('CE'):
+                    option_type = "CE"
+                    strike = str(msg_split[1])[:-2]
+                elif ("BAJAJ" == msg_split[0] and "AUTO" == msg_split[1]) or ("MCDOWELL" == msg_split[0] and "N" == msg_split[1]):
+                    sym=f"{msg_split[0]}-{msg_split[1]}"
+                    option_type = msg_split[3]
+                    strike = str(msg_split[2])
+                else:
+                    option_type = str(msg_split[2])
+                    strike = msg_split[1]
+                symbol_dict = self.coin_option_name(
+                    scrip_info_df, sym, strike, option_type
+                )
 
-            ltp_words = ["RANGE", "ABOVE", "NEAR LEVEL", "NEAR"]
-            target_words = ["TARGET", "TRG"]
-            sl_words = ["SL", "STOPLOSS"]
+                ltp_words = ["RANGE", "ABOVE", "NEAR LEVEL", "NEAR"]
+                target_words = ["TARGET", "TRG"]
+                sl_words = ["SL", "STOPLOSS"]
 
-            ltp_range = None
-            for word in ltp_words:
-                ltp_range = self.get_target_values(self.message_upper, word)
-                if ltp_range:
-                    break
-            else:
-                raise CustomError("ltp_range values is not found")
-
-            ltps = ltp_range
-            ltp_max = max([float(ltp) for ltp in ltps
-                          if ltp.replace('.', '', 1).isdigit()])
-            sl, targets = None, None
-            if sym in index_options:
-                sl, targets = get_sl_target_from_csv(sym, ltp_max)
-            if not sl and not targets:
-                sl_range = None
-                for word in sl_words:
-                    sl_range = self.get_target_values(self.message_upper, word)
-                    if sl_range:
-                        break
-                if not sl_range:
-                    for word in sl_words:
-                        if word in self.message_upper:
-                            v = self.message_upper.split(word)[1]
-                            if not v.strip():
-                                continue
-                            v_list = [v_.strip() for v_ in v.split() if v_.strip()]
-                            if v_list[0] in ("TOMORROW", "PAID"):
-                                sl_range = [
-                                    str(math.floor(float(ltp_range[0]) * (1 - PaidStockIndexOption.sl)))]
-                                break
-                # else:
-                #     if sym in ('SENSEX', 'BANKEX', 'NIFTY', 'BANKNIFTY', 'MIDCPNIFTY', 'FINNIFTY'):
-                #         sl_range = [str(float(sl)/2) for sl in sl_range]
-                if not sl_range:
-                    raise CustomError("sl_range values is not found")
-                sl = sl_range[0]
-                target_range = None
-                for word in target_words:
-                    target_range = self.get_target_values(self.message_upper, word)
-                    if target_range:
+                ltp_range = None
+                for word in ltp_words:
+                    ltp_range = self.get_target_values(self.message_upper, word)
+                    if ltp_range:
                         break
                 else:
-                    raise CustomError("target_range values is not found")
-                targets = target_range
-                if float(targets[0]) < float(ltps[0]):
-                    targets = [str(float(target) + ltp_max)
-                            for target in targets if target.replace('.', '', 1).isdigit()]
-            _signal_details = {
-                "channel_name": "PaidStockIndexOption",
-                "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
-                "ltp_range": "|".join(ltps),
-                "target_range": "|".join(targets),
-                "sl": sl,
-                "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidStockIndexOption.channel_details),
-                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
-            }
-            if _signal_details in signals:
-                raise CustomError("Signal already exists")
-            else:
-                signals.append(_signal_details)
-            signal_details = _signal_details.copy()
-            signal_details["timestamp"] = f"{PaidStockIndexOption.channel_number}{self.msg_received_timestamp}"
-            write_signals_to_csv(signal_details)
+                    raise CustomError("ltp_range values is not found")
+
+                ltps = ltp_range
+                ltp_max = max([float(ltp) for ltp in ltps
+                            if ltp.replace('.', '', 1).isdigit()])
+                sl, targets = None, None
+                if sym in index_options:
+                    sl, targets = get_sl_target_from_csv(sym, ltp_max)
+                if not sl and not targets:
+                    sl_range = None
+                    for word in sl_words:
+                        sl_range = self.get_target_values(self.message_upper, word)
+                        if sl_range:
+                            break
+                    if not sl_range:
+                        for word in sl_words:
+                            if word in self.message_upper:
+                                v = self.message_upper.split(word)[1]
+                                if not v.strip():
+                                    continue
+                                v_list = [v_.strip() for v_ in v.split() if v_.strip()]
+                                if v_list[0] in ("TOMORROW", "PAID"):
+                                    sl_range = [
+                                        str(math.floor(float(ltp_range[0]) * (1 - PaidStockIndexOption.sl)))]
+                                    break
+                    # else:
+                    #     if sym in ('SENSEX', 'BANKEX', 'NIFTY', 'BANKNIFTY', 'MIDCPNIFTY', 'FINNIFTY'):
+                    #         sl_range = [str(float(sl)/2) for sl in sl_range]
+                    if not sl_range:
+                        raise CustomError("sl_range values is not found")
+                    sl = sl_range[0]
+                    target_range = None
+                    for word in target_words:
+                        target_range = self.get_target_values(self.message_upper, word)
+                        if target_range:
+                            break
+                    else:
+                        raise CustomError("target_range values is not found")
+                    targets = target_range
+                    if float(targets[0]) < float(ltps[0]):
+                        targets = [str(float(target) + ltp_max)
+                                for target in targets if target.replace('.', '', 1).isdigit()]
+                _signal_details = {
+                    "channel_name": "PaidStockIndexOption",
+                    "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
+                    "ltp_range": "|".join(ltps),
+                    "target_range": "|".join(targets),
+                    "sl": sl,
+                    "quantity": get_multiplier(symbol_dict["Trading Symbol"], PaidStockIndexOption.channel_details),
+                    "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
+                }
+                if _signal_details in signals:
+                    raise CustomError("Signal already exists")
+                else:
+                    signals.append(_signal_details)
+                signal_details = _signal_details.copy()
+                signal_details["timestamp"] = f"{PaidStockIndexOption.channel_number}{self.msg_received_timestamp}"
+                write_signals_to_csv(signal_details)
         except:
             failure_details = {
                 "channel_name": "PaidStockIndexOption",
@@ -1124,6 +1252,7 @@ class PremiumGroup:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         try:
+            self.message_as_is = telegram_msg
             self.message = (
                 telegram_msg.upper().split("BUY ")[1].replace("-", " ").replace(",", " ").replace("/", " ")
             )
@@ -1206,64 +1335,106 @@ class PremiumGroup:
                 logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
+            if " FUTURE " in self.message:
+                sym_fut = self.message.split('FUTURE')
+                sym = sym_fut[0].split()[-1]
+                symbol_dict = get_fut_instrument_name(sym)
+                ltps = get_float_values(statement, "FUTURE")
+                if not ltps:
+                    raise CustomError(f"ltps is not found in {statement}")
+                targets = get_float_values(statement, "TARGETS")
+                if not targets:
+                    raise CustomError(f"targets is not found in {statement}")
+                sl = get_float_values(statement, "SL")
+                if not sl:
+                    raise CustomError(f"SL is not found in {statement}")
+                sl = sl[0]
+                if 'SELL' in self.message_as_is.split():
+                    action = "SHORT"
+                elif 'BUY' in self.message_as_is.split():
+                    action = "BUY"
+                else:
+                    action = None
+                if is_reply_msg and is_close_msg:
+                    action = "CANCEL"
+                
+                if not action:
+                    raise CustomError(f"could not decide action in {statement}")
 
-            for word in PremiumGroup.split_words:
-                statement = statement.replace(word, "|")
-            parts = statement.split("|")
-            symbol_from_tg = parts[0].strip().removeprefix("BUY").strip()
-            symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
-            ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
-            ltp_max = max(
-                [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
-            )
-            sl, targets = None, None
-            if sym in index_options:
-                sl, targets = get_sl_target_from_csv(sym, ltp_max)
-            if not sl and not targets:
-                targets = []
-                for target_keyword in ["TARGETS", "TARGET", "TRT", "TRG", "TARTE", "TG"]:
-                    try:
-                        targets = self.get_float_values(self.message, target_keyword, " ")
-                    except:
-                        pass
-                    if targets:
-                        break
+                __signal_details = {
+                    "channel_name": "PremiumGroup",
+                    "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                    "ltp_range": "|".join(ltps),
+                    "target_range": "|".join(targets),
+                    "sl": sl,
+                    "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumGroup.channel_details),
+                    "action": action,
+                }
+                if __signal_details in signals:
+                    raise CustomError("Signal already exists")
                 else:
-                    raise CustomError("TARGET not found")    
-                if float(targets[0]) < float(ltps[0]):
-                    targets = [
-                        str(float(target) + ltp_max)
-                        for target in targets
-                        if target.replace(".", "", 1).isdigit()
-                    ]
-                for sl_keyword in ["SL", "STOPLOSS"]:
-                    sl = self.get_float_values(self.message, sl_keyword, " ")
-                    if sl:
-                        sl = sl[0]
-                        break
-                else:
-                    raise CustomError("SL not found")
-            __signal_details = {
-                "channel_name": "PremiumGroup",
-                "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
-                "ltp_range": "|".join(ltps),
-                "target_range": "|".join(targets),
-                "sl": sl,
-                "quantity": get_multiplier(
-                    symbol_dict["Trading Symbol"],
-                    PremiumGroup.channel_details,
-                ),
-                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
-            }
-            if __signal_details in signals:
-                raise CustomError("Signal already exists")
+                    signals.append(__signal_details)
+                signal_details = __signal_details.copy()
+                signal_details["timestamp"] = f"{PremiumGroup.channel_number}{self.msg_received_timestamp}"
+                write_signals_to_csv(signal_details)
             else:
-                signals.append(__signal_details)
-            signal_details = __signal_details.copy()
-            signal_details["timestamp"] = (
-                f"{PremiumGroup.channel_number}{self.msg_received_timestamp}"
-            )
-            write_signals_to_csv(signal_details)
+                for word in PremiumGroup.split_words:
+                    statement = statement.replace(word, "|")
+                parts = statement.split("|")
+                symbol_from_tg = parts[0].strip().removeprefix("BUY").strip()
+                symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
+                ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
+                ltp_max = max(
+                    [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
+                )
+                sl, targets = None, None
+                if sym in index_options:
+                    sl, targets = get_sl_target_from_csv(sym, ltp_max)
+                if not sl and not targets:
+                    targets = []
+                    for target_keyword in ["TARGETS", "TARGET", "TRT", "TRG", "TARTE", "TG"]:
+                        try:
+                            targets = self.get_float_values(self.message, target_keyword, " ")
+                        except:
+                            pass
+                        if targets:
+                            break
+                    else:
+                        raise CustomError("TARGET not found")    
+                    if float(targets[0]) < float(ltps[0]):
+                        targets = [
+                            str(float(target) + ltp_max)
+                            for target in targets
+                            if target.replace(".", "", 1).isdigit()
+                        ]
+                    for sl_keyword in ["SL", "STOPLOSS"]:
+                        sl = self.get_float_values(self.message, sl_keyword, " ")
+                        if sl:
+                            sl = sl[0]
+                            break
+                    else:
+                        raise CustomError("SL not found")
+                __signal_details = {
+                    "channel_name": "PremiumGroup",
+                    "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
+                    "ltp_range": "|".join(ltps),
+                    "target_range": "|".join(targets),
+                    "sl": sl,
+                    "quantity": get_multiplier(
+                        symbol_dict["Trading Symbol"],
+                        PremiumGroup.channel_details,
+                    ),
+                    "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
+                }
+                if __signal_details in signals:
+                    raise CustomError("Signal already exists")
+                else:
+                    signals.append(__signal_details)
+                signal_details = __signal_details.copy()
+                signal_details["timestamp"] = (
+                    f"{PremiumGroup.channel_number}{self.msg_received_timestamp}"
+                )
+                write_signals_to_csv(signal_details)
         except:
             failure_details = {
                 "channel_name": "PremiumGroup",
