@@ -8,12 +8,13 @@ from api_helper import (
     get_order_from_book,
     square_off,
     market_order,
+    modify_order,
 )
 from rich import print
 import traceback
 import pandas as pd
 import inspect
-from typing import List
+from typing import List, Dict
 
 lst_ignore = [
     "E-ORDERBOOK",
@@ -112,6 +113,27 @@ def show(task):
             print(f"{v}\n")
         else:
             print(f"{k: >20}: {v}")
+
+
+def do_trail(ltp: float, order: Dict, target_range: List):
+    args = {}
+    target_range = list(map(float, target_range))
+    for k, v in enumerate(target_range):
+        if ltp < v and order["side"] == "S":
+            idx = k - 1
+            if idx >= 0:
+                intended_stop = target_range[idx]
+                trigger = float(order["trigger_price"])
+                if intended_stop > trigger:
+                    order["trigger_price"] = intended_stop
+                    order["price"] = intended_stop - 0.05
+                    args = order
+                    break
+    if ltp > target_range[-1]:
+        order["price"] = 0.0
+        order["order_type"] = "MKT"
+        args = order
+    return args
 
 
 class TaskFunc:
@@ -285,7 +307,7 @@ class TaskFunc:
                             if trail_order["Status"] in lst_ignore:
                                 task["fn"] = stop_order["Status"]
                             else:
-                                task["fn"] = "trail_or_target2"
+                                task["fn"] = "trail"
                         else:
                             logging.error("placing trailing stop", resp)
                             task["fn"] = "E-TRAIL"
@@ -299,7 +321,39 @@ class TaskFunc:
         finally:
             return task
 
+    def trail(self, **task):
+        try:
+            trail_order = task["trail"]
+            trail_order = filtered_orders(self.api, trail_order["order_id"])
+            if is_key_val(trail_order, "Status", "complete"):
+                task["trail"] = trail_order
+                task["fn"] = "TRAILED-OUT"
+            else:
+                task["ltp"] = float(
+                    get_ltp(
+                        self.api.broker,
+                        task["symbol"].split(":")[0],
+                        task["symbol"].split(":")[1],
+                    )
+                )
+                lst_of_targets = task["target_range"].split("|")
+                order_args = do_trail(task["ltp"], trail_order, lst_of_targets)
+                if any(order_args):
+                    order_args.update({"symbol": task["symbol"]})
+                    resp = modify_order(**order_args)
+                    logging.info(f"modify resp: {resp}")
+
+                # get index of target range from the price
+        except Exception as e:
+            log_exception(e, locals())
+            traceback.print_exc()
+        finally:
+            return task
+
     def trail_or_target2(self, **task):
+        """
+        TODO: to be removed later
+        """
         try:
             trail_order = task["trail"]
             trail_order = filtered_orders(self.api, trail_order["order_id"])
