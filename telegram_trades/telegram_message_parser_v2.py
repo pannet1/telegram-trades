@@ -166,8 +166,8 @@ def get_sl_target_from_csv(symbol_name, max_ltp):
         logger.error(traceback.format_exc())
         return None, None
 
-# api = get_broker(BRKR)
-# download_masters(api.broker)
+api = get_broker(BRKR)
+download_masters(api.broker)
 scrip_info_df = get_all_contract_details()
 all_symbols = set(scrip_info_df["Symbol"].to_list())
 
