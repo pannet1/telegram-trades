@@ -64,12 +64,6 @@ def filter_by_keys(keys: List, lst: List[Dict]) -> List[Dict]:
     return new_lst
 
 
-def modify_order(order: Dict, updates: Dict) -> Dict:
-    order["symbol"] = order["exchange"] + ":" + order["symbol"]
-    order.update(updates)
-    return order
-
-
 def filtered_positions(api):
     UTIL.slp_for(SLP)
     lst = filter_by_keys(position_keys, api.positions)
@@ -115,6 +109,21 @@ def square_off(api, order_id, symbol, quantity):
     logging.info(f"modify SL {args} to tgt got {resp}")
 
 
+def modify_order(api, order: Dict) -> Dict:
+    args = dict(
+        order_id=order["order_id"],
+        symbol=order["symbol"],
+        side=order["side"],
+        quantity=order["quantity"],
+        price=order["price"],
+        trigger_price=order["trigger_price"],
+        order_type=order["order_type"],
+        product=order["product"],
+    )
+    resp = api.order_modify(**args)
+    return resp
+
+
 def market_order(api, order, action: str):
     """
     input:
@@ -143,13 +152,6 @@ def market_order(api, order, action: str):
     resp = api.order_place(**args)
     logging.info(f"order {action} {args} got {resp}")
     return resp
-
-
-def order_modify(lst, order_id):
-    order = {}
-    for order in lst:
-        if order.get("order_id", None) == order_id:
-            return order
 
 
 def download_masters(broker):
