@@ -71,7 +71,9 @@ def get_multiplier(symbol, channel_config, num_of_targets=2):
     bfo_df = pd.read_csv("BFO.csv")
     df = pd.concat([nfo_df, bfo_df])
     lot_size = df.loc[df['Trading Symbol'] == symbol, 'Lot Size'].iloc[0]
-    if "BANKNIFTY" in symbol:
+    if str(symbol).endswith("F"):
+        return "|".join([str(lot_size * channel_config.get("FUT", 1))] * num_of_targets) if num_of_targets > 1 else str(lot_size*channel_config.get("FUT", 1))
+    elif "BANKNIFTY" in symbol:
         return "|".join([str(15 * channel_config.get("BANKNIFTY", 1))] * num_of_targets) if num_of_targets > 1 else str(15*channel_config.get("BANKNIFTY", 1))
     elif "FINNIFTY" in symbol:
         return "|".join([str(40 * channel_config.get("FINNIFTY", 1))]* num_of_targets) if num_of_targets > 1 else str(40*channel_config.get("FINNIFTY", 1))
@@ -87,7 +89,7 @@ def get_multiplier(symbol, channel_config, num_of_targets=2):
         return "|".join([str(10 * channel_config.get("SENSEX", 1))]* num_of_targets) if num_of_targets > 1 else str(10*channel_config.get("SENSEX", 1))
     elif "BANKEX" in symbol:
         return "|".join([str(15 * channel_config.get("BANKEX", 1))]* num_of_targets) if num_of_targets > 1 else str(15*channel_config.get("BANKEX", 1))
-    return lot_size
+    return "|".join([str(lot_size * channel_config.get("STOCKOPTION", 1))] * num_of_targets) if num_of_targets > 1 else str(lot_size*channel_config.get("STOCKOPTION", 1))
 
 
 def get_all_contract_details(exchange=None):
@@ -1051,7 +1053,7 @@ class BnoPremium:
 
             for word in BnoPremium.split_words:
                 statement = statement.replace(word, "|")
-            parts = statement.split("|")
+            parts = [i for ind, i in enumerate(statement.split("|")) if ind == 0 or (ind!=0 and i.strip())]
             symbol_from_tg = parts[1].strip().removeprefix("#")
             symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
             parts_statement = statement.replace("CE", "|").replace("PE", "|").split("|")
@@ -1765,6 +1767,8 @@ class SChoudhry12:
             is_reply_msg = "$$$$" in statement
             new_msg = self.message.upper().split("$$$$")[-1]
             is_close_msg = any([word in new_msg.split() for word in close_words])
+            if not is_close_msg:
+                is_close_msg = any([word for word in close_words if word in new_msg])
             if is_reply_msg and is_close_msg:
                 # is a reply message and has close words in it:
                 pass

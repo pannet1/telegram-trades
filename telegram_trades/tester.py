@@ -53,40 +53,44 @@ from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCa
 # msg = "BUY BANKNIFTY 50500 CE  ABOVE 490     SL 450 TGT 530/600"
 # i = BnoPremium(1707192066, msg)
 # i.get_signal()
-msg = "SELL#PFC FUT  NEAR -416 TARGET- 414,410 SL-420 416 -414      HIT TARGET     7,750 PROFIT IN JUST ONE LOT  #PFC FUT   "
+# msg = "SELL#PFC FUT  NEAR -416 TARGET- 414,410 SL-420 416 -414      HIT TARGET     7,750 PROFIT IN JUST ONE LOT  #PFC FUT   "
+# i = PremiumJackpot(1707192066, msg)
+# i.get_signal()
+
+
+# msg = "BUY#BHEL FUT  ABOVE -224 TARGET- 227,228 SL-222 224 -226      SAFE BOOK SMALL PROFIT   10,500 PROFIT IN JUST ONE LOT  #BHEL FUT     # "
+# i = PremiumJackpot(1707192066, msg)
+# i.get_signal()
+
+
+# msg = "BUY#BAJAJ-AUTO  FUT  ABOVE -8330 TARGET-8350,8400,8450 SL-8300 "
+# i = PremiumJackpot(1707192066, msg)
+# i.get_signal()
+
+# msg = "BUY #ADANIENT FUT  ABOVE -2960-2965 TARGET- 2975,3200 SL-2949  EXPIRY JUN$$$$2975      HIT TARGET   CANCEL   BOOK OR TRAIL SL BIG JUMP POSSIBLE ANYTIME  "
+# i = PremiumJackpot(1707192066, msg)
+# i.get_signal()
+
+# msg = "MONTHLY CALL   BUY NTPC FUTURE 390  TARGETS 420-450   SL380 "
+# i = PremiumGroup(1707192066, msg)
+# i.get_signal()
+
+# msg = "MONTHLY CALL   BUY NTPC FUTURE 390  TARGETS 420-450   SL380$$$$62  "
+# i = PremiumGroup(1707192066, msg)
+# i.get_signal()
+
+# msg = "FUTURE TRADE     BUY  NIFTY RANGE 22640-22650 TRG 22750/22950/23100SL 22500"
+# i = PaidStockIndexOption(1707192066, msg)
+# i.get_signal()
+
+# msg = "FUTURE TRADE     BUY  NIFTY RANGE 22640-22650 TRG 22750/22950/23100SL 22500$$$$FUTURE NIFTY 22640 TO 23844  1204++ POINTS PROFIT RUNNING     BOOK PROFIT ALL TARGET ACHIEVE     "
+# i = PaidStockIndexOption(1707192066, msg)
+# i.get_signal()
+
+
+msg = "BUY #BSOFT FUT ABOVE -675 TARGET- 677,680 SL-670  EXPIRY  JUN"
 i = PremiumJackpot(1707192066, msg)
 i.get_signal()
-
-
-msg = "BUY#BHEL FUT  ABOVE -224 TARGET- 227,228 SL-222 224 -226      SAFE BOOK SMALL PROFIT   10,500 PROFIT IN JUST ONE LOT  #BHEL FUT     # "
-i = PremiumJackpot(1707192066, msg)
-i.get_signal()
-
-
-msg = "BUY#BAJAJ-AUTO  FUT  ABOVE -8330 TARGET-8350,8400,8450 SL-8300 "
-i = PremiumJackpot(1707192066, msg)
-i.get_signal()
-
-msg = "BUY #ADANIENT FUT  ABOVE -2960-2965 TARGET- 2975,3200 SL-2949  EXPIRY JUN$$$$2975      HIT TARGET   CANCEL   BOOK OR TRAIL SL BIG JUMP POSSIBLE ANYTIME  "
-i = PremiumJackpot(1707192066, msg)
-i.get_signal()
-
-msg = "MONTHLY CALL   BUY NTPC FUTURE 390  TARGETS 420-450   SL380 "
-i = PremiumGroup(1707192066, msg)
-i.get_signal()
-
-msg = "MONTHLY CALL   BUY NTPC FUTURE 390  TARGETS 420-450   SL380$$$$62  "
-i = PremiumGroup(1707192066, msg)
-i.get_signal()
-
-msg = "FUTURE TRADE     BUY  NIFTY RANGE 22640-22650 TRG 22750/22950/23100SL 22500"
-i = PaidStockIndexOption(1707192066, msg)
-i.get_signal()
-
-msg = "FUTURE TRADE     BUY  NIFTY RANGE 22640-22650 TRG 22750/22950/23100SL 22500$$$$FUTURE NIFTY 22640 TO 23844  1204++ POINTS PROFIT RUNNING     BOOK PROFIT ALL TARGET ACHIEVE     "
-i = PaidStockIndexOption(1707192066, msg)
-i.get_signal()
-
 
 # for msg in ["6th march expiry  BUY 46800 CE ONLY ABV 350 SL- 310 TARGET -460  CMP - 335", "7th march expiry nifty  buy 22150 PE CMP 135/130 SL-120 TARGTE-200-250+"]:
 #     i = PaidCallPut(1707192066, msg)
