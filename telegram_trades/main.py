@@ -334,7 +334,8 @@ class TaskFunc:
                         task["symbol"].split(":")[1],
                     )
                 )
-                order_args = do_trail(task["ltp"], trail_order, task["target_range"])
+                lst_of_targets = task["target_range"].split("|")
+                order_args = do_trail(task["ltp"], trail_order, lst_of_targets)
                 if any(order_args):
                     order_args.update({"symbol": task["symbol"]})
                     resp = modify_order(**order_args)

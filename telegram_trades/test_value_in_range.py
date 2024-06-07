@@ -1,4 +1,5 @@
-target_range = ["0.05", "0.06", "0.07"]
+target_range = "0.05 | 0.06  | 0.07"
+target_range = target_range.split("|")
 ltp = 0.10
 
 # find value above the ltp in the target target_range
