@@ -166,8 +166,8 @@ def get_sl_target_from_csv(symbol_name, max_ltp):
         logger.error(traceback.format_exc())
         return None, None
 
-api = get_broker(BRKR)
-download_masters(api.broker)
+# api = get_broker(BRKR)
+# download_masters(api.broker)
 scrip_info_df = get_all_contract_details()
 all_symbols = set(scrip_info_df["Symbol"].to_list())
 
@@ -499,6 +499,80 @@ class SmsOptionsPremium:
                 logger.error(failure_details)
                 write_failure_to_csv(failure_details)
 
+    def get_hedge_trade(self, statement):
+        try:
+            statements = [s.strip() for s in statement.split("             ")]
+            details = []
+            for stmt in statements:
+                stmt = stmt.strip().removeprefix("BUY").strip()
+                _s = stmt.split()
+                sym = None
+                strike = None
+                option_type = None
+                if str(_s[0]).isdigit() and _s[1] == "LOT":
+                    sym = _s[2]
+                    for i, __s in enumerate(_s[3:]):
+                        if str(__s).isdigit():
+                            strike = __s
+                            option_type = _s[4+i]
+                            break
+                        else:
+                            continue
+                else:
+                    sym = _s[0]
+                    if str(_s[1]).isdigit() and int(_s[1]) > 30 :
+                        strike = _s[1] 
+                        option_type = _s[2]
+                    elif str(_s[2]).isdigit() and int(_s[2]) > 30 :
+                        strike = _s[2] 
+                        option_type = _s[3]
+                    elif str(_s[3]).isdigit() and int(_s[3]) > 30 :
+                        strike = _s[3] 
+                        option_type = _s[4]
+                if not sym:
+                    raise CustomError(f"sym is not found in {statement}")
+                if not strike:
+                    raise CustomError(f"strike is not found in {statement}")
+                if not option_type:
+                    raise CustomError(f"option_type is not found in {statement}")
+                sym = self.get_closest_match(sym)
+                exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
+                filtered_df = scrip_info_df[
+                    (scrip_info_df["Exch"] == exch)
+                    & (scrip_info_df["Symbol"] == sym)
+                    & (scrip_info_df["Strike Price"] == float(strike))
+                    & (scrip_info_df["Option Type"] == option_type)
+                    # & (scrip_info_df["Expiry Date"] == f"2024-{month}-{date}")
+                ]
+                filtered_df = filtered_df.sort_values(by="Expiry Date")
+                filtered_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+                filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
+                first_row = filtered_df.head(1)
+                symbol_dict = first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+                details.append({
+                        "channel_name": "SmsOptionsPremium",
+                        "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                        "ltp_range": "",
+                        "target_range": "",
+                        "sl": "",
+                        "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details),
+                        "action": "Buy-HEDGE-1" if not details else "Buy-HEDGE-2",
+                        "timestamp": f"{SmsOptionsPremium.channel_number}{self.msg_received_timestamp}"
+                    })
+                # logger.info(details)
+            if len(details) == 2:
+                for i in details:
+                    write_signals_to_csv(i)
+        except:
+            failure_details = {
+                "channel_name": "SmsOptionsPremium",
+                "timestamp": self.msg_received_timestamp,
+                "message": statement,
+                "exception": traceback.format_exc().strip(),
+            }
+            logger.error(failure_details)
+            write_failure_to_csv(failure_details)
+    
     def get_signal(self):
         statement = self.message.strip().upper()
         new_msg = self.message.strip().upper().split('$$$$')[-1]
@@ -508,6 +582,9 @@ class SmsOptionsPremium:
         is_reply_msg = '$$$$' in statement
         if is_spot_message:
             self.get_spot_signal(statement)
+            return
+        elif "HEDGE" in statement and "TRADE" in statement:
+            self.get_hedge_trade(statement)
             return
         elif is_reply_msg and (is_close_msg or is_sl_message):
             # is a reply message and has close words in it:
