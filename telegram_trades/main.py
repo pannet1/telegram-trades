@@ -123,12 +123,13 @@ def do_trail(ltp: float, order: Dict, target_range: List):
             idx = k - 1
             if idx >= 0:
                 intended_stop = target_range[idx]
-                if intended_stop > order["trigger_price"]:
+                trigger = float(order["trigger_price"])
+                if intended_stop > trigger:
                     order["trigger_price"] = intended_stop
                     order["price"] = intended_stop - 0.05
                     args = order
                     break
-    if ltp > float(target_range[-1]):
+    if ltp > target_range[-1]:
         order["price"] = 0.0
         order["order_type"] = "MKT"
         args = order
