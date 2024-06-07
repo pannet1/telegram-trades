@@ -117,8 +117,9 @@ def show(task):
 
 def do_trail(ltp: float, order: Dict, target_range: List):
     args = {}
+    target_range = list(map(float, target_range))
     for k, v in enumerate(target_range):
-        if ltp < float(v) and order["side"] == "S":
+        if ltp < v and order["side"] == "S":
             idx = k - 1
             if idx >= 0:
                 intended_stop = target_range[idx]
