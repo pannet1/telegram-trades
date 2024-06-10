@@ -118,21 +118,28 @@ def show(task):
 def do_trail(ltp: float, order: Dict, target_range: List):
     args = {}
     target_range = list(map(float, target_range))
-    for k, v in enumerate(target_range):
-        if ltp < v and order["side"] == "S":
-            idx = k - 1
-            if idx >= 0:
-                intended_stop = target_range[idx]
-                trigger = float(order["trigger_price"])
-                if intended_stop > trigger:
-                    order["trigger_price"] = intended_stop
-                    order["price"] = intended_stop - 0.05
-                    args = order
-                    break
-    if ltp > target_range[-1]:
-        order["price"] = 0.0
-        order["order_type"] = "MKT"
-        args = order
+
+    if order["side"] == "S":
+        # max target reached
+        if ltp > target_range[-1]:
+            order["price"] = 0.0
+            order["trigger_price"] = 0.0
+            order["order_type"] = "MKT"
+            logging.info(f"ltp above max target for order {order}")
+            return order
+
+        # market within a new trail/target band ?
+        for k, v in enumerate(target_range):
+            if ltp < v:
+                idx = k - 1
+                if idx >= 0:
+                    intended_stop = target_range[idx]
+                    trigger = float(order["trigger_price"])
+                    if intended_stop > trigger:
+                        order["trigger_price"] = intended_stop
+                        order["price"] = intended_stop - 0.05
+                        logging.info(f"trailing args {order}")
+                        return order
     return args
 
 
