@@ -340,7 +340,7 @@ class TaskFunc:
                 order_args = do_trail(task["ltp"], trail_order, lst_of_targets)
                 if any(order_args):
                     order_args.update({"symbol": task["symbol"]})
-                    resp = modify_order(**order_args)
+                    resp = modify_order(self.api, order_args)
                     logging.info(f"modify resp: {resp}")
 
                 # get index of target range from the price
