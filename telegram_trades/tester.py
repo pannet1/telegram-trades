@@ -94,7 +94,7 @@ PremiumGroup	1718078778	FINNIFTY 22200 PE   ABOVE 165	"Traceback (most recent ca
     raise CustomError(""TARGET not found"")
 telegram_message_parser_v2.CustomError: TARGET not found"
 """
-msg = "FINNIFTY 22200 PE   ABOVE 165"
+msg = "MIDCPNIFTYNIFTY 11800 PE NEAR 150  SL   TRT 160 190 240+"
 i = PremiumGroup(1707192066, msg)
 i.get_signal()
 
