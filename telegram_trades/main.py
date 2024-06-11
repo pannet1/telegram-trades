@@ -130,16 +130,19 @@ def do_trail(ltp: float, order: Dict, target_range: List):
 
         # market within a new trail/target band ?
         for k, v in enumerate(target_range):
-            if ltp < v:
-                idx = k - 1
-                if idx >= 0:
-                    intended_stop = target_range[idx]
-                    trigger = float(order["trigger_price"])
-                    if intended_stop > trigger:
-                        order["trigger_price"] = intended_stop
-                        order["price"] = intended_stop - 0.05
-                        logging.info(f"trailing args {order}")
-                        return order
+            idx = k - 1
+            if idx >= 0:
+                intended_stop = target_range[idx]
+                trigger = float(order["trigger_price"])
+                logging.info(
+                    f"{ltp=}>{v=} {ltp>v} and {intended_stop=}>{trigger=}{intended_stop > trigger}"
+                )
+                if ltp > v and intended_stop > trigger:
+                    order["order_type"] = "SL"
+                    order["trigger_price"] = intended_stop
+                    order["price"] = intended_stop - 0.05
+                    logging.info(f"trailing args {order}")
+                    return order
     return args
 
 
@@ -258,20 +261,24 @@ class TaskFunc:
         try:
             stop_order = task["stop"]
             stop_order = filtered_orders(self.api, stop_order["order_id"])
+            task["stop"] = stop_order
+
+            # ltp
+            ltp = get_ltp(
+                self.api.broker,
+                task["symbol"].split(":")[0],
+                task["symbol"].split(":")[1],
+            )
+            task["ltp"] = ltp
+            task["pnl"] = (ltp * task["tq"]) - (
+                float(task["entry"]["price"]) * task["tq"]
+            )
+
+            # stopped or trail
             if is_key_val(stop_order, "Status", "complete"):
-                task["stop"] = stop_order
                 task["fn"] = "STOPPED-OUT"
             else:
                 tgt = float(task["target_range"].split("|")[0])
-                ltp = get_ltp(
-                    self.api.broker,
-                    task["symbol"].split(":")[0],
-                    task["symbol"].split(":")[1],
-                )
-                task["ltp"] = ltp
-                task["pnl"] = (ltp * task["tq"]) - (
-                    float(task["entry"]["price"]) * task["tq"]
-                )
 
                 is_stopped = stop_order["side"].upper() == "S" and ltp < float(
                     task["sl"]
@@ -290,7 +297,7 @@ class TaskFunc:
                     resp = square_off(
                         self.api, stop_order["order_id"], task["symbol"], quantity
                     )
-                    logging.info(f"modify resp: {resp}")
+                    logging.info(f"target 1 or stop resp: {resp}")
 
                 if is_target:
                     if task.get("q2", None):
@@ -351,42 +358,6 @@ class TaskFunc:
                     logging.info(f"modify resp: {resp}")
 
                 # get index of target range from the price
-        except Exception as e:
-            log_exception(e, locals())
-            traceback.print_exc()
-        finally:
-            return task
-
-    def trail_or_target2(self, **task):
-        """
-        TODO: to be removed later
-        """
-        try:
-            trail_order = task["trail"]
-            trail_order = filtered_orders(self.api, trail_order["order_id"])
-            if is_key_val(trail_order, "Status", "complete"):
-                task["trail"] = trail_order
-                task["fn"] = "TRAILED-OUT"
-            else:
-                tgt = float(task["target_range"].split("|")[1])
-                ltp = get_ltp(
-                    self.api.broker,
-                    task["symbol"].split(":")[0],
-                    task["symbol"].split(":")[1],
-                )
-                task["ltp"] = ltp
-                is_trail = trail_order["side"].upper() == "S" and ltp < float(
-                    task["price"]
-                )
-                is_target = trail_order["side"].upper() == "S" and ltp > tgt
-                if is_trail:
-                    logging.info("market hit the trailing stop")
-                if is_trail or is_target:
-                    resp = square_off(
-                        self.api, trail_order["order_id"], task["symbol"], task["q2"]
-                    )
-                    logging.info(f"target 2: {resp}")
-                    task["fn"] = "TRADES_COMPLETED"
         except Exception as e:
             log_exception(e, locals())
             traceback.print_exc()
