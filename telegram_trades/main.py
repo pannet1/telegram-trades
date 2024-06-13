@@ -1,4 +1,3 @@
-from time import time
 from constants import DATA, BRKR, FUTL, F_TASK, UTIL, logging
 from login import get_broker
 from api_helper import (
