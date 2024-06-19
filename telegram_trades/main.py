@@ -135,18 +135,18 @@ def do_trail(ltp: float, order: Dict, target_range: List):
             return order
 
         # market within a new trail/target band ?
-        for k, v in enumerate(target_range):
-            idx = k - 1
-            if idx >= 0:
-                intended_stop = target_range[idx]
+        for idx, v in enumerate(target_range):
+            if idx > 0:
+                intended_stop = target_range[idx - 1]
                 trigger = float(order["trigger_price"])
                 logging.info(
-                    f"{ltp=}>{v=} {ltp>v} and {intended_stop=}>{trigger=}{intended_stop > trigger}"
+                    f"{ltp=}>={v=} {ltp>=v} and {intended_stop=}>{trigger=}{intended_stop > trigger}"
                 )
-                if ltp > v and intended_stop > trigger:
+                if ltp >= v and intended_stop > trigger:
                     order["order_type"] = "SL"
                     order["trigger_price"] = intended_stop
                     order["price"] = intended_stop - 0.05
+                    logging.info(f"trailing from {trigger} to {intended_stop} success")
                     logging.info(f"trailing args {order}")
                     return order
     return args
