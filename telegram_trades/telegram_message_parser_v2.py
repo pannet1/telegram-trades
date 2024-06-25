@@ -161,11 +161,11 @@ def write_signals_to_csv(_signal_details):
             int(_signal_details["timestamp"][1:])).strftime('%Y-%m-%d %H:%M:%S')
         _signal_details["timestamp"] = _signal_details["timestamp"] + ''.join(random.choices('0123456789', k=5))
         __sl = _signal_details["sl"]
-        if (isinstance(__sl, int) or isinstance(__sl, float)) and __sl == 0:
+        if (isinstance(__sl, int) or isinstance(__sl, float)) and __sl == 0 and "BH" not in _signal_details["action"]:
             _signal_details["sl"] = zero_sl
-        elif isinstance(__sl, str) and __sl.isdigit() and  __sl in ("0", "00"):
+        elif isinstance(__sl, str) and __sl.isdigit() and  __sl in ("0", "00") and "BH" not in _signal_details["action"]:
             _signal_details["sl"] = zero_sl
-        elif isinstance(__sl, str) and not __sl.strip():
+        elif isinstance(__sl, str) and not __sl.strip() and "BH" not in _signal_details["action"]:
             _signal_details["sl"] = zero_sl
         writer.writerow(
             {k: str(_signal_details.get(k, ""))
@@ -579,11 +579,23 @@ class SmsOptionsPremium:
                 }
                 logger.error(failure_details)
                 write_failure_to_csv(failure_details)
-
+    def extract_percentages_split(self, sentence):
+        words = sentence.split()
+        for word in words:
+            if '%' in word:
+                numeric_value = float(word.rstrip('%'))
+                if numeric_value >= 80:
+                    return True
+        return False
+    
     def get_hedge_trade(self, statement):
         try:
+            is_reply_msg = '$$$$' in statement 
+            is_reply_greater_than_80 = False
+            if is_reply_msg:
+                is_reply_greater_than_80 = self.extract_percentages_split(statement.split('$$$$')[-1])
             statements = [s.strip() for s in statement.split("             ")]
-            details = []
+            details = {}
             for stmt in statements:
                 stmt = stmt.strip().removeprefix("BUY").strip()
                 _s = stmt.split()
@@ -630,20 +642,19 @@ class SmsOptionsPremium:
                 filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
                 first_row = filtered_df.head(1)
                 symbol_dict = first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
-                details.append({
+                details = {
                         "channel_name": "SmsOptionsPremium",
-                        "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
-                        "ltp_range": "",
-                        "target_range": "",
-                        "sl": "",
+                        "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"] if not details else details['symbol'] + "|" + symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                        "ltp_range": 0,
+                        "target_range": 0,
+                        "sl": 0,
                         "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details, special_case="HEDGE"),
-                        "action": "Buy-HEDGE-1" if not details else "Buy-HEDGE-2",
+                        "action": "BHEDGE" if not is_reply_greater_than_80 else "BHXXX",
                         "timestamp": f"{SmsOptionsPremium.channel_number}{self.msg_received_timestamp}"
-                    })
+                    }
                 # logger.info(details)
-            if len(details) == 2:
-                for i in details:
-                    write_signals_to_csv(i)
+            write_signals_to_csv(details)
+                    
         except:
             failure_details = {
                 "channel_name": "SmsOptionsPremium",
