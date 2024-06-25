@@ -75,21 +75,17 @@ def get_multiplier(symbol, channel_config, num_of_targets=2, special_case=None):
     lot_size = df.loc[df['Trading Symbol'] == symbol, 'Lot Size'].iloc[0]
     if special_case == "HEDGE":
         if "BANKNIFTY" in symbol:
-            return "|".join([str(15 * channel_config.get("BANKNIFTY_HEDGE", 1))] * num_of_targets) if num_of_targets > 1 else str(15*channel_config.get("BANKNIFTY_HEDGE", 1))
+            return str(15*channel_config.get("BANKNIFTY_HEDGE", 1))
         elif "FINNIFTY" in symbol:
-            return "|".join([str(40 * channel_config.get("FINNIFTY_HEDGE", 1))]* num_of_targets) if num_of_targets > 1 else str(40*channel_config.get("FINNIFTY_HEDGE", 1))
+            return str(40*channel_config.get("FINNIFTY_HEDGE", 1))
         elif "MIDCPNIFTY" in symbol:
-            return "|".join([str(75 * channel_config.get("MIDCPNIFTY_HEDGE", 1))]* num_of_targets) if num_of_targets > 1 else str(75*channel_config.get("MIDCPNIFTY_HEDGE", 1))
+            return str(75*channel_config.get("MIDCPNIFTY_HEDGE", 1))
         elif "NIFTY" in symbol:
-            return (
-                "|".join([str(25 * channel_config.get("NIFTY_HEDGE", 1))] * num_of_targets)
-                if num_of_targets > 1
-                else str(25 * channel_config.get("NIFTY_HEDGE", 1))
-            )
+            return str(25 * channel_config.get("NIFTY_HEDGE", 1))
         elif "SENSEX" in symbol:
-            return "|".join([str(10 * channel_config.get("SENSEX_HEDGE", 1))]* num_of_targets) if num_of_targets > 1 else str(10*channel_config.get("SENSEX_HEDGE", 1))
+            return str(10*channel_config.get("SENSEX_HEDGE", 1))
         elif "BANKEX" in symbol:
-            return "|".join([str(15 * channel_config.get("BANKEX_HEDGE", 1))]* num_of_targets) if num_of_targets > 1 else str(15*channel_config.get("BANKEX_HEDGE", 1))
+            return str(15*channel_config.get("BANKEX_HEDGE", 1))
     elif special_case == "BTST":
         if "BANKNIFTY" in symbol:
             return "|".join([str(15 * channel_config.get("BANKNIFTY_BTST", 1))] * num_of_targets) if num_of_targets > 1 else str(15*channel_config.get("BANKNIFTY_BTST", 1))
@@ -642,13 +638,18 @@ class SmsOptionsPremium:
                 filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
                 first_row = filtered_df.head(1)
                 symbol_dict = first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0]
+                _sym = symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"] if not details else details['symbol'] + "|" + symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"]
+                if not details:
+                    quantity = get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details, special_case="HEDGE")
+                else:
+                    quantity = quantity + "|" + get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details, special_case="HEDGE")
                 details = {
                         "channel_name": "SmsOptionsPremium",
-                        "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"] if not details else details['symbol'] + "|" + symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                        "symbol": _sym,
                         "ltp_range": 0,
                         "target_range": 0,
                         "sl": 0,
-                        "quantity": get_multiplier(symbol_dict["Trading Symbol"], SmsOptionsPremium.channel_details, special_case="HEDGE"),
+                        "quantity": quantity,
                         "action": "BHEDGE" if not is_reply_greater_than_80 else "BHXXX",
                         "timestamp": f"{SmsOptionsPremium.channel_number}{self.msg_received_timestamp}"
                     }
