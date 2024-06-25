@@ -94,9 +94,9 @@ PremiumGroup	1718078778	FINNIFTY 22200 PE   ABOVE 165	"Traceback (most recent ca
     raise CustomError(""TARGET not found"")
 telegram_message_parser_v2.CustomError: TARGET not found"
 """
-msg = "MIDCPNIFTYNIFTY 11800 PE NEAR 150  SL   TRT 160 190 240+"
-i = PremiumGroup(1707192066, msg)
-i.get_signal()
+# msg = "FIN 23200 CE  ABOVE 65   TGT OPEN"
+# i = PremiumGroup(1707192066, msg)
+# i.get_signal()
 
 # msg = "            BUY FINNIFTY MAY 22000 CE ONLY IN RANGE @ 14 - 21 TARGET 40 60 80 100 & ABOVE             BUY FINNIFTY MAY 21950 PE ONLY IN RANGE @ 14 - 21 TARGET 40 60 80 100 & ABOVE$$$$FINNIFTY MAY 22000 CE  TRIPLED  @ 15 SE 55 = 40 POINT = 1600/- PROFITS    FINNIFTY MAY 21950 PE  @ 20 SE 16 = 4 POINTS = 160/- LOSS    TOTAL PROFITS @ 1440/- PER HEDGE PAIR     BOOK 80% TO 90% POSITION OF HEDGE TRADE IN PROFITS   "
 # i = SmsOptionsPremium(1707192066, msg)
@@ -118,9 +118,9 @@ i.get_signal()
 # i = PaidStockIndexOption(1707192066, msg)
 # i.get_signal()
 
-# msg = "	BUY#ABB 6100 CE  ABOVE -160 TARGE-170,190+ SL-145  MAR SERIES  WAIT FOR LEVEL CROSS NOT ACTIVE AVOID   "
-# i = PremiumJackpot(1707192066, msg)
-# i.get_signal()
+msg = "	BUY#ABB 6100 CE  ABOVE -160 TARGE-170,190+ SL-145  MAR SERIES  WAIT FOR LEVEL CROSS NOT ACTIVE AVOID   "
+i = PremiumJackpot(1707192066, msg)
+i.get_signal()
 
 # msg = "   BUY#RELIANCE 2900 CE  ABOVE -85 TARGE-89,95 SL-73  MAR SERIES  WAIT FOR LEVEL CROSS 96  HIT TARGET     BOOK OR TRAIL SL"
 # i = PremiumJackpot(1707192066, msg)

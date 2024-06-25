@@ -73,7 +73,7 @@ async def my_event_handler(event):
                     # logger.info(f"Premium Memebership group - {msg} - vs - {event.raw_text}")
                     i = PremiumMembershipGroup(now, msg)
                     i.get_signal()
-                elif chat_title == "ALL IN 1 GROUP":
+                elif chat_title == "LOSS RECOVERY GROUP":
                     i = AllIn1Group(now, msg)
                     i.get_signal()
                 elif chat_title == "PREMIUM GROUP":

@@ -50,6 +50,8 @@ spell_checks = {
     "MIDCP": "MIDCPNIFTY",
     "BANKNIFT ": "BANKNIFTY ",
     "BAJAJAUTO": "BAJAJ-AUTO",
+    "ADANIPORT ": "ADANIPORTS ",
+    "FIN ": "FINNIFTY ",
 }
 index_options = ('FINNIFTY', 'NIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX', 'BANKNIFTY')
 close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", "SAFE", "LOW RISK")
@@ -107,7 +109,7 @@ def get_multiplier(symbol, channel_config, num_of_targets=2, special_case=None):
             return "|".join([str(15 * channel_config.get("BANKEX_BTST", 1))]* num_of_targets) if num_of_targets > 1 else str(15*channel_config.get("BANKEX_BTST", 1))
         return "|".join([str(lot_size * channel_config.get("STOCKOPTION_BTST", 1))] * num_of_targets) if num_of_targets > 1 else str(lot_size*channel_config.get("STOCKOPTION_BTST", 1))
     elif str(symbol).endswith("F"):
-        return "|".join([str(lot_size * channel_config.get("FUT", 1))] * num_of_targets) if num_of_targets > 1 else str(lot_size*channel_config.get("FUT", 1))
+        return str(lot_size*channel_config.get("FUT", 1))
     elif "BANKNIFTY" in symbol:
         return "|".join([str(15 * channel_config.get("BANKNIFTY", 1))] * num_of_targets) if num_of_targets > 1 else str(15*channel_config.get("BANKNIFTY", 1))
     elif "FINNIFTY" in symbol:
@@ -124,7 +126,7 @@ def get_multiplier(symbol, channel_config, num_of_targets=2, special_case=None):
         return "|".join([str(10 * channel_config.get("SENSEX", 1))]* num_of_targets) if num_of_targets > 1 else str(10*channel_config.get("SENSEX", 1))
     elif "BANKEX" in symbol:
         return "|".join([str(15 * channel_config.get("BANKEX", 1))]* num_of_targets) if num_of_targets > 1 else str(15*channel_config.get("BANKEX", 1))
-    return "|".join([str(lot_size * channel_config.get("STOCKOPTION", 1))] * num_of_targets) if num_of_targets > 1 else str(lot_size*channel_config.get("STOCKOPTION", 1))
+    return str(lot_size*channel_config.get("STOCKOPTION", 1))
 
 
 def get_all_contract_details(exchange=None):
@@ -365,6 +367,10 @@ class PremiumJackpot:
                     raise CustomError(f"ltps is not found in {statement}")
                 targets = get_float_values(statement, "TARGET")
                 if not targets:
+                    targets = get_float_values(statement, "TRT")
+                if not targets:
+                    targets = get_float_values(statement, "TGT")
+                if not targets:
                     targets = get_float_values(statement, "TARGE")
                 if not targets:
                     raise CustomError(f"targets is not found in {statement}")
@@ -377,7 +383,7 @@ class PremiumJackpot:
                 elif self.message.startswith('BUY'):
                     action = "BUY"
                 else:
-                    action = None
+                    action = "BUY"
                 if is_reply_msg and is_close_msg:
                     action = "CANCEL"
                 
@@ -1492,7 +1498,7 @@ class PremiumGroup:
                 return
             
             if "BTST" in self.message:
-                statement = self.message.replace("BTST", "").strip().replace("CALL", "").replace("TRADE", "").strip().replace("BUY", "").strip().replace("ABOVE", "").replace("-", " ").replace("/", " ")
+                statement = self.message.replace("BTST", "").strip().replace("CALL", "").replace("TRADE", "").strip().replace("BUY", "").strip().replace("ABOVE", "").replace("-", " ").replace("/", " ").replace("NEAR","")
                 v = [s for s in statement.split() if s.strip()]
                 sym = v[0]
                 try:
@@ -1841,8 +1847,8 @@ class AllIn1Group:
     def get_signal(self):
         try:
             statement = self.message
-            if "SL" not in statement:
-                raise CustomError("SL not found")
+            # if "SL" not in statement:
+            #     raise CustomError("SL not found")
             is_reply_msg = "$$$$" in statement
             new_msg = self.message.upper().split("$$$$")[-1]
             is_close_msg = any([word in new_msg.split() for word in close_words])
