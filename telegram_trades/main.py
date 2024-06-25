@@ -15,14 +15,18 @@ import traceback
 import pandas as pd
 import inspect
 from typing import List, Dict
+import pendulum as pdlm
+
+TTL_IN_MINUTES = 15
 
 lst_ignore = [
-    "E-ORDERBOOK",
     "rejected",
     "cancelled",
+    "E-ORDERBOOK",
     "E-ENTRY",
     "E-TRAIL",
     "E-STOP",
+    "IGNORED",
     "HARD-STOP",
     "XXX",
     "STOPPED-OUT",
@@ -76,9 +80,11 @@ def task_to_order_args(last_price, **task):
             if min_prc > last_price:
                 trigger_price = price - 0.05
                 order_type = "SL"
+            """
             elif max_prc < last_price:
                 price = 0.0
                 order_type = "MKT"
+            """
             args = dict(
                 symbol=task["symbol"],
                 side=side,
@@ -129,18 +135,18 @@ def do_trail(ltp: float, order: Dict, target_range: List):
             return order
 
         # market within a new trail/target band ?
-        for k, v in enumerate(target_range):
-            idx = k - 1
-            if idx >= 0:
-                intended_stop = target_range[idx]
+        for idx, v in enumerate(target_range):
+            if idx > 0:
+                intended_stop = target_range[idx - 1]
                 trigger = float(order["trigger_price"])
                 logging.info(
-                    f"{ltp=}>{v=} {ltp>v} and {intended_stop=}>{trigger=}{intended_stop > trigger}"
+                    f"{ltp=}>={v=} {ltp>=v} and {intended_stop=}>{trigger=}{intended_stop > trigger}"
                 )
-                if ltp > v and intended_stop > trigger:
+                if ltp >= v and intended_stop > trigger:
                     order["order_type"] = "SL"
                     order["trigger_price"] = intended_stop
                     order["price"] = intended_stop - 0.05
+                    logging.info(f"trailing from {trigger} to {intended_stop} success")
                     logging.info(f"trailing args {order}")
                     return order
     return args
@@ -183,15 +189,18 @@ class TaskFunc:
                 task["symbol"].split(":")[0],
                 task["symbol"].split(":")[1],
             )
+            task["ltp"] = ltp
             if ltp > 0:
                 min_prc, args = task_to_order_args(ltp, **task)
+                """ 
                 if args["order_type"] == "MKT":
                     task["price"] = min_prc
                     logging.info("task price update for market order: " + str(min_prc))
+                    # TODO
                 else:
                     task["price"] = max(args["trigger_price"], args["price"])
-                task["ltp"] = ltp
-                task["pnl"] = 0
+                """
+                task["price"] = max(args["trigger_price"], args["price"])
                 if any(args):
                     # check order status based on resp
                     logging.info(f"entry args: {args}")
@@ -213,15 +222,28 @@ class TaskFunc:
 
     def is_entry(self, **task):
         try:
-            order_details = task["entry"]
-            order_details = filtered_orders(self.api, order_details["order_id"])
-            if is_key_val(order_details, "Status", "complete"):
-                task["entry"] = order_details
-                logging.info(f"entry for {task['symbol']} is {order_details['Status']}")
+            order = task["entry"]
+            order = filtered_orders(self.api, order["order_id"])
+            if is_key_val(order, "Status", "complete"):
+                task["entry"] = order
+                logging.info(f"entry for {task['symbol']} is {order['Status']}")
                 task["fn"] = "stop1"
-            elif order_details["Status"] in lst_ignore:
-                logging.error(f"is_entry: {order_details['Status']}")
-                task["fn"] = order_details["Status"]
+            elif order["Status"] in lst_ignore:
+                logging.error(f"is_entry: {order['Status']}")
+                task["fn"] = order["Status"]
+            else:
+                ts = order["broker_timestamp"].split(" ")[1]
+                if pdlm.now() >= pdlm.parse(ts).add(minutes=TTL_IN_MINUTES).set(
+                    tz="Asia/Kolkata"
+                ):
+                    logging.info(f"trying to cancel {order}")
+                    resp = self.api.order_cancel(order["order_id"])
+                    logging.info(f"cancel response was {resp}")
+                    task["cancel"] = resp
+                    order = get_order_from_book(self.api, resp)
+                    task["entry"] = order
+                    if is_key_val(order, "Status", "cancelled"):
+                        task["fn"] = "IGNORED"
         except Exception as e:
             log_exception(e, locals())
             traceback.print_exc()
