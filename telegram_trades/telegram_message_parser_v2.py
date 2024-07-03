@@ -339,12 +339,12 @@ class PremiumJackpot:
                         "channel_name": "PremiumJackpot",
                         "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
                         "ltp_range": "|".join(ltps),
-                        "target_range": "",
+                        "target_range": "0",
                         "sl": "",
                         "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumJackpot.channel_details, special_case="BTST"),
-                        "action": "Cancel"
+                        "action": "BTST-Cancel"
                                 if is_reply_msg and is_close_msg
-                                else "Buy"
+                                else "BTST-Buy"
                     }
                 if __signal_details in signals:
                     raise CustomError("Signal already exists")
@@ -1542,13 +1542,13 @@ class PremiumGroup:
                     "channel_name": "PremiumGroup",
                     "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                     "ltp_range": "|".join(ltps),
-                    "target_range": "",
+                    "target_range": "0",
                     "sl": "",
                     "quantity": get_multiplier(
                         symbol_dict["Trading Symbol"],
                         PremiumGroup.channel_details, special_case="BTST"
                     ),
-                    "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
+                    "action": "BTST-Cancel" if is_reply_msg and is_close_msg else "BTST-Buy",
                 }
                 if __signal_details in signals:
                     raise CustomError("Signal already exists")
@@ -1882,49 +1882,88 @@ class AllIn1Group:
                 logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
-
-            for word in AllIn1Group.split_words:
-                statement = statement.replace(word, "|")
-            parts = statement.split("|")
-            symbol_from_tg = parts[0].strip().removeprefix("#")
-            symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
-            ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
-            ltp_max = max(
-                [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
-            )
-            sl, targets = None, None
-            if sym in index_options:
-                sl, targets = get_sl_target_from_csv(sym, ltp_max)
-            if not sl and not targets:
-                targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
-                if float(targets[0]) < float(ltps[0]):
-                    targets = [
-                        str(float(target) + ltp_max)
-                        for target in targets
-                        if target.replace(".", "", 1).isdigit()
-                    ]
-                sl = re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0]
-            __signal_details = {
-                "channel_name": "AllIn1Group",
-                "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
-                "ltp_range": "|".join(ltps),
-                "target_range": "|".join(targets),
-                "sl": sl,
-                "quantity": get_multiplier(
-                    symbol_dict["Trading Symbol"],
-                    AllIn1Group.channel_details,
-                ),
-                "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
-            }
-            if __signal_details in signals:
-                raise CustomError("Signal already exists")
+            if "BTST" in self.message:
+                for word in AllIn1Group.split_words:
+                    statement = statement.replace(word, "|")
+                parts = statement.split("|")
+                sym = parts[0].strip().removeprefix("#")
+                symbol_dict, sym = self.get_instrument_name(sym)
+                # sym = self.get_closest_match(sym)
+                # exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
+                # filtered_df = scrip_info_df[
+                #     (scrip_info_df["Exch"] == exch)
+                #     & (scrip_info_df["Symbol"] == sym)
+                #     & (scrip_info_df["Strike Price"] == float(strike))
+                #     & (scrip_info_df["Option Type"] == option_type)
+                #     # & (scrip_info_df["Expiry Date"] == f"2024-{month}-{date}")
+                # ]
+                # filtered_df = filtered_df.sort_values(by="Expiry Date")
+                # filtered_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+                # filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
+                # first_row = filtered_df.head(1)
+                ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
+                
+                __signal_details = {
+                        "channel_name": "AllIn1Group",
+                        "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
+                        "ltp_range": "|".join(ltps),
+                        "target_range": "0",
+                        "sl": "",
+                        "quantity": get_multiplier(symbol_dict["Trading Symbol"], AllIn1Group.channel_details, special_case="BTST"),
+                        "action": "BTST-Cancel"
+                                if is_reply_msg and is_close_msg
+                                else "BTST-Buy"
+                    }
+                if __signal_details in signals:
+                    raise CustomError("Signal already exists")
+                else:
+                    signals.append(__signal_details)
+                signal_details = __signal_details.copy()
+                signal_details["timestamp"] = f"{AllIn1Group.channel_number}{self.msg_received_timestamp}"
+                write_signals_to_csv(signal_details)
             else:
-                signals.append(__signal_details)
-            signal_details = __signal_details.copy()
-            signal_details["timestamp"] = (
-                f"{AllIn1Group.channel_number}{self.msg_received_timestamp}"
-            )
-            write_signals_to_csv(signal_details)
+                for word in AllIn1Group.split_words:
+                    statement = statement.replace(word, "|")
+                parts = statement.split("|")
+                symbol_from_tg = parts[0].strip().removeprefix("#")
+                symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
+                ltps = re.findall(r"\d+\.\d+|\d+", parts[1].strip())
+                ltp_max = max(
+                    [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
+                )
+                sl, targets = None, None
+                if sym in index_options:
+                    sl, targets = get_sl_target_from_csv(sym, ltp_max)
+                if not sl and not targets:
+                    targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
+                    if float(targets[0]) < float(ltps[0]):
+                        targets = [
+                            str(float(target) + ltp_max)
+                            for target in targets
+                            if target.replace(".", "", 1).isdigit()
+                        ]
+                    sl = re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0]
+                __signal_details = {
+                    "channel_name": "AllIn1Group",
+                    "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
+                    "ltp_range": "|".join(ltps),
+                    "target_range": "|".join(targets),
+                    "sl": sl,
+                    "quantity": get_multiplier(
+                        symbol_dict["Trading Symbol"],
+                        AllIn1Group.channel_details,
+                    ),
+                    "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
+                }
+                if __signal_details in signals:
+                    raise CustomError("Signal already exists")
+                else:
+                    signals.append(__signal_details)
+                signal_details = __signal_details.copy()
+                signal_details["timestamp"] = (
+                    f"{AllIn1Group.channel_number}{self.msg_received_timestamp}"
+                )
+                write_signals_to_csv(signal_details)
         except:
             failure_details = {
                 "channel_name": "AllIn1Group",
