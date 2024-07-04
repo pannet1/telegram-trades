@@ -372,6 +372,7 @@ class TaskFunc:
                         task["symbol"].split(":")[1],
                     )
                 )
+                logging.info(f"checking trailing for {task['symbol']}")
                 lst_of_targets = task["target_range"].split("|")
                 order_args = do_trail(task["ltp"], trail_order, lst_of_targets)
                 if any(order_args):
