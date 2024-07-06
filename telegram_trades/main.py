@@ -34,7 +34,7 @@ lst_ignore = [
     "TRADES_COMPLETED",
 ]
 F_SIGNAL = DATA + "signals.csv"
-SECS = 1  # sleep time
+SECS = 0.5  # sleep time
 
 
 """
@@ -124,7 +124,6 @@ def show(task):
 def do_trail(ltp: float, order: Dict, target_range: List):
     args = {}
     target_range = list(map(float, target_range))
-
     if order["side"] == "S":
         # max target reached
         if ltp > target_range[-1]:
@@ -135,20 +134,20 @@ def do_trail(ltp: float, order: Dict, target_range: List):
             return order
 
         # market within a new trail/target band ?
-        for idx, v in enumerate(target_range):
+        for idx, t2 in enumerate(target_range):
             if idx > 0:
                 intended_stop = target_range[idx - 1]
                 trigger = float(order["trigger_price"])
-                logging.info(
-                    f"{ltp=}>={v=} {ltp>=v} and {intended_stop=}>{trigger=}{intended_stop > trigger}"
-                )
-                if ltp >= v and intended_stop > trigger:
+                if ltp >= t2 and intended_stop > trigger:
                     order["order_type"] = "SL"
                     order["trigger_price"] = intended_stop
                     order["price"] = intended_stop - 0.05
-                    logging.info(f"trailing from {trigger} to {intended_stop} success")
                     logging.info(f"trailing args {order}")
-                    return order
+                    args = order
+                else:
+                    logging.info(
+                        f"{ltp=}>={t2=} {ltp>=t2} and {intended_stop=}>{trigger=}{intended_stop > trigger}"
+                    )
     return args
 
 
@@ -284,14 +283,15 @@ class TaskFunc:
             stop_order = task["stop"]
             stop_order = filtered_orders(self.api, stop_order["order_id"])
             task["stop"] = stop_order
-
-            # ltp
             ltp = get_ltp(
                 self.api.broker,
                 task["symbol"].split(":")[0],
                 task["symbol"].split(":")[1],
             )
-            task["ltp"] = ltp
+            if ltp > 0:
+                task["ltp"] = ltp
+            else:
+                ltp = task["ltp"]
             task["pnl"] = (ltp * task["tq"]) - (
                 float(task["entry"]["price"]) * task["tq"]
             )
@@ -365,20 +365,19 @@ class TaskFunc:
                 task["trail"] = trail_order
                 task["fn"] = "TRAILED-OUT"
             else:
-                task["ltp"] = float(
-                    get_ltp(
-                        self.api.broker,
-                        task["symbol"].split(":")[0],
-                        task["symbol"].split(":")[1],
-                    )
+                ltp = get_ltp(
+                    self.api.broker,
+                    task["symbol"].split(":")[0],
+                    task["symbol"].split(":")[1],
                 )
-                logging.info(f"checking trailing for {task['symbol']}")
-                lst_of_targets = task["target_range"].split("|")
-                order_args = do_trail(task["ltp"], trail_order, lst_of_targets)
-                if any(order_args):
-                    order_args.update({"symbol": task["symbol"]})
-                    resp = modify_order(self.api, order_args)
-                    logging.info(f"modify resp: {resp}")
+                if ltp > 0:
+                    logging.info(f"checking trailing for {task['symbol']}")
+                    lst_of_targets = task["target_range"].split("|")
+                    order_args = do_trail(task["ltp"], trail_order, lst_of_targets)
+                    if any(order_args):
+                        order_args.update({"symbol": task["symbol"]})
+                        resp = modify_order(self.api, order_args)
+                        logging.info(f"modify resp: {resp}")
 
                 # get index of target range from the price
         except Exception as e:
@@ -438,7 +437,6 @@ class TaskFunc:
                             logging.info("not following this task anyway")
                         task["fn"] = "XXX"
                         return task
-
         except Exception as e:
             log_exception(e, locals())
             traceback.print_exc()
@@ -528,9 +526,7 @@ class Jsondb:
                 all_calls.append(task)
             if is_updated:
                 FUTL.write_file(content=all_calls, filepath=F_TASK)
-                return FUTL.read_file(F_TASK)
-            else:
-                return all_calls
+            return all_calls
         except Exception as e:
             print(e)
             traceback.print_exc()
@@ -548,9 +544,7 @@ class Jsondb:
                         all_calls.append(dct)
             if is_updated:
                 FUTL.write_file(content=all_calls, filepath=F_TASK)
-                return FUTL.read_file(F_TASK)
-            else:
-                return all_calls
+            return all_calls
         except Exception as e:
             print(e)
             traceback.print_exc()
@@ -564,6 +558,7 @@ def run():
         obj_db = Jsondb()
         obj_tasks = TaskFunc(api)
         while True:
+            UTIL.slp_for(SECS)
             tasks = obj_db.read()
             if tasks and any(tasks):
                 for task in tasks:
@@ -571,8 +566,9 @@ def run():
                         show(task)
                         task = obj_tasks._str_to_func(task)
                         obj_db._update(task, tasks)
-            UTIL.slp_for(2)
+
             # contains all task incl cancellation
+            UTIL.slp_for(SECS)
             cancellations = obj_db.read_cancellation()
             if cancellations and any(cancellations):
                 for cancellation in cancellations:
@@ -587,7 +583,6 @@ def run():
                             obj_db._update(closed_position, cancellations)
                             cancellation["fn"] = "XXX"
                             obj_db._update(cancellation, cancellations)
-            UTIL.slp_for(2)
     except Exception as e:
         print(e)
         traceback.print_exc()

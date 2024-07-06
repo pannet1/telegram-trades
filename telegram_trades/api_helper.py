@@ -1,7 +1,7 @@
 from typing import List, Dict
 from constants import FUTL, UTIL, logging
 
-SLP = 1
+SECS = 0.5
 
 trade_keys = [
     "order_id",
@@ -65,13 +65,13 @@ def filter_by_keys(keys: List, lst: List[Dict]) -> List[Dict]:
 
 
 def filtered_positions(api):
-    UTIL.slp_for(SLP)
+    UTIL.slp_for(SECS)
     lst = filter_by_keys(position_keys, api.positions)
     return lst
 
 
 def filtered_orders(api, order_id):
-    UTIL.slp_for(SLP)
+    UTIL.slp_for(SECS)
     lst = api.orders
     # print(lst[0].keys())
 
@@ -90,7 +90,6 @@ def get_order_from_book(api, resp):
     order_2 = resp.get("nestOrderNumber", None)
     order_id = order_1 if order_1 else order_2
     if order_id:
-        UTIL.slp_for(1)
         dct_order = filtered_orders(api, order_id)
     return dct_order
 
@@ -159,13 +158,12 @@ def download_masters(broker):
     for exchange in exchanges:
         if FUTL.is_file_not_2day(f"./{exchange}.csv"):
             broker.get_contract_master(exchange)
-            UTIL.slp_for(SLP)
+            UTIL.slp_for(SECS)
 
 
 def get_ltp(broker, exchange, symbol):
-    UTIL.slp_for(SLP)
     obj_inst = broker.get_instrument_by_symbol(exchange, symbol)
-    UTIL.slp_for(SLP)
+    UTIL.slp_for(SECS)
     return float(broker.get_scrip_info(obj_inst)["Ltp"])
 
 
@@ -188,49 +186,3 @@ if __name__ == "__main__":
         ord = pd.DataFrame(lst).set_index("order_id")
         print(ord)
         ord.to_csv(DATA + "ord.csv")
-
-    """
-
-    updates = {
-        "order_type": "MKT",
-    }
-
-    print(lst)
-    for order in lst:
-        UTIL.slp_til_nxt_sec()
-        if any(order):
-            resp = api.order_modify(**order)
-            if not isinstance(resp, dict):
-                print("something is wrong")
-            elif isinstance(resp, dict) and resp.get("status", "Not_Ok") == "Not_Ok":
-                print(resp)
-    args = dict(
-        symbol="NSE:TRIDENT",
-        side="Sell",
-        quantity=1,
-        price=40.00,
-        trigger_price=40.05,
-        order_type="SL",
-        product="MIS"
-    )
-    resp = api.order_place(**args)
-    if resp and resp.get("NOrdNo", None):
-        print(f"{resp['NOrdNo']} successfully placed")
-    else:
-        print(f"{resp=}")
-
-    order_cancelled = api.order_cancel("24012400365338")
-    print(f"{order_cancelled=}")
-
-    order_id = "24012400368866"
-    norder = order_modify(lst, order_id)
-    if norder and any(norder):
-        print(norder)
-        norder["symbol"] = norder["exchange"] + ":" + norder["symbol"]
-        norder["quantity"] = 2
-        norder["order_type"] = "MKT"
-        norder.pop("price", None)
-        norder.pop("trigger_price", None)
-        modified_order = api.order_modify(**norder)
-        print(f"{modified_order=}")
-    """
