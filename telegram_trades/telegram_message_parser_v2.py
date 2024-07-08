@@ -314,7 +314,7 @@ class PremiumJackpot:
                 return
             
             if "BTST" in self.message:
-                if int(PremiumJackpot.channel_details.get('INCLUDE_STOCK_OPTION_BTST','1')) == 0:
+                if int(PremiumJackpot.channel_details.get('INCLUDE_BTST','1')) == 0:
                     raise CustomError(f"BTST is turned off as per config")
                 statement = self.message.strip().removeprefix("BUY").strip().removeprefix("#").strip().replace("-", " ")
                 s = [i for i in statement.split() if i.strip()]
@@ -356,7 +356,7 @@ class PremiumJackpot:
                 signal_details["timestamp"] = f"{PremiumJackpot.channel_number}{self.msg_received_timestamp}"
                 write_signals_to_csv(signal_details)
             elif " FUT " in self.message or " FUTURES " in self.message:
-                if int(PremiumJackpot.channel_details.get('INCLUDE_STOCK_OPTION_FUT','1')) == 0:
+                if int(PremiumJackpot.channel_details.get('INCLUDE_FUT','1')) == 0:
                     raise CustomError(f"Future is turned off as per config")
                 statement = self.message.strip().removeprefix("BUY").removeprefix("SELL").strip().removeprefix("#")
                 symbol_dict = get_fut_instrument_name(statement.split()[0])
@@ -417,11 +417,14 @@ class PremiumJackpot:
                             if ltp.replace('.', '', 1).isdigit()])
                 sl, targets = None, None
                 if sym in index_options:
-                    key_to_chk = f"INCLUDE_STOCK_OPTION_{sym}"
+                    key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                     if int(PremiumJackpot.channel_details.get(key_to_chk,'1')) == 0:
                         raise CustomError(f"{sym} is turned off as per config")
                     sl, targets = get_sl_target_from_csv(sym, ltp_max)
                     print(sl, targets)
+                else:
+                    if int(PremiumJackpot.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                        raise CustomError(f"STOCK_OPTIONS is turned off as per config")
                 if not sl and not targets:
                     targets = re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
                     
@@ -543,9 +546,12 @@ class SmsOptionsPremium:
                     continue
                 # symbol_d = " ".join(statement.split()[:5])
                 symbol_dict, sym = self.get_instrument_name(symbol_d)
-                key_to_chk = f"INCLUDE_STOCK_OPTION_{sym}"
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                 if int(SmsOptionsPremium.channel_details.get(key_to_chk,'1')) == 0:
                     raise CustomError(f"{sym} is turned off as per config")
+                else:
+                    if int(SmsOptionsPremium.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                        raise CustomError(f"STOCK_OPTIONS is turned off as per config")
                 ltp_range = self.get_float_values(statement, "ABOVE ")
                 
                 ltps = self.get_float_values(statement, "ABOVE ")
@@ -688,7 +694,7 @@ class SmsOptionsPremium:
             self.get_spot_signal(statement)
             return
         elif "HEDGE" in statement and "TRADE" in statement:
-            if int(SmsOptionsPremium.channel_details.get('INCLUDE_STOCK_OPTION_HEDGE','1')) == 0:
+            if int(SmsOptionsPremium.channel_details.get('INCLUDE_HEDGE','1')) == 0:
                 raise CustomError(f"Hedge is turned off as per config")
             self.get_hedge_trade(statement)
             return
@@ -729,10 +735,14 @@ class SmsOptionsPremium:
             
             sl, targets = None, None
             if sym in index_options:
-                key_to_chk = f"INCLUDE_STOCK_OPTION_{sym}"
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                 if int(SmsOptionsPremium.channel_details.get(key_to_chk,'1')) == 0:
                     raise CustomError(f"{sym} is turned off as per config")
                 sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            else:
+                if int(SmsOptionsPremium.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
+                
             if not sl and not targets:
                 targets = self.get_float_values(
                     self.message.strip().upper(), "TARGET")
@@ -911,10 +921,13 @@ class PaidCallPut:
                           if ltp.replace('.', '', 1).isdigit()])
             sl, targets = None, None
             if symbol in index_options:
-                key_to_chk = f"INCLUDE_STOCK_OPTION_{symbol}"
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{symbol}"
                 if int(PaidCallPut.channel_details.get(key_to_chk,'1')) == 0:
                     raise CustomError(f"{symbol} is turned off as per config")
                 sl, targets = get_sl_target_from_csv(symbol, ltp_max)
+            else:
+                if int(PaidCallPut.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
             if not sl and not targets:
                 sl_list = self.get_float_values(
                     self.message.strip().upper().replace("-", ""), "SL")
@@ -1029,7 +1042,7 @@ class PaidStockIndexOption:
                 return
             
             if "FUTURE TRADE" in self.message:
-                if int(PaidStockIndexOption.channel_details.get('INCLUDE_STOCK_OPTION_FUT','1')) == 0:
+                if int(PaidStockIndexOption.channel_details.get('INCLUDE_FUT','1')) == 0:
                     raise CustomError(f"Future is turned off as per config")
                 sym_fut = self.message.split('RANGE')
                 sym = sym_fut[0].split()[-1]
@@ -1109,10 +1122,13 @@ class PaidStockIndexOption:
                             if ltp.replace('.', '', 1).isdigit()])
                 sl, targets = None, None
                 if sym in index_options:
-                    key_to_chk = f"INCLUDE_STOCK_OPTION_{sym}"
+                    key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                     if int(PaidStockIndexOption.channel_details.get(key_to_chk,'1')) == 0:
                         raise CustomError(f"{sym} is turned off as per config")
                     sl, targets = get_sl_target_from_csv(sym, ltp_max)
+                else:
+                    if int(PaidStockIndexOption.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                        raise CustomError(f"STOCK_OPTIONS is turned off as per config")
                 if not sl and not targets:
                     sl_range = None
                     for word in sl_words:
@@ -1260,10 +1276,14 @@ class BnoPremium:
             )
             sl, targets = None, None
             if sym in index_options:
-                key_to_chk = f"INCLUDE_STOCK_OPTION_{sym}"
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                 if int(BnoPremium.channel_details.get(key_to_chk,'1')) == 0:
                     raise CustomError(f"{sym} is turned off as per config")
                 sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            else:
+                if int(BnoPremium.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
+            
             if not sl and not targets:
                 targets = re.findall(r"\d+\.\d+|\d+", parts[3])
                 if float(targets[0]) < float(ltps[0]):
@@ -1387,10 +1407,13 @@ class StockPremium:
             )
             sl, targets = None, None
             if sym in index_options:
-                key_to_chk = f"INCLUDE_STOCK_OPTION_{sym}"
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                 if int(StockPremium.channel_details.get(key_to_chk,'1')) == 0:
                     raise CustomError(f"{sym} is turned off as per config")
                 sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            else:
+                if int(StockPremium.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
             if not sl and not targets:
                 targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
                 if float(targets[0]) < float(ltps[0]):
@@ -1540,7 +1563,7 @@ class PremiumGroup:
                 return
             
             if "BTST" in self.message:
-                if int(PremiumGroup.channel_details.get('INCLUDE_STOCK_OPTION_BTST','1')) == 0:
+                if int(PremiumGroup.channel_details.get('INCLUDE_BTST','1')) == 0:
                     raise CustomError(f"BTST is turned off as per config")
                 
                 statement = self.message.replace("BTST", "").strip().replace("CALL", "").replace("TRADE", "").strip().replace("BUY", "").strip().replace("ABOVE", "").replace("-", " ").replace("/", " ").replace("NEAR","")
@@ -1595,7 +1618,7 @@ class PremiumGroup:
                     
 
             elif " FUTURE " in self.message:
-                if int(PremiumGroup.channel_details.get('INCLUDE_STOCK_OPTION_FUT','1')) == 0:
+                if int(PremiumGroup.channel_details.get('INCLUDE_FUT','1')) == 0:
                     raise CustomError(f"Future is turned off as per config")
                 
                 sym_fut = self.message.split('FUTURE')
@@ -1651,10 +1674,13 @@ class PremiumGroup:
                 )
                 sl, targets = None, None
                 if sym in index_options:
-                    key_to_chk = f"INCLUDE_STOCK_OPTION_{sym}"
+                    key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                     if int(PremiumGroup.channel_details.get(key_to_chk,'1')) == 0:
                         raise CustomError(f"{sym} is turned off as per config")
                     sl, targets = get_sl_target_from_csv(sym, ltp_max)
+                else:
+                    if int(PremiumGroup.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                        raise CustomError(f"STOCK_OPTIONS is turned off as per config")
                 if not sl and not targets:
                     targets = []
                     for target_keyword in ["TARGETS", "TARGET", "TRT", "TRG", "TARTE", "TARGE", "TG"]:
@@ -1806,10 +1832,13 @@ class PremiumMembershipGroup:
             )
             sl, targets = None, None
             if sym in index_options:
-                key_to_chk = f"INCLUDE_STOCK_OPTION_{sym}"
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                 if int(PremiumMembershipGroup.channel_details.get(key_to_chk,'1')) == 0:
                     raise CustomError(f"{sym} is turned off as per config")
                 sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            else:
+                if int(PremiumMembershipGroup.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
             if not sl and not targets:
                 targets = self.get_float_values(self.message, "TARGET", "/| ")
                 sl = self.get_float_values(self.message, "SL", " ")[0]
@@ -1925,7 +1954,7 @@ class AllIn1Group:
                 write_failure_to_csv(failure_details)
                 return
             if "BTST" in self.message:
-                if int(AllIn1Group.channel_details.get('INCLUDE_STOCK_OPTION_BTST','1')) == 0:
+                if int(AllIn1Group.channel_details.get('INCLUDE_BTST','1')) == 0:
                     raise CustomError(f"BTST is turned off as per config")
                 
                 for word in AllIn1Group.split_words:
@@ -1978,10 +2007,13 @@ class AllIn1Group:
                 )
                 sl, targets = None, None
                 if sym in index_options:
-                    key_to_chk = f"INCLUDE_STOCK_OPTION_{sym}"
+                    key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                     if int(AllIn1Group.channel_details.get(key_to_chk,'1')) == 0:
                         raise CustomError(f"{sym} is turned off as per config")
                     sl, targets = get_sl_target_from_csv(sym, ltp_max)
+                else:
+                    if int(AllIn1Group.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                        raise CustomError(f"STOCK_OPTIONS is turned off as per config")
                 if not sl and not targets:
                     targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
                     if float(targets[0]) < float(ltps[0]):
@@ -2110,10 +2142,13 @@ class SChoudhry12:
             )
             sl, targets = None, None
             if sym in index_options:
-                key_to_chk = f"INCLUDE_STOCK_OPTION_{sym}"
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                 if int(SChoudhry12.channel_details.get(key_to_chk,'1')) == 0:
                     raise CustomError(f"{sym} is turned off as per config")
                 sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            else:
+                if int(SChoudhry12.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
             if not sl and not targets:
                 targets = re.findall(r"\d+\.\d+|\d+", parts[2].strip())
                 if float(targets[0]) < float(ltps[0]):
@@ -2240,10 +2275,13 @@ class VipPremiumPaidCalls:
             )
             sl, targets = None, None
             if sym in index_options:
-                key_to_chk = f"INCLUDE_STOCK_OPTION_{sym}"
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                 if int(VipPremiumPaidCalls.channel_details.get(key_to_chk,'1')) == 0:
                     raise CustomError(f"{sym} is turned off as per config")
                 sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            else:
+                if int(VipPremiumPaidCalls.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
             if not sl and not targets:
                 targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
                 if float(targets[0]) < float(ltps[0]):
@@ -2369,10 +2407,13 @@ class PlatinumMembers:
             )
             sl, targets = None, None
             if sym in index_options:
-                key_to_chk = f"INCLUDE_STOCK_OPTION_{sym}"
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                 if int(PlatinumMembers.channel_details.get(key_to_chk,'1')) == 0:
                     raise CustomError(f"{sym} is turned off as per config")
                 sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            else:
+                if int(PlatinumMembers.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
             if not sl and not targets:
                 targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
                 if float(targets[0]) < float(ltps[0]):
