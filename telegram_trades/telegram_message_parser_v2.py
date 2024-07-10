@@ -1515,12 +1515,20 @@ class PremiumGroup:
             sym_split = symbol_from_tg.split()
             if len(sym_split) == 3:
                 sym, strike, option_type = sym_split
-            elif len(sym_split) > 3:
-                sym, strike, option_type, *_ = sym_split
+            # elif len(sym_split) > 3:
+            #     sym, strike, option_type, *_ = sym_split
             elif len(sym_split) == 2:
                 sym = sym_split[0]
                 strike = sym_split[1].strip()[:-2]
                 option_type = sym_split[1].strip()[-2:]
+            elif sym_split[-1].upper().strip() in ('CE', 'PE'):
+                sym = sym_split[0]
+                if len(sym_split[-1].upper().strip()) == 2:
+                    strike = sym_split[-2].strip()
+                    option_type = sym_split[-1].strip()
+                else:
+                    strike = sym_split[-1].strip()[:-2]
+                    option_type = sym_split[-1].strip()[-2:]
             sym = self.get_closest_match(sym)
             exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
             filtered_df = scrip_info_df[

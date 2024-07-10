@@ -134,8 +134,8 @@ telegram_message_parser_v2.CustomError: TARGET not found"
 # i = PremiumJackpot(1707192066, msg)
 # i.get_signal()
 
-msg = "BUY#BANKNIFTY 49400 CE ABOVE -45.5-46 TARGE-48,55 SL-40  APR  SERIES  WAIT FOR LEVEL CROSS"
-i = PremiumJackpot(1707192066, msg)
+msg = "BANKNIFTY 52400 PE   ABOVE :  310   STOPLOSS : 290"
+i = PremiumGroup(1707192066, msg)
 i.get_signal()
 
 # msg = "INTRADAY STOCK OPTION TRADE     BUY MARUTI 12400 PE RANGE 180-185 TRG 270-350 SL  170"
