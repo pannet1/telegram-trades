@@ -243,13 +243,19 @@ def get_float_values(string_val, start_val):
             break
     return float_values
 class PremiumJackpot:
-    split_words = ["BUY", "ABOVE", "NEAR", "TARGET", "TARGE"]
+    split_words = ["ABOVE", "ABOV", "NEAR", "TARGET", "TARGE"]
     channel_details = CHANNEL_DETAILS["PremiumJackpot"]
     channel_number = channel_details["channel_number"]
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
-        self.message = telegram_msg
+        if "BUY " in telegram_msg:
+            self.message = (
+                    telegram_msg.upper().split("BUY ")[1].replace("-", " ").replace(",", " ").replace("/", " ")
+                )
+        else:
+            self.message = telegram_msg
+        self.message = self.message.strip().removeprefix("BUY").removeprefix("SELL").strip().removeprefix("#")
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
@@ -410,9 +416,9 @@ class PremiumJackpot:
                 for word in PremiumJackpot.split_words:
                     statement = statement.replace(word, "|")
                 parts = statement.split("|")
-                symbol_from_tg = parts[1].strip().removeprefix("#")
+                symbol_from_tg = parts[0].strip().removeprefix("#")
                 symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
-                ltps = re.findall(r"\d+\.\d+|\d+", parts[2])
+                ltps = re.findall(r"\d+\.\d+|\d+", parts[1])
                 ltp_max = max([float(ltp) for ltp in ltps
                             if ltp.replace('.', '', 1).isdigit()])
                 sl, targets = None, None
@@ -426,12 +432,12 @@ class PremiumJackpot:
                     if int(PremiumJackpot.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
                         raise CustomError(f"STOCK_OPTIONS is turned off as per config")
                 if not sl and not targets:
-                    targets = re.findall(r"\d+\.\d+|\d+", parts[3].split("SL")[0])
+                    targets = re.findall(r"\d+\.\d+|\d+", parts[2].split("SL")[0])
                     
                     if float(targets[0]) < float(ltps[0]):
                         targets = [str(float(target) + ltp_max)
                                     for target in targets if target.replace('.', '', 1).isdigit()]
-                    sl = re.findall(r"SL-(\d+)?", parts[3])[0]
+                    sl = get_float_values(statement, "SL")[0]
                 __signal_details = {
                     "channel_name": "Premium jackpot",
                     "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
@@ -1547,7 +1553,7 @@ class PremiumGroup:
 
     def get_signal(self):
         try:
-            statement = self.message
+            statement = self.message.replace("@","")
             is_reply_msg = "$$$$" in statement
             new_msg = self.message.upper().split("$$$$")[-1]
             is_close_msg = any([word in new_msg.split() for word in close_words])
@@ -1647,7 +1653,7 @@ class PremiumGroup:
                 elif 'BUY' in self.message_as_is.split():
                     action = "BUY"
                 else:
-                    action = None
+                    action = "BUY"
                 if is_reply_msg and is_close_msg:
                     action = "CANCEL"
                 

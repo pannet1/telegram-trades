@@ -134,9 +134,22 @@ telegram_message_parser_v2.CustomError: TARGET not found"
 # i = PremiumJackpot(1707192066, msg)
 # i.get_signal()
 
-msg = "BANKNIFTY 52400 PE   ABOVE :  310   STOPLOSS : 290"
-i = PremiumGroup(1707192066, msg)
-i.get_signal()
+
+msgs = [
+"MIDCPNIFTYNIFTY 12550 PE 50/52  SL PAID   TARGET 75/90/120++",
+"BANNIFTY 10 JUL 52400 PE    ABOVE  @200   TARGET @250/300    SL: PAID",
+"BANNIFTY 10 JUL 52400 PE    ABOVE  170   TARGET @250/300//350    SL: 150",
+"NIFTY23400CE  ABOVE 135   TARGET 145 155 170  SL 105",
+"BANKNIFTY52900 CE   ABOVE 450  TARGET 480 500 550  SL PAID.",
+"BANKNIFTY52300 CE   ABOVE 350  TARGET 380 400 450  SL 300.",
+"BANKNIFTY52300 CE   ABOVE 350  TARGET 380 400 450  SL 270.",
+
+]
+for msg in msgs:
+  print(msg)
+  i = VipPremiumPaidCalls(1707192066, msg)
+  i.get_signal()
+  print("====")
 
 # msg = "INTRADAY STOCK OPTION TRADE     BUY MARUTI 12400 PE RANGE 180-185 TRG 270-350 SL  170"
 # i = PaidStockIndexOption(1707192066, msg)
