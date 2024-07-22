@@ -104,9 +104,9 @@ telegram_message_parser_v2.CustomError: TARGET not found"
 # msg = "            Buy 1 Lot Nifty 21450 PE Only In Range @ 25 - 33 Target 50 75 100 125 150 & Above             Buy 1 Lot BankNifty 45300 CE Only In Range @ 90 - 110 Target 140 170 200 230 275 & Above  Ratio Of Today's Cross Index Hedge Trade  BankNifty - 1 Lot N Nifty - 1 Lot Nifty 15 Feb 21450 PE  @ 32 se 32 = 0 Point = 0/- Loss  $$$$  BankNifty 14 Feb 45300 CE  Doubled  @ 105 se 240 = 135 Points = 2025/- Profit    Total Profits @ 2025/- Per Hedge Pair     Book 70% To 80% Position Of Hedge Trade In Profits   "
 # i = SmsOptionsPremium(1707192066, msg)
 # i.get_signal()
-# msg = "            BUY FINNIFTY MAY 22000 CE ONLY IN RANGE @ 14 - 21 TARGET 40 60 80 100 & ABOVE             BUY FINNIFTY MAY 21950 PE ONLY IN RANGE @ 14 - 21 TARGET 40 60 80 100 & ABOVE$$$$FINNIFTY MAY 22000 CE  TRIPLED  @ 15 SE 55 = 40 POINT = 1600/- PROFITS $$$$    FINNIFTY MAY 21950 PE  @ 20 SE 16 = 4 POINTS = 160/- LOSS    TOTAL PROFITS @ 1440/- PER HEDGE PAIR     BOOK 80% TO 90% POSITION OF HEDGE TRADE IN PROFITS   "
-# i = SmsOptionsPremium(1707192066, msg)
-# i.get_signal()
+msg = "            BUY FINNIFTY 10 MAY 22000 CE ONLY IN RANGE @ 14 - 21 TARGET 40 60 80 100 & ABOVE             BUY FINNIFTY MAY 21950 PE ONLY IN RANGE @ 14 - 21 TARGET 40 60 80 100 & ABOVE$$$$FINNIFTY MAY 22000 CE  TRIPLED  @ 15 SE 55 = 40 POINT = 1600/- PROFITS $$$$    FINNIFTY MAY 21950 PE  @ 20 SE 16 = 4 POINTS = 160/- LOSS    TOTAL PROFITS @ 1440/- PER HEDGE PAIR     BOOK 80% TO 90% POSITION OF HEDGE TRADE IN PROFITS   "
+i = SmsOptionsPremium(1707192066, msg)
+i.get_signal()
 # msg = "            Buy FinNifty Mar 20750 CE Only In Range @ 5 - 11 Target 25 40 60 80 100 & Above             Buy FinNifty Mar 20700 PE Only In Range @ 4 - 8 Target 25 40 60 80 100 & Above FinNifty Mar 20750 CE  @ 8 se 2 = 6 Point = 240/- Loss    FinNifty Mar 20700 PE  Four Times  @ 6 se 26 = 20 Points = 800/- Profit    Total Profits @ 560/- Per Hedge Pair     Book 70% To 90% Position Of Hedge Trade In Profits   "
 # i = SmsOptionsPremium(1707192066, msg)
 # i.get_signal()
@@ -135,21 +135,14 @@ telegram_message_parser_v2.CustomError: TARGET not found"
 # i.get_signal()
 
 
-msgs = [
-"MIDCPNIFTYNIFTY 12550 PE 50/52  SL PAID   TARGET 75/90/120++",
-"BANNIFTY 10 JUL 52400 PE    ABOVE  @200   TARGET @250/300    SL: PAID",
-"BANNIFTY 10 JUL 52400 PE    ABOVE  170   TARGET @250/300//350    SL: 150",
-"NIFTY23400CE  ABOVE 135   TARGET 145 155 170  SL 105",
-"BANKNIFTY52900 CE   ABOVE 450  TARGET 480 500 550  SL PAID.",
-"BANKNIFTY52300 CE   ABOVE 350  TARGET 380 400 450  SL 300.",
-"BANKNIFTY52300 CE   ABOVE 350  TARGET 380 400 450  SL 270.",
-
-]
-for msg in msgs:
-  print(msg)
-  i = VipPremiumPaidCalls(1707192066, msg)
-  i.get_signal()
-  print("====")
+# msgs = [
+# "BUY 2 LOT NIFTY 23500 CE ONLY IN RANGE @ 32 - 40 TARGET 60 80 100 125 150 & ABOVE             BUY 1 LOT BANKNIFTY 50100 PE ONLY IN RANGE @ 125 - 145  TARGET 170 200 230 260 300 & ABOVE  RATIO OF TODAY'S CROSS INDEX HEDGE TRADE  BANKNIFTY - 1 LOT N NIFTY - 2 LOTS"
+# ]
+# for msg in msgs:
+#   print(msg)
+#   i = SmsOptionsPremium(1707192066, msg)
+#   i.get_signal()
+#   print("====")
 
 # msg = "INTRADAY STOCK OPTION TRADE     BUY MARUTI 12400 PE RANGE 180-185 TRG 270-350 SL  170"
 # i = PaidStockIndexOption(1707192066, msg)

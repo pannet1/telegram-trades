@@ -8,7 +8,7 @@ import os
 import traceback
 from datetime import datetime
 from login import get_broker
-from constants import BRKR, FUTL, CHANNEL_DETAILS, DATA
+from constants import BRKR, FUTL, CHANNEL_DETAILS, DATA, STRIKE_PRICE_DIFF
 from logzero import logger
 import random
 import numpy as np
@@ -60,6 +60,11 @@ close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", "S
 class CustomError(Exception):
     pass
 
+
+def get_updated_strike_price(sym, strike, option_type):
+    strike_p = STRIKE_PRICE_DIFF.get(sym)
+    new_strike = int(strike) + (int(strike_p) * (1  if option_type == "PE" else -1))
+    return new_strike 
 
 def download_masters(broker):
     exchanges = ["NFO", "BFO"]
@@ -334,7 +339,8 @@ class PremiumJackpot:
                 filtered_df = scrip_info_df[
                     (scrip_info_df["Exch"] == exch)
                     & (scrip_info_df["Symbol"] == sym)
-                    & (scrip_info_df["Strike Price"] == float(strike))
+                    # & (scrip_info_df["Strike Price"] == float(strike))
+                    & (scrip_info_df["Strike Price"] == float(get_updated_strike_price(sym, strike, option_type)))
                     & (scrip_info_df["Option Type"] == option_type)
                     # & (scrip_info_df["Expiry Date"] == f"2024-{month}-{date}")
                 ]
@@ -503,7 +509,15 @@ class SmsOptionsPremium:
             #     month = f"{date_obj.month:02d}"
             # except:
             #     raise CustomError(traceback.format_exc())
-            sym, *_, strike, option_type = symbol_from_tg.split()
+            sym_split = symbol_from_tg.split()
+            if sym_split[-1].upper().strip() in ('CE', 'PE'):
+                sym = sym_split[0]
+                if len(sym_split[-1].upper().strip()) == 2:
+                    strike = sym_split[-2].strip()
+                    option_type = sym_split[-1].strip()
+                else:
+                    strike = sym_split[-1].strip()[:-2]
+                    option_type = sym_split[-1].strip()[-2:]
             sym = self.get_closest_match(sym)
             exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
             filtered_df = scrip_info_df[
@@ -649,10 +663,12 @@ class SmsOptionsPremium:
                     raise CustomError(f"option_type is not found in {statement}")
                 sym = self.get_closest_match(sym)
                 exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
+                # print(sym, option_type, strike, get_updated_strike_price(sym, strike, option_type))
                 filtered_df = scrip_info_df[
                     (scrip_info_df["Exch"] == exch)
                     & (scrip_info_df["Symbol"] == sym)
-                    & (scrip_info_df["Strike Price"] == float(strike))
+                    # & (scrip_info_df["Strike Price"] == float(strike))
+                    & (scrip_info_df["Strike Price"] == float(get_updated_strike_price(sym, strike, option_type)))
                     & (scrip_info_df["Option Type"] == option_type)
                     # & (scrip_info_df["Expiry Date"] == f"2024-{month}-{date}")
                 ]
@@ -1595,7 +1611,8 @@ class PremiumGroup:
                 filtered_df = scrip_info_df[
                     (scrip_info_df["Exch"] == exch)
                     & (scrip_info_df["Symbol"] == sym)
-                    & (scrip_info_df["Strike Price"] == float(strike))
+                    # & (scrip_info_df["Strike Price"] == float(strike))
+                    & (scrip_info_df["Strike Price"] == float(get_updated_strike_price(sym, strike, option_type)))
                     & (scrip_info_df["Option Type"] == option_type)
                 ]
                 sorted_df = filtered_df.sort_values(by="Expiry Date")
@@ -1914,7 +1931,7 @@ class AllIn1Group:
             return symbol
         raise CustomError("Closest match is not found")
 
-    def get_instrument_name(self, symbol_from_tg):
+    def get_instrument_name(self, symbol_from_tg, next_strike=False):
         try:
             sym_split = symbol_from_tg.split()
             if len(sym_split) == 3:
@@ -1927,12 +1944,20 @@ class AllIn1Group:
                 option_type = sym_split[1].strip()[-2:]
             sym = self.get_closest_match(sym)
             exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
-            filtered_df = scrip_info_df[
-                (scrip_info_df["Exch"] == exch)
-                & (scrip_info_df["Symbol"] == sym)
-                & (scrip_info_df["Strike Price"] == float(strike))
-                & (scrip_info_df["Option Type"] == option_type)
-            ]
+            if next_strike:
+                filtered_df = scrip_info_df[
+                    (scrip_info_df["Exch"] == exch)
+                    & (scrip_info_df["Symbol"] == sym)
+                    & (scrip_info_df["Strike Price"] == float(get_updated_strike_price(sym, strike, option_type)))
+                    & (scrip_info_df["Option Type"] == option_type)
+                ]
+            else:        
+                filtered_df = scrip_info_df[
+                    (scrip_info_df["Exch"] == exch)
+                    & (scrip_info_df["Symbol"] == sym)
+                    & (scrip_info_df["Strike Price"] == float(strike))
+                    & (scrip_info_df["Option Type"] == option_type)
+                ]
             sorted_df = filtered_df.sort_values(by="Expiry Date")
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
@@ -1975,7 +2000,7 @@ class AllIn1Group:
                     statement = statement.replace(word, "|")
                 parts = statement.split("|")
                 sym = parts[0].strip().removeprefix("#")
-                symbol_dict, sym = self.get_instrument_name(sym)
+                symbol_dict, sym = self.get_instrument_name(sym, next_strike=True)
                 # sym = self.get_closest_match(sym)
                 # exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
                 # filtered_df = scrip_info_df[
