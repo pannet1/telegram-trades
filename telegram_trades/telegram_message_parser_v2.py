@@ -45,6 +45,7 @@ spell_checks = {
     "FIN NIFTY": "FINNIFTY",
     "BANK NIFTY": "BANKNIFTY",
     "BNF": "BANKNIFTY",
+    "BANNIFTY": "BANKNIFTY",
     "NF": "NIFTY",
     "MIDCPNIFTYNIFTY": "MIDCPNIFTY",
     "MIDCP": "MIDCPNIFTY",
@@ -248,7 +249,7 @@ def get_float_values(string_val, start_val):
             break
     return float_values
 class PremiumJackpot:
-    split_words = ["ABOVE", "ABOV", "NEAR", "TARGET", "TARGE"]
+    split_words = ["ABOVE", "ABOV", "NEAR", 'NEAT', "TARGET", "TARGE"]
     channel_details = CHANNEL_DETAILS["PremiumJackpot"]
     channel_number = channel_details["channel_number"]
 
@@ -715,7 +716,7 @@ class SmsOptionsPremium:
         if is_spot_message:
             self.get_spot_signal(statement)
             return
-        elif "HEDGE" in statement and "TRADE" in statement:
+        elif len(statement.split("BUY")) >= 3 and len(statement.upper().split("RANGE")) >= 3:
             if int(SmsOptionsPremium.channel_details.get('INCLUDE_HEDGE','1')) == 0:
                 raise CustomError(f"Hedge is turned off as per config")
             self.get_hedge_trade(statement)
@@ -1493,6 +1494,7 @@ class PremiumGroup:
         "STOPLOSS",
         "TRG",
         "NEAR",
+        "NOW",
     ]
     channel_details = CHANNEL_DETAILS["PremiumGroup"]
     channel_number = channel_details["channel_number"]

@@ -94,19 +94,19 @@ PremiumGroup	1718078778	FINNIFTY 22200 PE   ABOVE 165	"Traceback (most recent ca
     raise CustomError(""TARGET not found"")
 telegram_message_parser_v2.CustomError: TARGET not found"
 """
-# msg = "FIN 23200 CE  ABOVE 65   TGT OPEN"
-# i = PremiumGroup(1707192066, msg)
-# i.get_signal()
+msg = "BANKNIFTY 51400 CE NEAT  480 490 TARGET  25 70 100 200 250 POINT  SL 440  EXPIRY 24TH JUL  HIGH RISKY CAL SAFE AVOID   WAIT FOR LEVEL"
+i = PremiumJackpot(1707192066, msg)
+i.get_signal()
 
-# msg = "BANKEX 59200 PE ABOVE 40 SL 33 TARGET 50/60/70/80  BTST"
+# msg = "BANKNIFTY 10 JUL 52500 PE   ABOVE :  310   STOPLOSS : 280"
 # i = AllIn1Group(1707192066, msg)
 # i.get_signal()
-# msg = "            Buy 1 Lot Nifty 21450 PE Only In Range @ 25 - 33 Target 50 75 100 125 150 & Above             Buy 1 Lot BankNifty 45300 CE Only In Range @ 90 - 110 Target 140 170 200 230 275 & Above  Ratio Of Today's Cross Index Hedge Trade  BankNifty - 1 Lot N Nifty - 1 Lot Nifty 15 Feb 21450 PE  @ 32 se 32 = 0 Point = 0/- Loss  $$$$  BankNifty 14 Feb 45300 CE  Doubled  @ 105 se 240 = 135 Points = 2025/- Profit    Total Profits @ 2025/- Per Hedge Pair     Book 70% To 80% Position Of Hedge Trade In Profits   "
+# msg = "            Buy 1 Lot Nifty 21450 PE Only In Range @ 25 - 33 Target 50 75 100 125 150 & Above             Buy 1 Lot BankNifty 45300 CE Only In Range @ 90 - 110 Target 140 170 200 230 275 & Above  Ratio Of Today's Cross Index Hedge Trade  BankNifty - 1 Lot N Nifty - 1 Lot Nifty 15 Feb 21450 PE  @ 32 se 32 = 0 Point = 0/- Loss   "
 # i = SmsOptionsPremium(1707192066, msg)
 # i.get_signal()
-msg = "            BUY FINNIFTY 10 MAY 22000 CE ONLY IN RANGE @ 14 - 21 TARGET 40 60 80 100 & ABOVE             BUY FINNIFTY MAY 21950 PE ONLY IN RANGE @ 14 - 21 TARGET 40 60 80 100 & ABOVE$$$$FINNIFTY MAY 22000 CE  TRIPLED  @ 15 SE 55 = 40 POINT = 1600/- PROFITS $$$$    FINNIFTY MAY 21950 PE  @ 20 SE 16 = 4 POINTS = 160/- LOSS    TOTAL PROFITS @ 1440/- PER HEDGE PAIR     BOOK 80% TO 90% POSITION OF HEDGE TRADE IN PROFITS   "
-i = SmsOptionsPremium(1707192066, msg)
-i.get_signal()
+# msg = "                        BUY BANKNIFTY 24 JUL 51000 CE ONLY IN RANGE @ 75 - 100 TARGET 130 160 190 220 250 & ABOVE             BUY BANKNIFTY 24 JUL 50900 PE ONLY IN RANGE @ 75 - 100 TARGET 130 160 190 220 250 & ABOVE"
+# i = SmsOptionsPremium(1707192066, msg)
+# i.get_signal()
 # msg = "            Buy FinNifty Mar 20750 CE Only In Range @ 5 - 11 Target 25 40 60 80 100 & Above             Buy FinNifty Mar 20700 PE Only In Range @ 4 - 8 Target 25 40 60 80 100 & Above FinNifty Mar 20750 CE  @ 8 se 2 = 6 Point = 240/- Loss    FinNifty Mar 20700 PE  Four Times  @ 6 se 26 = 20 Points = 800/- Profit    Total Profits @ 560/- Per Hedge Pair     Book 70% To 90% Position Of Hedge Trade In Profits   "
 # i = SmsOptionsPremium(1707192066, msg)
 # i.get_signal()
