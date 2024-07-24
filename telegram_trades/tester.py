@@ -94,8 +94,8 @@ PremiumGroup	1718078778	FINNIFTY 22200 PE   ABOVE 165	"Traceback (most recent ca
     raise CustomError(""TARGET not found"")
 telegram_message_parser_v2.CustomError: TARGET not found"
 """
-msg = "BANKNIFTY 51400 CE NEAT  480 490 TARGET  25 70 100 200 250 POINT  SL 440  EXPIRY 24TH JUL  HIGH RISKY CAL SAFE AVOID   WAIT FOR LEVEL"
-i = PremiumJackpot(1707192066, msg)
+msg = "BANNIFTY 10 JUL 52400 PE    ABOVE  170   TARGET @250/300//350    SL: 150"
+i = VipPremiumPaidCalls(1707192066, msg)
 i.get_signal()
 
 # msg = "BANKNIFTY 10 JUL 52500 PE   ABOVE :  310   STOPLOSS : 280"
