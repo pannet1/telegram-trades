@@ -2254,7 +2254,17 @@ class VipPremiumPaidCalls:
 
     def get_instrument_name(self, symbol_from_tg):
         try:
-            sym_split = [s.strip() for s in symbol_from_tg.split() if s.strip()]
+            sym_split_org = [s.strip() for s in symbol_from_tg.split() if s.strip()]
+            sym_split = []
+            sym_char = ''
+            original_sym_split = sym_split_org.pop(0)
+            for char in original_sym_split:
+                if char.isdigit():
+                    break
+                sym_char += char
+            sym_split = original_sym_split.replace(sym_char, f"{sym_char} ").split()
+            sym_split.extend(sym_split_org)
+
             if len(sym_split) == 3:
                 sym, strike, option_type = sym_split
             # elif len(sym_split) > 3:

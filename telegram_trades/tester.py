@@ -94,9 +94,9 @@ PremiumGroup	1718078778	FINNIFTY 22200 PE   ABOVE 165	"Traceback (most recent ca
     raise CustomError(""TARGET not found"")
 telegram_message_parser_v2.CustomError: TARGET not found"
 """
-msg = "BANNIFTY 10 JUL 52400 PE    ABOVE  170   TARGET @250/300//350    SL: 150"
-i = VipPremiumPaidCalls(1707192066, msg)
-i.get_signal()
+# msg = "BANNIFTY 10 JUL 52400 PE    ABOVE  170   TARGET @250/300//350    SL: 150"
+# i = VipPremiumPaidCalls(1707192066, msg)
+# i.get_signal()
 
 # msg = "BANKNIFTY 10 JUL 52500 PE   ABOVE :  310   STOPLOSS : 280"
 # i = AllIn1Group(1707192066, msg)
@@ -147,9 +147,9 @@ i.get_signal()
 # msg = "INTRADAY STOCK OPTION TRADE     BUY MARUTI 12400 PE RANGE 180-185 TRG 270-350 SL  170"
 # i = PaidStockIndexOption(1707192066, msg)
 # i.get_signal()
-# msg = "BANKNIFTY 49300 CE  ABOVE 255  SL 220  TG 275/300/350++++"
-# i = VipPremiumPaidCalls(1707192066, msg)
-# i.get_signal()
+msg = "BANKNIFTY49300 CE  ABOVE 255  SL 220  TG 275/300/350++++"
+i = VipPremiumPaidCalls(1707192066, msg)
+i.get_signal()
 
 
 # msg = "BUY BANKNIFTY 49400 CE (  29 MAY EX)   ABOVE 200  TARGET 250/300  SL  170"
