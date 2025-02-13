@@ -513,6 +513,8 @@ class Jsondb:
             else:
                 task["q1"] = int(task["quantity"])
                 task["tq"] = task["q1"]
+            task["entry_range"] = str(task.pop("entry_range"))
+            task["target_range"] = str(task.pop("target_range"))
             task["fn"] = "entry"
             yield task
 

@@ -1,5 +1,4 @@
 # https://github.com/jerokpradeep/pya3
-from numpy import argsort
 from omspy_brokers.alice_blue import AliceBlue
 from constants import logging
 

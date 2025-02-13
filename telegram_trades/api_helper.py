@@ -175,11 +175,15 @@ if __name__ == "__main__":
 
     api = get_broker(BRKR)
 
+    ttl = 0
     lst = filtered_positions(api)
     if any(lst):
         pos = pd.DataFrame(lst).set_index("symbol")
         print(pos)
         pos.to_csv(DATA + "pos.csv")
+        for item in lst:
+            ttl += float(item["MtoM"])
+        print(f"{ttl=}")
 
     lst = filtered_orders(api, None)
     if any(lst):
