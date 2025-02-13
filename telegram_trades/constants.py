@@ -31,4 +31,4 @@ TGRM = SETG["telegram"]
 logging.debug(TGRM)
 UTIL = Utilities()
 CHANNEL_DETAILS = SETG["channel_details"]
-# STRIKE_PRICE_DIFF = SETG["strike_price_difference"]
+STRIKE_PRICE_DIFF = SETG["strike_price_difference"]
