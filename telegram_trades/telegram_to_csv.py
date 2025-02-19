@@ -5,7 +5,7 @@ from datetime import datetime
 from constants import TGRM, DATA
 from telegram_message_parser_v2 import (
     PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption,
-    BnoPremium, StockPremium, PremiumGroup, PremiumMembershipGroup, 
+    BnoPremium, StockPremium, StudentsGroup, PremiumMembershipGroup, 
     AllIn1Group, SChoudhry12, VipPremiumPaidCalls, PlatinumMembers)
 from logzero import setup_logger
 import traceback
@@ -28,15 +28,43 @@ async def my_event_handler(event):
     with open(DATA + TGRM["output_file"], 'a', encoding='utf-8',  newline='') as csv_file:
         csv_writer = csv.writer(csv_file)
         now = int(datetime.now().timestamp())
-        try:
-            chat_title = replace_non_ascii(chat.title).strip().upper()
-            if not chat_title:
-                chat_title = replace_non_ascii(replace_unicode(chat.title)).strip().upper()
-        except:
-            if chat.id == 493143987:
-                chat_title = "USER-SCHOUDHRY12"
-            else:
-                chat_title = chat.id
+        logger.info(f"{chat.id=} and {chat.title=}")
+        if chat.id == 493143987:
+            chat_title = "USER-SCHOUDHRY12"
+        elif chat.id == -1001612965918 or chat.id == 1612965918 :
+            chat_title = "PREMIUM MEMBERSHIP GROUP"
+        elif chat.id == -1002264094175 or chat.id == 2264094175:
+            chat_title = "PREMIUM GROUP"
+        elif chat.id == -1001953542337 or chat.id == 1953542337:
+            chat_title = "STUDENTS GROUP"
+        elif chat.id == -1001392872175 or chat.id == 1392872175:
+            chat_title = "PLATINUM MEMBERS"
+        elif chat.id == -1001519126374 or chat.id == 1519126374:
+            chat_title = "SMS OPTIONS PREMIUM"
+        elif chat.id == -1001521119016 or chat.id == 1521119016:
+            chat_title = "PAID - CALL & PUT"
+        elif chat.id == -1001706634236 or chat.id == 1706634236:
+            chat_title = "BNO PREMIUM"
+        elif chat.id == -1001697722741 or chat.id == 1697722741:
+            chat_title = "STOCK PREMIUM"
+        elif chat.id == -1002358213778 or chat.id == 2358213778:
+            chat_title = "SMS Stock Options Premium"
+        elif chat.id == -1001972442018 or chat.id == 1972442018:
+            chat_title = "VIP PREMIUM PAID CALLS"
+        elif chat.id == -1001644402199 or chat.id == 1644402199:
+            chat_title = "PAID STOCK & INDEX OPTION"        
+        else:
+            chat_title = chat.id
+        logger.info(f"After processing ->{chat.id=} and {chat.title=}")
+        # try:
+        #     chat_title = replace_non_ascii(chat.title).strip().upper()
+        #     if not chat_title:
+        #         chat_title = replace_non_ascii(replace_unicode(chat.title)).strip().upper()
+        # except:
+        #     if chat.id == 493143987:
+        #         chat_title = "USER-SCHOUDHRY12"
+        #     else:
+        #         chat_title = chat.id
         
         if event.reply_to_msg_id is not None:
             original_message = await client.get_messages(chat.id, ids=event.reply_to_msg_id)
@@ -57,7 +85,7 @@ async def my_event_handler(event):
         msg = msg.strip().removeprefix('#').strip()
         try:
             if msg.strip():
-                if chat_title == "PREMIUM JACKPOT":
+                if chat_title == "PREMIUM GROUP":
                     i = PremiumJackpot(now, msg)
                     i.get_signal()
                 elif chat_title == "SMS OPTIONS PREMIUM":
@@ -73,11 +101,11 @@ async def my_event_handler(event):
                     # logger.info(f"Premium Memebership group - {msg} - vs - {event.raw_text}")
                     i = PremiumMembershipGroup(now, msg)
                     i.get_signal()
-                elif chat_title == "LOSS RECOVERY GROUP":
-                    i = AllIn1Group(now, msg)
-                    i.get_signal()
-                elif chat_title == "PREMIUM GROUP":
-                    i = PremiumGroup(now, msg)
+                # elif chat_title == "LOSS RECOVERY GROUP":
+                #     i = AllIn1Group(now, msg)
+                #     i.get_signal()
+                elif chat_title == "STUDENTS GROUP":
+                    i = StudentsGroup(now, msg)
                     i.get_signal()
                 elif chat_title == "STOCK PREMIUM":
                     i = StockPremium(now, msg)
@@ -94,6 +122,9 @@ async def my_event_handler(event):
                 elif chat_title == "PLATINUM MEMBERS":
                     i = PlatinumMembers(now, msg)
                     i.get_signal()
+                elif chat_title == "SMS Stock Options Premium":
+                    logger.info(f"{chat_title} ===> {msg}")
+                
                 else:
                     logger.info(f"{chat_title} ===> {msg}")
         except:
