@@ -55,7 +55,7 @@ spell_checks = {
     "FIN ": "FINNIFTY ",
 }
 index_options = ('FINNIFTY', 'NIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX', 'BANKNIFTY')
-close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", "SAFE", "LOW RISK")
+close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", "BOOK", "SAFE", "LOW RISK")
 
 
 class CustomError(Exception):
@@ -81,53 +81,53 @@ def get_multiplier(symbol, channel_config, num_of_targets=2, special_case=None):
     lot_size = df.loc[df['Trading Symbol'] == symbol, 'Lot Size'].iloc[0]
     if special_case == "HEDGE":
         if "BANKNIFTY" in symbol:
-            return str(15*channel_config.get("BANKNIFTY_HEDGE", 1))
+            return str(30*channel_config.get("BANKNIFTY_HEDGE", 1))
         elif "FINNIFTY" in symbol:
-            return str(40*channel_config.get("FINNIFTY_HEDGE", 1))
+            return str(65*channel_config.get("FINNIFTY_HEDGE", 1))
         elif "MIDCPNIFTY" in symbol:
-            return str(75*channel_config.get("MIDCPNIFTY_HEDGE", 1))
+            return str(120*channel_config.get("MIDCPNIFTY_HEDGE", 1))
         elif "NIFTY" in symbol:
-            return str(25 * channel_config.get("NIFTY_HEDGE", 1))
+            return str(75 * channel_config.get("NIFTY_HEDGE", 1))
         elif "SENSEX" in symbol:
-            return str(10*channel_config.get("SENSEX_HEDGE", 1))
+            return str(20*channel_config.get("SENSEX_HEDGE", 1))
         elif "BANKEX" in symbol:
-            return str(15*channel_config.get("BANKEX_HEDGE", 1))
+            return str(30*channel_config.get("BANKEX_HEDGE", 1))
     elif special_case == "BTST":
         if "BANKNIFTY" in symbol:
-            return "|".join([str(15 * channel_config.get("BANKNIFTY_BTST", 1))] * num_of_targets) if num_of_targets > 1 else str(15*channel_config.get("BANKNIFTY_BTST", 1))
+            return "|".join([str(30 * channel_config.get("BANKNIFTY_BTST", 1))] * num_of_targets) if num_of_targets > 1 else str(30*channel_config.get("BANKNIFTY_BTST", 1))
         elif "FINNIFTY" in symbol:
-            return "|".join([str(40 * channel_config.get("FINNIFTY_BTST", 1))]* num_of_targets) if num_of_targets > 1 else str(40*channel_config.get("FINNIFTY_BTST", 1))
+            return "|".join([str(65 * channel_config.get("FINNIFTY_BTST", 1))]* num_of_targets) if num_of_targets > 1 else str(65*channel_config.get("FINNIFTY_BTST", 1))
         elif "MIDCPNIFTY" in symbol:
-            return "|".join([str(75 * channel_config.get("MIDCPNIFTY_BTST", 1))]* num_of_targets) if num_of_targets > 1 else str(75*channel_config.get("MIDCPNIFTY_BTST", 1))
+            return "|".join([str(120 * channel_config.get("MIDCPNIFTY_BTST", 1))]* num_of_targets) if num_of_targets > 1 else str(120*channel_config.get("MIDCPNIFTY_BTST", 1))
         elif "NIFTY" in symbol:
             return (
-                "|".join([str(25 * channel_config.get("NIFTY_BTST", 1))] * num_of_targets)
+                "|".join([str(75 * channel_config.get("NIFTY_BTST", 1))] * num_of_targets)
                 if num_of_targets > 1
-                else str(25 * channel_config.get("NIFTY_BTST", 1))
+                else str(75 * channel_config.get("NIFTY_BTST", 1))
             )
         elif "SENSEX" in symbol:
-            return "|".join([str(10 * channel_config.get("SENSEX_BTST", 1))]* num_of_targets) if num_of_targets > 1 else str(10*channel_config.get("SENSEX_BTST", 1))
+            return "|".join([str(20 * channel_config.get("SENSEX_BTST", 1))]* num_of_targets) if num_of_targets > 1 else str(20*channel_config.get("SENSEX_BTST", 1))
         elif "BANKEX" in symbol:
-            return "|".join([str(15 * channel_config.get("BANKEX_BTST", 1))]* num_of_targets) if num_of_targets > 1 else str(15*channel_config.get("BANKEX_BTST", 1))
+            return "|".join([str(30 * channel_config.get("BANKEX_BTST", 1))]* num_of_targets) if num_of_targets > 1 else str(30*channel_config.get("BANKEX_BTST", 1))
         return "|".join([str(lot_size * channel_config.get("STOCKOPTION_BTST", 1))] * num_of_targets) if num_of_targets > 1 else str(lot_size*channel_config.get("STOCKOPTION_BTST", 1))
     elif str(symbol).endswith("F"):
         return str(lot_size*channel_config.get("FUT", 1))
     elif "BANKNIFTY" in symbol:
-        return "|".join([str(15 * channel_config.get("BANKNIFTY", 1))] * num_of_targets) if num_of_targets > 1 else str(15*channel_config.get("BANKNIFTY", 1))
+        return "|".join([str(30 * channel_config.get("BANKNIFTY", 1))] * num_of_targets) if num_of_targets > 1 else str(30*channel_config.get("BANKNIFTY", 1))
     elif "FINNIFTY" in symbol:
-        return "|".join([str(40 * channel_config.get("FINNIFTY", 1))]* num_of_targets) if num_of_targets > 1 else str(40*channel_config.get("FINNIFTY", 1))
+        return "|".join([str(65 * channel_config.get("FINNIFTY", 1))]* num_of_targets) if num_of_targets > 1 else str(65*channel_config.get("FINNIFTY", 1))
     elif "MIDCPNIFTY" in symbol:
-        return "|".join([str(75 * channel_config.get("MIDCPNIFTY", 1))]* num_of_targets) if num_of_targets > 1 else str(75*channel_config.get("MIDCPNIFTY", 1))
+        return "|".join([str(120 * channel_config.get("MIDCPNIFTY", 1))]* num_of_targets) if num_of_targets > 1 else str(120*channel_config.get("MIDCPNIFTY", 1))
     elif "NIFTY" in symbol:
         return (
-            "|".join([str(25 * channel_config.get("NIFTY", 1))] * num_of_targets)
+            "|".join([str(75 * channel_config.get("NIFTY", 1))] * num_of_targets)
             if num_of_targets > 1
-            else str(25 * channel_config.get("NIFTY", 1))
+            else str(75 * channel_config.get("NIFTY", 1))
         )
     elif "SENSEX" in symbol:
-        return "|".join([str(10 * channel_config.get("SENSEX", 1))]* num_of_targets) if num_of_targets > 1 else str(10*channel_config.get("SENSEX", 1))
+        return "|".join([str(20 * channel_config.get("SENSEX", 1))]* num_of_targets) if num_of_targets > 1 else str(20*channel_config.get("SENSEX", 1))
     elif "BANKEX" in symbol:
-        return "|".join([str(15 * channel_config.get("BANKEX", 1))]* num_of_targets) if num_of_targets > 1 else str(15*channel_config.get("BANKEX", 1))
+        return "|".join([str(30 * channel_config.get("BANKEX", 1))]* num_of_targets) if num_of_targets > 1 else str(30*channel_config.get("BANKEX", 1))
     return str(lot_size*channel_config.get("STOCKOPTION", 1))
 
 
@@ -283,6 +283,8 @@ class PremiumJackpot:
                 sym = sym_split[0]
                 strike = sym_split[1].strip()[:-2]
                 option_type = sym_split[1].strip()[-2:]
+            elif len(sym_split) > 3:
+                sym, strike, option_type, *_ = sym_split
             sym = self.get_closest_match(sym)
             exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
             filtered_df = scrip_info_df[
@@ -716,7 +718,7 @@ class SmsOptionsPremium:
         if is_spot_message:
             self.get_spot_signal(statement)
             return
-        elif len(statement.split("BUY")) >= 3 and len(statement.upper().split("RANGE")) >= 3:
+        elif len(statement.split("BUY ")) >= 3 and len(statement.upper().split("RANGE")) >= 3:
             if int(SmsOptionsPremium.channel_details.get('INCLUDE_HEDGE','1')) == 0:
                 raise CustomError(f"Hedge is turned off as per config")
             self.get_hedge_trade(statement)
@@ -1478,7 +1480,7 @@ class StockPremium:
             write_failure_to_csv(failure_details)
 
 
-class PremiumGroup:
+class StudentsGroup:
     split_words = [
         "ABOVE",
         "ABV",
@@ -1496,7 +1498,7 @@ class PremiumGroup:
         "NEAR",
         "NOW",
     ]
-    channel_details = CHANNEL_DETAILS["PremiumGroup"]
+    channel_details = CHANNEL_DETAILS["StudentsGroup"]
     channel_number = channel_details["channel_number"]
 
     def __init__(self, msg_received_timestamp, telegram_msg):
@@ -1585,7 +1587,7 @@ class PremiumGroup:
                 # is a reply message but not having close words
                 # duplicate or junk
                 failure_details = {
-                    "channel_name": "PremiumGroup",
+                    "channel_name": "StudentsGroup",
                     "timestamp": self.msg_received_timestamp,
                     "message": self.message,
                     "exception": "is a reply message but not having close words. Possible duplicate or junk",
@@ -1595,7 +1597,7 @@ class PremiumGroup:
                 return
             
             if "BTST" in self.message:
-                if int(PremiumGroup.channel_details.get('INCLUDE_BTST','1')) == 0:
+                if int(StudentsGroup.channel_details.get('INCLUDE_BTST','1')) == 0:
                     raise CustomError(f"BTST is turned off as per config")
                 
                 statement = self.message.replace("BTST", "").strip().replace("CALL", "").replace("TRADE", "").strip().replace("BUY", "").strip().replace("ABOVE", "").replace("-", " ").replace("/", " ").replace("NEAR","")
@@ -1628,14 +1630,14 @@ class PremiumGroup:
                 if not ltps:
                     raise CustomError(f"ltps is not found in {statement}")
                 __signal_details = {
-                    "channel_name": "PremiumGroup",
+                    "channel_name": "StudentsGroup",
                     "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                     "ltp_range": "|".join(ltps),
                     "target_range": "0",
                     "sl": "",
                     "quantity": get_multiplier(
                         symbol_dict["Trading Symbol"],
-                        PremiumGroup.channel_details, special_case="BTST"
+                        StudentsGroup.channel_details, special_case="BTST"
                     ),
                     "action": "BTST-Cancel" if is_reply_msg and is_close_msg else "BTST-Buy",
                 }
@@ -1645,13 +1647,13 @@ class PremiumGroup:
                     signals.append(__signal_details)
                 signal_details = __signal_details.copy()
                 signal_details["timestamp"] = (
-                    f"{PremiumGroup.channel_number}{self.msg_received_timestamp}"
+                    f"{StudentsGroup.channel_number}{self.msg_received_timestamp}"
                 )
                 write_signals_to_csv(signal_details)
                     
 
             elif " FUTURE " in self.message:
-                if int(PremiumGroup.channel_details.get('INCLUDE_FUT','1')) == 0:
+                if int(StudentsGroup.channel_details.get('INCLUDE_FUT','1')) == 0:
                     raise CustomError(f"Future is turned off as per config")
                 
                 sym_fut = self.message.split('FUTURE')
@@ -1680,12 +1682,12 @@ class PremiumGroup:
                     raise CustomError(f"could not decide action in {statement}")
 
                 __signal_details = {
-                    "channel_name": "PremiumGroup",
+                    "channel_name": "StudentsGroup",
                     "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
                     "ltp_range": "|".join(ltps),
                     "target_range": "|".join(targets),
                     "sl": sl,
-                    "quantity": get_multiplier(symbol_dict["Trading Symbol"], PremiumGroup.channel_details),
+                    "quantity": get_multiplier(symbol_dict["Trading Symbol"], StudentsGroup.channel_details),
                     "action": action,
                 }
                 if __signal_details in signals:
@@ -1693,10 +1695,10 @@ class PremiumGroup:
                 else:
                     signals.append(__signal_details)
                 signal_details = __signal_details.copy()
-                signal_details["timestamp"] = f"{PremiumGroup.channel_number}{self.msg_received_timestamp}"
+                signal_details["timestamp"] = f"{StudentsGroup.channel_number}{self.msg_received_timestamp}"
                 write_signals_to_csv(signal_details)
             else:
-                for word in PremiumGroup.split_words:
+                for word in StudentsGroup.split_words:
                     statement = statement.replace(word, "|")
                 parts = statement.split("|")
                 symbol_from_tg = parts[0].strip().removeprefix("BUY").strip()
@@ -1708,11 +1710,11 @@ class PremiumGroup:
                 sl, targets = None, None
                 if sym in index_options:
                     key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
-                    if int(PremiumGroup.channel_details.get(key_to_chk,'1')) == 0:
+                    if int(StudentsGroup.channel_details.get(key_to_chk,'1')) == 0:
                         raise CustomError(f"{sym} is turned off as per config")
                     sl, targets = get_sl_target_from_csv(sym, ltp_max)
                 else:
-                    if int(PremiumGroup.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    if int(StudentsGroup.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
                         raise CustomError(f"STOCK_OPTIONS is turned off as per config")
                 if not sl and not targets:
                     targets = []
@@ -1739,14 +1741,14 @@ class PremiumGroup:
                     else:
                         raise CustomError("SL not found")
                 __signal_details = {
-                    "channel_name": "PremiumGroup",
+                    "channel_name": "StudentsGroup",
                     "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
                     "ltp_range": "|".join(ltps),
                     "target_range": "|".join(targets),
                     "sl": sl,
                     "quantity": get_multiplier(
                         symbol_dict["Trading Symbol"],
-                        PremiumGroup.channel_details,
+                        StudentsGroup.channel_details,
                     ),
                     "action": "Cancel" if is_reply_msg and is_close_msg else "Buy",
                 }
@@ -1756,12 +1758,12 @@ class PremiumGroup:
                     signals.append(__signal_details)
                 signal_details = __signal_details.copy()
                 signal_details["timestamp"] = (
-                    f"{PremiumGroup.channel_number}{self.msg_received_timestamp}"
+                    f"{StudentsGroup.channel_number}{self.msg_received_timestamp}"
                 )
                 write_signals_to_csv(signal_details)
         except:
             failure_details = {
-                "channel_name": "PremiumGroup",
+                "channel_name": "StudentsGroup",
                 "timestamp": self.msg_received_timestamp,
                 "message": self.message,
                 "exception": traceback.format_exc().strip(),
@@ -2405,10 +2407,21 @@ class PlatinumMembers:
     def get_instrument_name(self, symbol_from_tg):
         try:
             sym_split = [s.strip() for s in symbol_from_tg.split() if s.strip()]
+            print(sym_split)
             if len(sym_split) == 3:
                 sym, strike, option_type = sym_split
             elif len(sym_split) > 3:
-                sym, strike, option_type, *_ = sym_split
+                sym = sym_split[0]
+                strike = None
+                option_type = None
+                for i in sym_split[1:]:
+                    if str(i).isdigit():
+                        strike = i.strip()
+                for i in sym_split[1:]:
+                    if i.upper() in ('PE', 'CE'):
+                        option_type = i.upper()
+                if not (strike or option_type):
+                    raise CustomError(f'Strike or option type is not found in {symbol_from_tg}')
             elif len(sym_split) == 2:
                 sym = sym_split[0]
                 strike = sym_split[1].strip()[:-2]
