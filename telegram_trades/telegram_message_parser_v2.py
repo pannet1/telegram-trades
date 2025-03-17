@@ -8,16 +8,22 @@ import os
 import traceback
 from datetime import datetime
 from login import get_broker
+# from constants import FUTL, CHANNEL_DETAILS, DATA, STRIKE_PRICE_DIFF
 from constants import BRKR, FUTL, CHANNEL_DETAILS, DATA, STRIKE_PRICE_DIFF
 from logzero import logger
 import random
 import numpy as np
 
 zero_sl = "0.50"
+DEFAULT_FOREX_QTY = 2
 signals_csv_filename = DATA + "signals.csv"
+forex_csv_filename = DATA + "forex.csv"
 sl_tgt_csv_filename = DATA + "SL-TGT.csv"
 if os.path.isfile(signals_csv_filename):
     shutil.move(signals_csv_filename, signals_csv_filename.removesuffix(
+        ".csv")+f'_{datetime.now().strftime("%Y%m%d-%H%M%S")}.csv')
+if os.path.isfile(forex_csv_filename):
+    shutil.move(forex_csv_filename, forex_csv_filename.removesuffix(
         ".csv")+f'_{datetime.now().strftime("%Y%m%d-%H%M%S")}.csv')
 signals_csv_file_headers = [
     "channel_name",
@@ -42,6 +48,7 @@ spell_checks = {
     "BANINIFTY": "BANKNIFTY",
     "MIDCAP": "MIDCPNIFTY",
     "NIFTU": "NIFTY",
+    "NOFTY": "NIFTY",
     "FIN NIFTY": "FINNIFTY",
     "BANK NIFTY": "BANKNIFTY",
     "BNF": "BANKNIFTY",
@@ -175,6 +182,17 @@ def write_signals_to_csv(_signal_details):
         )
         logger.info(_signal_details)
 
+def write_signals_to_forex_csv(_signal_details):
+    with open(forex_csv_filename, "a", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=[i for i in signals_csv_file_headers if i!= 'channel_name'])
+        _signal_details["normal_timestamp"] = datetime.fromtimestamp(
+            int(_signal_details["timestamp"][2:])).strftime('%Y-%m-%d %H:%M:%S')
+        _signal_details["timestamp"] = _signal_details["timestamp"] + ''.join(random.choices('0123456789', k=5))
+        writer.writerow(
+            {k: str(_signal_details.get(k, ""))
+             for k in signals_csv_file_headers if k!= 'channel_name'}
+        )
+        logger.info(_signal_details)
 
 def write_failure_to_csv(failure_details):
     with open(failure_csv_filename, "a", newline="") as file:
@@ -248,6 +266,160 @@ def get_float_values(string_val, start_val):
         else:
             break
     return float_values
+
+class PremiumHouseForexCrypto:
+    # split_words = ["ABOVE", "ABOV", "NEAR", 'NEAT', "TARGET", "TARGE"]
+    ignore_words = ['NEAR', 'BELOWE', 'BELOW', 'ONLY', 'QUANTITY', 'PLUS', 'ABOVE', 'CALL', 'INTRADAY', 'MUST', 'ORDER', 'AGAIN', 'ALL', 'FULL', 'FRESH', 'ZONE']
+    symbols_to_extract = ["XAUUSD","BTCUSD","USOIL","USTEC", "ETH"]
+    channel_details = CHANNEL_DETAILS["PremiumHouseForexCrypto"]
+    channel_number = channel_details["channel_number"]
+
+
+    def get_closest_match_for_buy(self, sentence):
+        words = sentence.lower().split()
+        for word in words:
+            if word == "buy" or word == "byu" or word == "bu":
+                return True
+        return False
+
+    def get_closest_match_for_sell(self, sentence):
+        words = sentence.lower().split()
+        for word in words:
+            if word == "sell" or word == "sel":
+                return True
+        return False
+
+
+    def __init__(self, msg_received_timestamp, telegram_msg):
+        self.msg_received_timestamp = msg_received_timestamp
+        
+        self.message = telegram_msg.strip()
+        
+        for word in PremiumHouseForexCrypto.ignore_words:
+            if word in self.message.split():
+                self.message = self.message.replace(word, "")
+        
+        logger.info(f"forex message in __init__ is {self.message}")
+
+    def get_float_values(self, string_val, start_val=None):
+        float_values = []
+
+        v = string_val.split() if not start_val else string_val.split(start_val)
+        if len(v) < 2:
+            return float_values
+        for word in re.split(" |-|,|/",v[1]):
+            if not word:
+                continue
+            if word.replace("+", "").replace("-", "").replace(".", "", 1).isdigit():
+                float_values.append(word.replace("+", "").replace("-", ""))
+            else:
+                break
+        return float_values
+    
+    def get_ltps(self, statement_):
+        float_values = []
+        if "sl" in statement_:
+            statement_ = statement_.split("sl")[0]
+        if "target" in statement_:
+            statement_ = statement_.split("target")[0]
+
+        for word in re.split(" |-|,|/",statement_):
+            if not word:
+                continue
+            if word.replace("+", "").replace("-", "").replace(".", "", 1).isdigit():
+                float_values.append(word.replace("+", "").replace("-", ""))
+                if float_values:
+                    break
+            
+        return float_values
+
+    def get_signal(self):
+        try:
+            statement = self.message
+            is_reply_msg = '$$$$' in statement
+            new_msg = self.message.upper().split('$$$$')[-1]
+            is_close_msg = any([word in new_msg.split()
+                               for word in close_words])
+            if is_reply_msg and is_close_msg:
+                # is a reply message and has close words in it:
+                pass
+            elif not is_reply_msg:
+                # is not a reply message
+                pass
+            elif is_reply_msg:
+                failure_details = {
+                    "channel_name": "PremiumHouseForexCrypto",
+                    "timestamp": self.msg_received_timestamp,
+                    "message": self.message,
+                    "exception": "Reply messsage without close words",
+                }
+                logger.error(failure_details)
+                write_failure_to_csv(failure_details)
+                return
+            
+            action = "BUY"
+            if is_reply_msg and is_close_msg:
+                action = "CANCEL"
+            elif self.get_closest_match_for_buy(statement):
+                action = "BUY"
+            elif self.get_closest_match_for_sell(statement):
+                action = "SELL"
+
+            targets = self.get_float_values(statement.lower(), start_val='targets')
+            if not targets:
+                targets = self.get_float_values(statement.lower(), start_val='target')
+            
+            sl = self.get_float_values(statement.lower(), start_val='sl')
+
+            ltps = self.get_ltps(statement.lower())
+
+            for word in PremiumHouseForexCrypto.symbols_to_extract:
+                if word in self.message.split():
+                    symbol = word
+                    break
+            else:
+                if ltps:
+                    if len(ltps[0]) == 4:
+                        symbol = "XAUUSD"
+                    elif len(ltps[0]) in (5, 6):
+                        symbol = "BTCUSD"
+               
+            if not targets or not sl:
+                if symbol == "XAUUSD":
+                    ltp_max = max(ltps)
+                    sl = [ltp_max - 10.0]
+                    targets = [ltp_max + 5.0, ltp_max + 10.0]
+                elif symbol in  ("BTCUSD", "ETH"):
+                    ltp_max = max(ltps)
+                    sl = [ltp_max - 1000.0]
+                    targets = [ltp_max + 500.0, ltp_max + 1000.0]
+                
+
+
+            
+            __signal_details = {
+                # "channel_name": "PremiumHouseForexCrypto",
+                "symbol": symbol,
+                "ltp_range": "|".join(ltps),
+                "target_range":  "|".join(targets),
+                "sl":  "|".join(sl),
+                "quantity": DEFAULT_FOREX_QTY * 2 if 'DOUBLE' in self.message else DEFAULT_FOREX_QTY,
+                "action": action
+            }
+            __signal_details["timestamp"] = f"{PremiumHouseForexCrypto.channel_number}{self.msg_received_timestamp}"
+            write_signals_to_forex_csv(__signal_details)
+
+        except:
+            failure_details = {
+                "channel_name": "PremiumHouseForexCrypto",
+                "timestamp": self.msg_received_timestamp,
+                "message": self.message,
+                "exception": traceback.format_exc().strip(),
+            }
+            logger.error(failure_details)
+            write_failure_to_csv(failure_details)
+
+
 class PremiumJackpot:
     split_words = ["ABOVE", "ABOV", "NEAR", 'NEAT', "TARGET", "TARGE"]
     channel_details = CHANNEL_DETAILS["PremiumJackpot"]
@@ -427,26 +599,32 @@ class PremiumJackpot:
                 parts = statement.split("|")
                 symbol_from_tg = parts[0].strip().removeprefix("#")
                 symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
-                ltps = re.findall(r"\d+\.\d+|\d+", parts[1])
+                print(parts)
+                ltps = re.findall(r"\d+\.\d+|\d+", parts[1].split("SL")[0])
                 ltp_max = max([float(ltp) for ltp in ltps
                             if ltp.replace('.', '', 1).isdigit()])
                 sl, targets = None, None
-                if sym in index_options:
-                    key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
-                    if int(PremiumJackpot.channel_details.get(key_to_chk,'1')) == 0:
-                        raise CustomError(f"{sym} is turned off as per config")
-                    sl, targets = get_sl_target_from_csv(sym, ltp_max)
-                    print(sl, targets)
-                else:
-                    if int(PremiumJackpot.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
-                        raise CustomError(f"STOCK_OPTIONS is turned off as per config")
-                if not sl and not targets:
+                try:
                     targets = re.findall(r"\d+\.\d+|\d+", parts[2].split("SL")[0])
-                    
+                        
                     if float(targets[0]) < float(ltps[0]):
                         targets = [str(float(target) + ltp_max)
                                     for target in targets if target.replace('.', '', 1).isdigit()]
                     sl = get_float_values(statement, "SL")[0]
+                except:
+                    targets, sl = None, None
+                if sym in index_options:
+                    key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
+                    if int(PremiumJackpot.channel_details.get(key_to_chk,'1')) == 0:
+                        raise CustomError(f"{sym} is turned off as per config")
+                    if not sl or not targets:
+                        sl, targets = get_sl_target_from_csv(sym, ltp_max)
+                        print(sl, targets)
+                else:
+                    if int(PremiumJackpot.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                        raise CustomError(f"STOCK_OPTIONS is turned off as per config")
+                if not targets or not sl:
+                    raise CustomError("Target and SL is not availble in msg")
                 __signal_details = {
                     "channel_name": "Premium jackpot",
                     "symbol": symbol_dict["Exch"]+":"+symbol_dict["Trading Symbol"],
@@ -728,7 +906,15 @@ class SmsOptionsPremium:
             pass
         elif not is_reply_msg:
             # is not a reply message
-            pass
+            failure_details = {
+                "channel_name": "SmsOptionsPremium",
+                "timestamp": self.msg_received_timestamp,
+                "message": self.message,
+                "exception": "Not a reply message",
+            }
+            logger.error("Not a reply message")
+            write_failure_to_csv(failure_details)
+            return
         elif is_reply_msg and not is_close_msg and not is_sl_message:
             # is a reply message but not having close words
             # duplicate or junk
@@ -759,16 +945,7 @@ class SmsOptionsPremium:
                           if ltp.replace('.', '', 1).isdigit()])
             
             sl, targets = None, None
-            if sym in index_options:
-                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
-                if int(SmsOptionsPremium.channel_details.get(key_to_chk,'1')) == 0:
-                    raise CustomError(f"{sym} is turned off as per config")
-                sl, targets = get_sl_target_from_csv(sym, ltp_max)
-            else:
-                if int(SmsOptionsPremium.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
-                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
-                
-            if not sl and not targets:
+            try:
                 targets = self.get_float_values(
                     self.message.strip().upper(), "TARGET")
                 
@@ -783,6 +960,22 @@ class SmsOptionsPremium:
                         sl = re.findall(r"(\d+)?", statement.split("$$$$")[-1])[0]
                         if not sl:
                             raise CustomError(f"SL is not found in {parts[4]}")
+            except:
+                sl, targets = None, None
+
+            if sym in index_options:
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
+                if int(SmsOptionsPremium.channel_details.get(key_to_chk,'1')) == 0:
+                    raise CustomError(f"{sym} is turned off as per config")
+                if not sl or not targets:
+                    sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            else:
+                if int(SmsOptionsPremium.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
+                
+            if not sl or not targets:
+                raise CustomError("Target and SL is not availble in msg")
+            
             _signal_details = {
                 "channel_name": "SmsOptionsPremium",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -945,15 +1138,7 @@ class PaidCallPut:
             ltp_max = max([float(ltp) for ltp in ltps
                           if ltp.replace('.', '', 1).isdigit()])
             sl, targets = None, None
-            if symbol in index_options:
-                key_to_chk = f"INCLUDE_INDEX_OPTION_{symbol}"
-                if int(PaidCallPut.channel_details.get(key_to_chk,'1')) == 0:
-                    raise CustomError(f"{symbol} is turned off as per config")
-                sl, targets = get_sl_target_from_csv(symbol, ltp_max)
-            else:
-                if int(PaidCallPut.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
-                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
-            if not sl and not targets:
+            try:
                 sl_list = self.get_float_values(
                     self.message.strip().upper().replace("-", ""), "SL")
                 if sl_list:
@@ -966,6 +1151,19 @@ class PaidCallPut:
                 if float(targets[0]) < float(ltps[0]):
                     targets = [str(float(target) + ltp_max)
                             for target in targets if target.replace('.', '', 1).isdigit()]
+            except:
+                sl, targets = None, None
+            if symbol in index_options:
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{symbol}"
+                if int(PaidCallPut.channel_details.get(key_to_chk,'1')) == 0:
+                    raise CustomError(f"{symbol} is turned off as per config")
+                if not sl or not targets:
+                    sl, targets = get_sl_target_from_csv(symbol, ltp_max)
+            else:
+                if int(PaidCallPut.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
+            if not sl or not targets:
+                raise CustomError("Target and SL is not availble in msg")
             _signal_details = {
                 "channel_name": "PaidCallPut",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -1146,15 +1344,7 @@ class PaidStockIndexOption:
                 ltp_max = max([float(ltp) for ltp in ltps
                             if ltp.replace('.', '', 1).isdigit()])
                 sl, targets = None, None
-                if sym in index_options:
-                    key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
-                    if int(PaidStockIndexOption.channel_details.get(key_to_chk,'1')) == 0:
-                        raise CustomError(f"{sym} is turned off as per config")
-                    sl, targets = get_sl_target_from_csv(sym, ltp_max)
-                else:
-                    if int(PaidStockIndexOption.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
-                        raise CustomError(f"STOCK_OPTIONS is turned off as per config")
-                if not sl and not targets:
+                try:
                     sl_range = None
                     for word in sl_words:
                         sl_range = self.get_target_values(self.message_upper, word)
@@ -1171,23 +1361,39 @@ class PaidStockIndexOption:
                                     sl_range = [
                                         str(math.floor(float(ltp_range[0]) * (1 - PaidStockIndexOption.sl)))]
                                     break
-                    # else:
-                    #     if sym in ('SENSEX', 'BANKEX', 'NIFTY', 'BANKNIFTY', 'MIDCPNIFTY', 'FINNIFTY'):
-                    #         sl_range = [str(float(sl)/2) for sl in sl_range]
-                    if not sl_range:
-                        raise CustomError("sl_range values is not found")
+                    # if not sl_range:
+                    #     raise CustomError("sl_range values is not found")
                     sl = sl_range[0]
                     target_range = None
                     for word in target_words:
                         target_range = self.get_target_values(self.message_upper, word)
                         if target_range:
                             break
-                    else:
-                        raise CustomError("target_range values is not found")
+                    # else:
+                    #     raise CustomError("target_range values is not found")
                     targets = target_range
                     if float(targets[0]) < float(ltps[0]):
                         targets = [str(float(target) + ltp_max)
                                 for target in targets if target.replace('.', '', 1).isdigit()]
+                except:
+                    sl, targets = None, None
+
+                if sym in index_options:
+                    key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
+                    if int(PaidStockIndexOption.channel_details.get(key_to_chk,'1')) == 0:
+                        raise CustomError(f"{sym} is turned off as per config")
+                    if not sl or not targets:
+                        sl, targets = get_sl_target_from_csv(sym, ltp_max)
+                else:
+                    if int(PaidStockIndexOption.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                        raise CustomError(f"STOCK_OPTIONS is turned off as per config")
+                if not sl or not targets:
+                    raise CustomError("Target and SL is not availble in msg")
+                    # else:
+                    #     if sym in ('SENSEX', 'BANKEX', 'NIFTY', 'BANKNIFTY', 'MIDCPNIFTY', 'FINNIFTY'):
+                    #         sl_range = [str(float(sl)/2) for sl in sl_range]
+                    
+                    
                 _signal_details = {
                     "channel_name": "PaidStockIndexOption",
                     "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -1264,6 +1470,7 @@ class BnoPremium:
     def get_signal(self):
         try:
             statement = self.message
+            
             is_reply_msg = "$$$$" in statement
             new_msg = self.message.upper().split("$$$$")[-1]
             is_close_msg = any([word in new_msg.split() for word in close_words])
@@ -1285,7 +1492,7 @@ class BnoPremium:
                 logger.error(failure_details)
                 write_failure_to_csv(failure_details)
                 return
-
+            statement = statement.split("$$$$")[0]
             for word in BnoPremium.split_words:
                 statement = statement.replace(word, "|")
             parts = [i for ind, i in enumerate(statement.split("|")) if ind == 0 or (ind!=0 and i.strip())]
@@ -1300,16 +1507,7 @@ class BnoPremium:
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
             sl, targets = None, None
-            if sym in index_options:
-                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
-                if int(BnoPremium.channel_details.get(key_to_chk,'1')) == 0:
-                    raise CustomError(f"{sym} is turned off as per config")
-                sl, targets = get_sl_target_from_csv(sym, ltp_max)
-            else:
-                if int(BnoPremium.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
-                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
-            
-            if not sl and not targets:
+            try:
                 targets = re.findall(r"\d+\.\d+|\d+", parts[3])
                 if float(targets[0]) < float(ltps[0]):
                     targets = [
@@ -1318,6 +1516,21 @@ class BnoPremium:
                         if target.replace(".", "", 1).isdigit()
                     ]
                 sl = re.findall(r"\d+\.\d+|\d+", parts[2])[0]
+            except:
+                targets = None
+                sl = None
+            if sym in index_options:
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
+                if int(BnoPremium.channel_details.get(key_to_chk,'1')) == 0:
+                    raise CustomError(f"{sym} is turned off as per config")
+                if not sl or not targets:
+                    sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            else:
+                if int(BnoPremium.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError("STOCK_OPTIONS is turned off as per config")
+            if not targets or not sl:
+                raise CustomError("Target and SL is not availble in msg")
+            
             __signal_details = {
                 "channel_name": "BnoPremium",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -1708,38 +1921,40 @@ class StudentsGroup:
                     [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
                 )
                 sl, targets = None, None
+                targets = []
+                for target_keyword in ["TARGETS", "TARGET", "TRT", "TRG", "TARTE", "TARGE", "TG"]:
+                    try:
+                        targets = self.get_float_values(self.message, target_keyword, " ")
+                    except:
+                        pass
+                    if targets:
+                        break
+                # else:
+                #     raise CustomError("TARGET not found")    
+                if float(targets[0]) < float(ltps[0]):
+                    targets = [
+                        str(float(target) + ltp_max)
+                        for target in targets
+                        if target.replace(".", "", 1).isdigit()
+                    ]
+                for sl_keyword in ["SL", "STOPLOSS"]:
+                    sl = self.get_float_values(self.message, sl_keyword, " ")
+                    if sl:
+                        sl = sl[0]
+                        break
+                # else:
+                #     raise CustomError("SL not found")
                 if sym in index_options:
                     key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
                     if int(StudentsGroup.channel_details.get(key_to_chk,'1')) == 0:
                         raise CustomError(f"{sym} is turned off as per config")
-                    sl, targets = get_sl_target_from_csv(sym, ltp_max)
+                    if not sl or not targets:
+                        sl, targets = get_sl_target_from_csv(sym, ltp_max)
                 else:
                     if int(StudentsGroup.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
                         raise CustomError(f"STOCK_OPTIONS is turned off as per config")
-                if not sl and not targets:
-                    targets = []
-                    for target_keyword in ["TARGETS", "TARGET", "TRT", "TRG", "TARTE", "TARGE", "TG"]:
-                        try:
-                            targets = self.get_float_values(self.message, target_keyword, " ")
-                        except:
-                            pass
-                        if targets:
-                            break
-                    else:
-                        raise CustomError("TARGET not found")    
-                    if float(targets[0]) < float(ltps[0]):
-                        targets = [
-                            str(float(target) + ltp_max)
-                            for target in targets
-                            if target.replace(".", "", 1).isdigit()
-                        ]
-                    for sl_keyword in ["SL", "STOPLOSS"]:
-                        sl = self.get_float_values(self.message, sl_keyword, " ")
-                        if sl:
-                            sl = sl[0]
-                            break
-                    else:
-                        raise CustomError("SL not found")
+                if not sl or not targets:
+                    raise CustomError("Target and SL is not availble in msg")
                 __signal_details = {
                     "channel_name": "StudentsGroup",
                     "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -1866,15 +2081,7 @@ class PremiumMembershipGroup:
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
             sl, targets = None, None
-            if sym in index_options:
-                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
-                if int(PremiumMembershipGroup.channel_details.get(key_to_chk,'1')) == 0:
-                    raise CustomError(f"{sym} is turned off as per config")
-                sl, targets = get_sl_target_from_csv(sym, ltp_max)
-            else:
-                if int(PremiumMembershipGroup.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
-                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
-            if not sl and not targets:
+            try:
                 targets = self.get_float_values(self.message, "TARGET", "/| ")
                 sl = self.get_float_values(self.message, "SL", " ")[0]
                 # targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
@@ -1884,6 +2091,20 @@ class PremiumMembershipGroup:
                         for target in targets
                         if target.replace(".", "", 1).isdigit()
                     ]
+            except:
+                sl, targets = None, None
+            if sym in index_options:
+                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
+                if int(PremiumMembershipGroup.channel_details.get(key_to_chk,'1')) == 0:
+                    raise CustomError(f"{sym} is turned off as per config")
+                if not sl or not targets:
+                    sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            else:
+                if int(PremiumMembershipGroup.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError("STOCK_OPTIONS is turned off as per config")
+            if not sl or not targets:
+                raise CustomError("sl and target is not available in the msg")
+                
             __signal_details = {
                 "channel_name": "PremiumMembershipGroup",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
@@ -2478,15 +2699,7 @@ class PlatinumMembers:
                 [float(ltp) for ltp in ltps if ltp.replace(".", "", 1).isdigit()]
             )
             sl, targets = None, None
-            if sym in index_options:
-                key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
-                if int(PlatinumMembers.channel_details.get(key_to_chk,'1')) == 0:
-                    raise CustomError(f"{sym} is turned off as per config")
-                sl, targets = get_sl_target_from_csv(sym, ltp_max)
-            else:
-                if int(PlatinumMembers.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
-                    raise CustomError(f"STOCK_OPTIONS is turned off as per config")
-            if not sl and not targets:
+            try:
                 targets = re.findall(r"\d+\.\d+|\d+", parts[3].strip())
                 if float(targets[0]) < float(ltps[0]):
                     targets = [
@@ -2495,6 +2708,24 @@ class PlatinumMembers:
                         if target.replace(".", "", 1).isdigit()
                     ]
                 sl = re.findall(r"\d+\.\d+|\d+", parts[2].strip())[0]
+            except:
+                sl, targets = None, None
+            print(sym)
+            print(index_options)
+            print(sl, targets)
+            if sym in index_options :
+                if (not sl and not targets):
+                    key_to_chk = f"INCLUDE_INDEX_OPTION_{sym}"
+                    if int(PlatinumMembers.channel_details.get(key_to_chk,'1')) == 0:
+                        raise CustomError(f"{sym} is turned off as per config")
+                    if not sl or not targets:
+                        sl, targets = get_sl_target_from_csv(sym, ltp_max)
+            else:
+                print(PlatinumMembers.channel_details)
+                if int(PlatinumMembers.channel_details.get('INCLUDE_STOCK_OPTIONS','1')) == 0:
+                    raise CustomError("STOCK_OPTIONS is turned off as per config")
+            if not sl and not targets:
+                raise CustomError("Target and SL is not available in the msg")
             __signal_details = {
                 "channel_name": "PlatinumMembers",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
