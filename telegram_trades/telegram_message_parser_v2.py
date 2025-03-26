@@ -62,7 +62,7 @@ spell_checks = {
     "FIN ": "FINNIFTY ",
 }
 index_options = ('FINNIFTY', 'NIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX', 'BANKNIFTY')
-close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", "BOOK", "SAFE", "LOW RISK")
+close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", ) # "BOOK", "SAFE", "LOW RISK"
 
 
 class CustomError(Exception):
@@ -267,11 +267,26 @@ def get_float_values(string_val, start_val):
             break
     return float_values
 
-class PremiumHouseForexCrypto:
+def get_reverse_float_values(string_val, start_val):
+    float_values = []
+    if start_val not in string_val:
+        return []
+    v = string_val.split(start_val)
+    for word in re.split(" |-|,|/",v[0])[::-1]:
+        if not word:
+            continue
+        if word.replace("+", "").replace("-", "").replace(".", "", 1).isdigit():
+            float_values.append(word.replace("+", "").replace("-", ""))
+        else:
+            break
+    return float_values
+
+
+class PremiumFXG:
     # split_words = ["ABOVE", "ABOV", "NEAR", 'NEAT', "TARGET", "TARGE"]
     ignore_words = ['NEAR', 'BELOWE', 'BELOW', 'ONLY', 'QUANTITY', 'PLUS', 'ABOVE', 'CALL', 'INTRADAY', 'MUST', 'ORDER', 'AGAIN', 'ALL', 'FULL', 'FRESH', 'ZONE']
     symbols_to_extract = ["XAUUSD","BTCUSD","USOIL","USTEC", "ETH"]
-    channel_details = CHANNEL_DETAILS["PremiumHouseForexCrypto"]
+    channel_details = CHANNEL_DETAILS["PremiumFXG"]
     channel_number = channel_details["channel_number"]
 
 
@@ -295,7 +310,7 @@ class PremiumHouseForexCrypto:
         
         self.message = telegram_msg.strip()
         
-        for word in PremiumHouseForexCrypto.ignore_words:
+        for word in PremiumFXG.ignore_words:
             if word in self.message.split():
                 self.message = self.message.replace(word, "")
         
@@ -348,7 +363,7 @@ class PremiumHouseForexCrypto:
                 pass
             elif is_reply_msg:
                 failure_details = {
-                    "channel_name": "PremiumHouseForexCrypto",
+                    "channel_name": "PremiumFXG",
                     "timestamp": self.msg_received_timestamp,
                     "message": self.message,
                     "exception": "Reply messsage without close words",
@@ -373,7 +388,7 @@ class PremiumHouseForexCrypto:
 
             ltps = self.get_ltps(statement.lower())
 
-            for word in PremiumHouseForexCrypto.symbols_to_extract:
+            for word in PremiumFXG.symbols_to_extract:
                 if word in self.message.split():
                     symbol = word
                     break
@@ -398,7 +413,7 @@ class PremiumHouseForexCrypto:
 
             
             __signal_details = {
-                # "channel_name": "PremiumHouseForexCrypto",
+                # "channel_name": "PremiumFXG",
                 "symbol": symbol,
                 "ltp_range": "|".join(ltps),
                 "target_range":  "|".join(targets),
@@ -406,12 +421,12 @@ class PremiumHouseForexCrypto:
                 "quantity": DEFAULT_FOREX_QTY * 2 if 'DOUBLE' in self.message else DEFAULT_FOREX_QTY,
                 "action": action
             }
-            __signal_details["timestamp"] = f"{PremiumHouseForexCrypto.channel_number}{self.msg_received_timestamp}"
+            __signal_details["timestamp"] = f"{PremiumFXG.channel_number}{self.msg_received_timestamp}"
             write_signals_to_forex_csv(__signal_details)
 
         except:
             failure_details = {
-                "channel_name": "PremiumHouseForexCrypto",
+                "channel_name": "PremiumFXG",
                 "timestamp": self.msg_received_timestamp,
                 "message": self.message,
                 "exception": traceback.format_exc().strip(),
@@ -419,7 +434,149 @@ class PremiumHouseForexCrypto:
             logger.error(failure_details)
             write_failure_to_csv(failure_details)
 
+class SmsStockOptionsPremium:
+    ignore_words = [ ]
+    channel_details = CHANNEL_DETAILS["SmsStockOptionsPremium"]
+    channel_number = channel_details["channel_number"]
 
+    def __init__(self, msg_received_timestamp, telegram_msg):
+        self.msg_received_timestamp = msg_received_timestamp
+        
+        self.message = telegram_msg.strip()
+        
+        for word in SmsStockOptionsPremium.ignore_words:
+            if word in self.message.split():
+                self.message = self.message.replace(word, "")
+        
+        logger.info(f"SmsStockOptionsPremium message in __init__ is {self.message}")
+    
+    def get_float_values(self, string_val, start_val=None):
+        float_values = []
+
+        v = string_val.split() if not start_val else string_val.split(start_val)
+        if len(v) < 2:
+            return float_values
+        for word in re.split(" |-|,|/",v[1]):
+            if not word:
+                continue
+            if word.replace("+", "").replace("-", "").replace(".", "", 1).isdigit():
+                float_values.append(word.replace("+", "").replace("-", ""))
+            else:
+                break
+        return float_values
+    
+    def get_closest_match_for_buy(self, sentence):
+        words = sentence.lower().split()
+        for word in words:
+            if word == "buy": # or word == "byu" or word == "bu":
+                return True
+        return False
+
+    def get_closest_match_for_sell(self, sentence):
+        words = sentence.lower().split()
+        for word in words:
+            if word == "sell": # or word == "sel":
+                return True
+        return False
+
+    def get_instrument_name(self, sym, strike, option_type):
+        # FinNifty 9 Jan 21450 PE
+        try:
+            
+            exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
+            filtered_df = scrip_info_df[
+                (scrip_info_df["Exch"] == exch)
+                & (scrip_info_df["Symbol"] == sym)
+                & (scrip_info_df["Strike Price"] == float(strike))
+                & (scrip_info_df["Option Type"] == option_type)
+                # & (scrip_info_df["Expiry Date"] == f"2024-{month}-{date}")
+            ]
+            # print(filtered_df)
+            filtered_df = filtered_df.sort_values(by="Expiry Date")
+            filtered_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+            filtered_df = filtered_df[filtered_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
+            first_row = filtered_df.head(1)
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
+        except:
+            raise CustomError(traceback.format_exc())
+
+    def get_signal(self):
+        try:
+            statement = self.message
+            is_reply_msg = '$$$$' in statement
+            new_msg = self.message.upper().split('$$$$')[-1]
+            is_close_msg = any([word in new_msg.split()
+                               for word in close_words])
+            if is_reply_msg and is_close_msg:
+                # is a reply message and has close words in it:
+                pass
+            elif not is_reply_msg:
+                # is not a reply message
+                pass
+            elif is_reply_msg:
+                failure_details = {
+                    "channel_name": "SmsStockOptionsPremium",
+                    "timestamp": self.msg_received_timestamp,
+                    "message": self.message,
+                    "exception": "Reply messsage without close words",
+                }
+                logger.error(failure_details)
+                write_failure_to_csv(failure_details)
+                return
+            
+            action = "BUY"
+            if is_reply_msg and is_close_msg:
+                action = "CANCEL"
+            elif self.get_closest_match_for_buy(statement):
+                action = "BUY"
+            elif self.get_closest_match_for_sell(statement):
+                action = "SELL"
+
+            targets = self.get_float_values(statement.lower(), start_val='targets')
+            if not targets:
+                targets = self.get_float_values(statement.lower(), start_val='target')
+            
+            sl = self.get_float_values(statement.lower(), start_val='sl for trade')
+
+            ltps = self.get_float_values(statement.lower(), start_val='only in range')
+
+            symbol = statement.split("(")[0].strip()
+            tmp = statement.split(")")
+            tmp1 = tmp[1].split()
+            strike = tmp1[0].strip().lower().removesuffix('ce').removesuffix('pe')
+            for i in tmp1:
+                if i.lower().endswith('ce'):
+                    option_type = 'CE'
+                elif i.lower().endswith('pe'):
+                    option_type = 'PE'
+                
+                
+            symbol_dict, sym = self.get_instrument_name(symbol, strike, option_type)
+            
+            
+            __signal_details = {
+                "channel_name": "SmsStockOptionsPremium",
+                "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
+                "ltp_range": "|".join(ltps),
+                "target_range":  "|".join(targets),
+                "sl":  "|".join(sl),
+                "quantity":  get_multiplier(symbol_dict["Trading Symbol"], SmsStockOptionsPremium.channel_details),
+                "action": action
+            }
+            __signal_details["timestamp"] = f"{SmsStockOptionsPremium.channel_number}{self.msg_received_timestamp}"
+            write_signals_to_csv(__signal_details)
+
+        except:
+            failure_details = {
+                "channel_name": "SmsStockOptionsPremium",
+                "timestamp": self.msg_received_timestamp,
+                "message": self.message,
+                "exception": traceback.format_exc().strip(),
+            }
+            logger.error(failure_details)
+            write_failure_to_csv(failure_details)
+
+            
 class PremiumJackpot:
     split_words = ["ABOVE", "ABOV", "NEAR", 'NEAT', "TARGET", "TARGE"]
     channel_details = CHANNEL_DETAILS["PremiumJackpot"]
@@ -427,7 +584,7 @@ class PremiumJackpot:
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
-        if "BUY " in telegram_msg:
+        if telegram_msg.strip().startswith("BUY "):
             self.message = (
                     telegram_msg.upper().split("BUY ")[1].replace("-", " ").replace(",", " ").replace("/", " ")
                 )
@@ -469,13 +626,15 @@ class PremiumJackpot:
             sorted_df['Expiry Date'] = pd.to_datetime(sorted_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
-            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
+            return first_row[["Exch", "Trading Symbol", "Strike Price"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
     
     def get_signal(self):
         try:
             statement = self.message
+            self.message = self.message.replace("TARGETS", "TARGET")
+            print(self.message)
             is_reply_msg = '$$$$' in statement
             new_msg = self.message.upper().split('$$$$')[-1]
             is_close_msg = any([word in new_msg.split()
@@ -596,16 +755,38 @@ class PremiumJackpot:
             else:
                 for word in PremiumJackpot.split_words:
                     statement = statement.replace(word, "|")
+                print(f"{statement=}")
                 parts = statement.split("|")
                 symbol_from_tg = parts[0].strip().removeprefix("#")
                 symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
-                print(parts)
-                ltps = re.findall(r"\d+\.\d+|\d+", parts[1].split("SL")[0])
+                # print(parts)
+                # for i in parts:
+                #     if "SL" in i:
+                #         ltps = re.findall(r"\d+\.\d+|\d+", i.split("SL")[0])
+                #         ltps = [ltp for ltp in ltps if int(ltp) != int(symbol_dict["Strike Price"])]
+                #         break
+                #     if "TARGET"
+                print(self.message.split())
+                target_index = self.message.split().index("TARGET")
+                if target_index < self.message.split().index("SL"):
+                    ltps = get_reverse_float_values(self.message, "TARGET")
+                else:
+                    ltps = get_reverse_float_values(self.message, "SL")
+                # prinltps = sl_ltps
                 ltp_max = max([float(ltp) for ltp in ltps
                             if ltp.replace('.', '', 1).isdigit()])
                 sl, targets = None, None
                 try:
-                    targets = re.findall(r"\d+\.\d+|\d+", parts[2].split("SL")[0])
+                    # for i in parts:
+                    #     if "SL" in i:
+                    # targets = re.findall(r"\d+\.\d+|\d+", parts[1])
+                    # print(statement)
+                    targets = get_float_values(self.message, "TARGETS")
+                    # print(f"{targets=}")
+                    if not targets:
+                        targets = get_float_values(self.message, "TARGET")
+                            # break
+                    
                         
                     if float(targets[0]) < float(ltps[0]):
                         targets = [str(float(target) + ltp_max)
@@ -1009,12 +1190,23 @@ class PaidCallPut:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = telegram_msg
-        if "  BUY " in self.message:
-            self.message = "BUY " + self.message.split("  BUY ")[1]
+        if "EXPIRY" in self.message.upper():
+            self.message = self.message.replace("EXPIRY", "")
+        self.message = self.message.removeprefix("#").strip()
+        
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
                 break
+        
+        for word in self.message.split("BUY ")[0].split():
+            print(f"{word=}")
+            if word in index_options or word in all_symbols:
+                self.message = self.message.replace("BUY ", "BUY "+word+" ")
+                break
+        if "  BUY " in self.message:
+            self.message = "BUY " + self.message.split("  BUY ")[1]
+        print(f"{self.message=}")
 
     def get_symbol_from_message(self, message):
         for word in message.upper().split():
@@ -1752,6 +1944,7 @@ class StudentsGroup:
     def get_instrument_name(self, symbol_from_tg):
         try:
             sym_split = symbol_from_tg.split()
+            print(sym_split)
             if len(sym_split) == 3:
                 sym, strike, option_type = sym_split
             # elif len(sym_split) > 3:
@@ -2612,8 +2805,11 @@ class PlatinumMembers:
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
         self.message = re.sub(r"=", "", telegram_msg.upper())
-        if "BUY" in self.message:
+        if self.message.strip().startswith("BUY"):
+            self.message = self.message.strip().removeprefix("BUY").strip()
+        elif self.message.split().count("BUY") >= 2 and "BUY" in self.message:
             self.message = self.message.split("BUY", 1)[1].strip()
+        print(self.message)
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
