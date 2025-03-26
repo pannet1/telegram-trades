@@ -584,6 +584,7 @@ class PremiumJackpot:
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
+        telegram_msg = telegram_msg.replace("ONLY ", "")
         if telegram_msg.strip().startswith("BUY "):
             self.message = (
                     telegram_msg.upper().split("BUY ")[1].replace("-", " ").replace(",", " ").replace("/", " ")
@@ -755,7 +756,7 @@ class PremiumJackpot:
             else:
                 for word in PremiumJackpot.split_words:
                     statement = statement.replace(word, "|")
-                print(f"{statement=}")
+                # print(f"{statement=}")
                 parts = statement.split("|")
                 symbol_from_tg = parts[0].strip().removeprefix("#")
                 symbol_dict, sym = self.get_instrument_name(symbol_from_tg)
@@ -766,7 +767,7 @@ class PremiumJackpot:
                 #         ltps = [ltp for ltp in ltps if int(ltp) != int(symbol_dict["Strike Price"])]
                 #         break
                 #     if "TARGET"
-                print(self.message.split())
+                # print(self.message.split())
                 target_index = self.message.split().index("TARGET")
                 if target_index < self.message.split().index("SL"):
                     ltps = get_reverse_float_values(self.message, "TARGET")
