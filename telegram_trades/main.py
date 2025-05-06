@@ -1,7 +1,6 @@
 from constants import DATA, BRKR, FUTL, F_TASK, UTIL, logging
 from login import get_broker
 from api_helper import (
-    filtered_orders,
     download_masters,
     get_ltp,
     update_lst_of_dct_with_vals,
@@ -222,7 +221,7 @@ class TaskFunc:
     def is_entry(self, **task):
         try:
             order = task["entry"]
-            order = filtered_orders(self.api, order["order_id"])
+            order = get_order_from_book(self.api, order["order_id"])
             if is_key_val(order, "Status", "complete"):
                 task["entry"] = order
                 logging.info(f"entry for {task['symbol']} is {order['Status']}")
@@ -281,7 +280,7 @@ class TaskFunc:
     def is_stop_or_target1(self, **task):
         try:
             stop_order = task["stop"]
-            stop_order = filtered_orders(self.api, stop_order["order_id"])
+            stop_order = get_order_from_book(self.api, stop_order["order_id"])
             task["stop"] = stop_order
             ltp = get_ltp(
                 self.api.broker,
@@ -360,7 +359,7 @@ class TaskFunc:
     def trail(self, **task):
         try:
             trail_order = task["trail"]
-            trail_order = filtered_orders(self.api, trail_order["order_id"])
+            trail_order = get_order_from_book(self.api, trail_order["order_id"])
             if is_key_val(trail_order, "Status", "complete"):
                 task["trail"] = trail_order
                 task["fn"] = "TRAILED-OUT"

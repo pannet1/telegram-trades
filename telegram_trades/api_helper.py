@@ -70,27 +70,29 @@ def filtered_positions(api):
     return lst
 
 
-def filtered_orders(api, order_id):
+def filtered_orders(api):
     UTIL.slp_for(SECS)
-    lst = api.orders
     # print(lst[0].keys())
-
     lst = filter_by_keys(order_keys, api.orders)
-    if order_id:
-        lst_order = [order for order in lst if order["order_id"] == order_id]
-        logging.debug(lst_order)
-        if any(lst_order):
-            return lst_order[0]
-    return [order for order in lst]
+    return lst
 
 
-def get_order_from_book(api, resp):
+def get_order_from_book(api, order_id_or_resp):
     dct_order = {"Status": "E-ORDERBOOK"}
-    order_1 = resp.get("NOrdNo", None)
-    order_2 = resp.get("nestOrderNumber", None)
-    order_id = order_1 if order_1 else order_2
-    if order_id:
-        dct_order = filtered_orders(api, order_id)
+    if isinstance(order_id_or_resp, dict):
+        order_1 = order_id_or_resp.get("NOrdNo", None)
+        order_2 = order_id_or_resp.get("nestOrderNumber", None)
+        order_id_or_resp = order_1 if order_1 else order_2
+    if order_id_or_resp is not None:
+        lst = filtered_orders(api)
+        if any(lst):
+            lst_order = [
+                order for order in lst if order["order_id"] == order_id_or_resp
+            ]
+            if any(lst_order):
+                temp = lst_order[0]
+                dct_order = temp if any(temp) else dct_order
+    dct_order["order_id"] = order_id_or_resp
     return dct_order
 
 
@@ -163,8 +165,9 @@ def download_masters(broker):
 
 def get_ltp(broker, exchange, symbol):
     obj_inst = broker.get_instrument_by_symbol(exchange, symbol)
-    UTIL.slp_for(SECS)
-    return float(broker.get_scrip_info(obj_inst)["Ltp"])
+    if obj_inst is not None and isinstance(obj_inst, dict):
+        UTIL.slp_for(SECS)
+        return float(broker.get_scrip_info(obj_inst.get(["Ltp"], 0.0)))
 
 
 if __name__ == "__main__":
