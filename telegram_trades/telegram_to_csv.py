@@ -6,7 +6,8 @@ from constants import TGRM, DATA
 from telegram_message_parser_v2 import (
     PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption,
     BnoPremium, StockPremium, StudentsGroup, PremiumMembershipGroup, 
-    AllIn1Group, SChoudhry12, VipPremiumPaidCalls, PlatinumMembers)
+    AllIn1Group, SChoudhry12, VipPremiumPaidCalls, PlatinumMembers,
+    PremiumFXG, SmsStockOptionsPremium)
 from logzero import setup_logger
 import traceback
 
@@ -28,7 +29,10 @@ async def my_event_handler(event):
     with open(DATA + TGRM["output_file"], 'a', encoding='utf-8',  newline='') as csv_file:
         csv_writer = csv.writer(csv_file)
         now = int(datetime.now().timestamp())
-        logger.info(f"{chat.id=} and {chat.title=}")
+        try:
+            logger.info(f"{chat.id=} and {chat.title=}")
+        except:
+            logger.error(traceback.format_exc())
         if chat.id == 493143987:
             chat_title = "USER-SCHOUDHRY12"
         elif chat.id == -1001612965918 or chat.id == 1612965918 :
@@ -52,10 +56,14 @@ async def my_event_handler(event):
         elif chat.id == -1001972442018 or chat.id == 1972442018:
             chat_title = "VIP PREMIUM PAID CALLS"
         elif chat.id == -1001644402199 or chat.id == 1644402199:
-            chat_title = "PAID STOCK & INDEX OPTION"        
+            chat_title = "PAID STOCK & INDEX OPTION"     
+        elif chat.id == -1002689628842 or chat.id == 2689628842: 
+            chat_title = "PREMIUMFXG"   
+        elif chat.id == 1116480951 or chat.id == -1116480951:
+            chat_title = "BANKNIFTYRANI"
         else:
             chat_title = chat.id
-        logger.info(f"After processing ->{chat.id=} and {chat.title=}")
+        logger.info(f"After processing ->{chat.id=} and {chat_title=}")
         # try:
         #     chat_title = replace_non_ascii(chat.title).strip().upper()
         #     if not chat_title:
@@ -123,8 +131,12 @@ async def my_event_handler(event):
                     i = PlatinumMembers(now, msg)
                     i.get_signal()
                 elif chat_title == "SMS Stock Options Premium":
-                    logger.info(f"{chat_title} ===> {msg}")
-                
+                    # logger.info(f"{chat_title} ===> {msg}")
+                    i = SmsStockOptionsPremium(now, msg)
+                    i.get_signal()
+                elif chat_title == "PREMIUMFXG":
+                    i = PremiumFXG(now, msg)
+                    i.get_signal()
                 else:
                     logger.info(f"{chat_title} ===> {msg}")
         except:

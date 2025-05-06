@@ -1,9 +1,11 @@
 input_file = "../data/output.csv"
 import pandas as pd
 
-from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption, BnoPremium, StockPremium, PremiumGroup, PremiumMembershipGroup, AllIn1Group, SChoudhry12, VipPremiumPaidCalls, PlatinumMembers
+from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption, BnoPremium, StockPremium, StudentsGroup, PremiumMembershipGroup, SChoudhry12, VipPremiumPaidCalls, PlatinumMembers
 
-
+msg = "BUY NIFTY 20TH FEB 22900 CE   BUY ABOVE = 165  SL = 145  TGT = 180/200/230+"
+i = PlatinumMembers(1707192066, msg)
+i.get_signal()
 # df = pd.read_csv(input_file, header=None)
 # for i, row in df.iterrows():
 #     #     # print(i, row)
@@ -22,11 +24,8 @@ from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCa
 #     elif row[1] == "PREMIUM MEMBERSHIP GROUP":
 #         i = PremiumMembershipGroup(row[0], row[2])
 #         i.get_signal()
-#     elif row[1] == "LIVE TRADING+ LOSS RECOVERY GROUP":
-#         i = LiveTradingGroup(row[0], row[2])
-#         i.get_signal()
-#     elif row[1] == "PREMIUM GROUP":
-#         i = PremiumGroup(row[0], row[2])
+#     elif row[1] == "STUDENTS GROUP":
+#         i = StudentsGroup(row[0], row[2])
 #         i.get_signal()
 #     elif row[1] == "STOCK PREMIUM":
 #         i = StockPremium(row[0], row[2])
@@ -37,7 +36,12 @@ from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCa
 #     elif row[1] == "BNO PREMIUM":
 #         i = BnoPremium(row[0], row[2])
 #         i.get_signal()
-
+#     elif row[1] == "VIP PREMIUM PAID CALLS":
+#         i = VipPremiumPaidCalls(row[0], row[2])
+#         i.get_signal()
+#     elif row[1] == "PLATINUM MEMBERS":
+#         i = PlatinumMembers(row[0], row[2])
+#         i.get_signal()
 
 # msg = "BANKNIFTY 7 FEB 45800 CE IF CROSSES & SPOT SUSTAIN ONLY ABOVE 253.85 WILL TRY TO HIT TARGETS @ 275 300 330 360 400 & ABOVE$$$$"
 # msg = "Buy BankNifty Feb 46900 CE Only In Range @ 195 - 215 Target 240 270 300 350 & Above SL For Trade @ 124"
@@ -87,13 +91,6 @@ from telegram_message_parser_v2 import PremiumJackpot, SmsOptionsPremium, PaidCa
 # i = PaidStockIndexOption(1707192066, msg)
 # i.get_signal()
 
-"""
-
-PremiumGroup	1718078778	FINNIFTY 22200 PE   ABOVE 165	"Traceback (most recent call last):
-  File ""C:\py\venv\telegram-trades\telegram_trades\telegram_message_parser_v2.py"", line 1482, in get_signal
-    raise CustomError(""TARGET not found"")
-telegram_message_parser_v2.CustomError: TARGET not found"
-"""
 # msg = "BANNIFTY 10 JUL 52400 PE    ABOVE  170   TARGET @250/300//350    SL: 150"
 # i = VipPremiumPaidCalls(1707192066, msg)
 # i.get_signal()
@@ -147,9 +144,9 @@ telegram_message_parser_v2.CustomError: TARGET not found"
 # msg = "INTRADAY STOCK OPTION TRADE     BUY MARUTI 12400 PE RANGE 180-185 TRG 270-350 SL  170"
 # i = PaidStockIndexOption(1707192066, msg)
 # i.get_signal()
-msg = "BANKNIFTY49300 CE  ABOVE 255  SL 220  TG 275/300/350++++"
-i = VipPremiumPaidCalls(1707192066, msg)
-i.get_signal()
+# msg = "BANKNIFTY49300 CE  ABOVE 255  SL 220  TG 275/300/350++++"
+# i = VipPremiumPaidCalls(1707192066, msg)
+# i.get_signal()
 
 
 # msg = "BUY BANKNIFTY 49400 CE (  29 MAY EX)   ABOVE 200  TARGET 250/300  SL  170"

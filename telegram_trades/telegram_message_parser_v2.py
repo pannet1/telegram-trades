@@ -47,6 +47,7 @@ spell_checks = {
     "MIDCAPNIFTY": "MIDCPNIFTY",
     "BANINIFTY": "BANKNIFTY",
     "MIDCAP": "MIDCPNIFTY",
+    "MIDCP NIFTY": "MIDCPNIFTY",
     "NIFTU": "NIFTY",
     "NOFTY": "NIFTY",
     "FIN NIFTY": "FINNIFTY",
@@ -60,9 +61,12 @@ spell_checks = {
     "BAJAJAUTO": "BAJAJ-AUTO",
     "ADANIPORT ": "ADANIPORTS ",
     "FIN ": "FINNIFTY ",
+    "C3 ": "CE ",
+    "P3 ": "PE ",
+    "SENSES": "SENSEX",
 }
 index_options = ('FINNIFTY', 'NIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX', 'BANKNIFTY')
-close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", ) # "BOOK", "SAFE", "LOW RISK"
+close_words = ("CANCEL", "EXIT", "BREAK", "AVOID", "LOSS", "IGNORE", "CLOSE", "MULTIPLE","SAFE") # "BOOK","LOW RISK"
 
 
 class CustomError(Exception):
@@ -313,7 +317,10 @@ class PremiumFXG:
         for word in PremiumFXG.ignore_words:
             if word in self.message.split():
                 self.message = self.message.replace(word, "")
-        
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                
         logger.info(f"forex message in __init__ is {self.message}")
 
     def get_float_values(self, string_val, start_val=None):
@@ -443,7 +450,10 @@ class SmsStockOptionsPremium:
         self.msg_received_timestamp = msg_received_timestamp
         
         self.message = telegram_msg.strip()
-        
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+                
         for word in SmsStockOptionsPremium.ignore_words:
             if word in self.message.split():
                 self.message = self.message.replace(word, "")
@@ -595,7 +605,7 @@ class PremiumJackpot:
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
-                break
+                
 
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
@@ -848,7 +858,6 @@ class SmsOptionsPremium:
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
-                break
 
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
@@ -1198,7 +1207,7 @@ class PaidCallPut:
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
-                break
+                
         
         for word in self.message.split("BUY ")[0].split():
             print(f"{word=}")
@@ -1400,7 +1409,7 @@ class PaidStockIndexOption:
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
-                break
+                
 
     def get_target_values(self, string_val, start_val):
         float_values = []
@@ -1625,7 +1634,7 @@ class BnoPremium:
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
-                break
+                
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
             symbol = spell_checks[symbol]
@@ -1767,7 +1776,7 @@ class StockPremium:
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
-                break
+                
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
             symbol = spell_checks[symbol]
@@ -1922,7 +1931,7 @@ class StudentsGroup:
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
-                break
+                
     def get_float_values(self, string_val, start_val, split_values):
         float_values = []
         v = string_val.split(start_val)
@@ -2193,7 +2202,7 @@ class PremiumMembershipGroup:
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
-                break
+                
     def get_float_values(self, string_val, start_val, split_values):
         float_values = []
         v = string_val.split(start_val)
@@ -2342,7 +2351,7 @@ class AllIn1Group:
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
-                break
+                
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
             symbol = spell_checks[symbol]
@@ -2527,7 +2536,7 @@ class SChoudhry12:
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
-                break
+                
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
             symbol = spell_checks[symbol]
@@ -2661,7 +2670,7 @@ class VipPremiumPaidCalls:
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
-                break
+                
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
             symbol = spell_checks[symbol]
@@ -2814,7 +2823,7 @@ class PlatinumMembers:
         for misspelt_word, right_word in spell_checks.items():
             if misspelt_word in self.message:
                 self.message = self.message.replace(misspelt_word, right_word)
-                break
+                
     def get_closest_match(self, symbol):
         if symbol in spell_checks:
             symbol = spell_checks[symbol]
