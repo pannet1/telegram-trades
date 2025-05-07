@@ -167,7 +167,11 @@ def get_ltp(broker, exchange, symbol):
     obj_inst = broker.get_instrument_by_symbol(exchange, symbol)
     if obj_inst is not None and isinstance(obj_inst, dict):
         UTIL.slp_for(SECS)
-        return float(broker.get_scrip_info(obj_inst.get(["Ltp"], 0.0)))
+        if obj_inst is not None:
+            info = broker.get_scrip_info(obj_inst)
+            if isinstance(info, dict) and info.get("Ltp", None):
+                return float(info["Ltp"])
+    return 0
 
 
 if __name__ == "__main__":
