@@ -164,14 +164,19 @@ def download_masters(broker):
 
 
 def get_ltp(broker, exchange, symbol):
-    obj_inst = broker.get_instrument_by_symbol(exchange, symbol)
-    if obj_inst is not None and isinstance(obj_inst, dict):
-        UTIL.slp_for(SECS)
+    try:
+        default_value = 0
+        obj_inst = broker.get_instrument_by_symbol(exchange, symbol)
         if obj_inst is not None:
-            info = broker.get_scrip_info(obj_inst)
-            if isinstance(info, dict) and info.get("Ltp", None):
-                return float(info["Ltp"])
-    return 0
+            UTIL.slp_for(SECS)
+            if obj_inst is not None:
+                info = broker.get_scrip_info(obj_inst)
+                if isinstance(info, dict) and info.get("Ltp", None):
+                    default_value = float(info["Ltp"])
+    except Exception as e:
+        logging.error(f"{e} in api helper get ltp")
+    finally:
+        return default_value
 
 
 if __name__ == "__main__":

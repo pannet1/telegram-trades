@@ -23,7 +23,7 @@ if not FUTL.is_file_exists(S_LOG):
 elif FUTL.is_file_not_2day(S_LOG):
     FUTL.nuke_file(S_LOG)
 
-logging = Logger(20, S_LOG)
+logging = Logger(10, S_LOG)
 SETG = FUTL.get_lst_fm_yml(DIRP + "ravikanth.yml")
 BRKR = SETG["aliceblue"]
 logging.debug(BRKR)
