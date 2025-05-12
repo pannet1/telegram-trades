@@ -7,7 +7,7 @@ from telegram_message_parser_v2 import (
     PremiumJackpot, SmsOptionsPremium, PaidCallPut, PaidStockIndexOption,
     BnoPremium, StockPremium, StudentsGroup, PremiumMembershipGroup, 
     AllIn1Group, SChoudhry12, VipPremiumPaidCalls, PlatinumMembers,
-    PremiumFXG, SmsStockOptionsPremium)
+    PremiumFXG, SmsStockOptionsPremium, BankNiftyRani)
 from logzero import setup_logger
 import traceback
 
@@ -136,6 +136,9 @@ async def my_event_handler(event):
                     i.get_signal()
                 elif chat_title == "PREMIUMFXG":
                     i = PremiumFXG(now, msg)
+                    i.get_signal()
+                elif chat_title == "BANKNIFTYRANI":
+                    i = BankNiftyRani(now, msg)
                     i.get_signal()
                 else:
                     logger.info(f"{chat_title} ===> {msg}")
