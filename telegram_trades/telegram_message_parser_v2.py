@@ -171,7 +171,7 @@ def write_signals_to_csv(_signal_details):
     with open(signals_csv_filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=signals_csv_file_headers)
         _signal_details["normal_timestamp"] = datetime.fromtimestamp(
-            int(_signal_details["timestamp"][1:])).strftime('%Y-%m-%d %H:%M:%S')
+            int(_signal_details["timestamp"][2:])).strftime('%Y-%m-%d %H:%M:%S')
         _signal_details["timestamp"] = _signal_details["timestamp"] + ''.join(random.choices('0123456789', k=5))
         __sl = _signal_details["sl"]
         if (isinstance(__sl, int) or isinstance(__sl, float)) and __sl == 0 and "BH" not in _signal_details["action"]:
@@ -2964,3 +2964,140 @@ class PlatinumMembers:
             write_failure_to_csv(failure_details)
 
 
+
+class BankNiftyRani:
+    channel_details = CHANNEL_DETAILS["BankNiftyRani"]
+    channel_number = channel_details["channel_number"]
+    target_value = channel_details["target_value"]
+    sl_value = channel_details["sl_value"]
+    
+
+    def __init__(self, msg_received_timestamp, telegram_msg):
+        self.msg_received_timestamp = msg_received_timestamp
+        self.message = re.sub(r"=", "", telegram_msg.upper()).strip()
+        self.message = self.message.replace("*", "").strip()
+        self.message = self.message.replace("🦁", "").strip()
+        print(self.message)
+        for misspelt_word, right_word in spell_checks.items():
+            if misspelt_word in self.message:
+                self.message = self.message.replace(misspelt_word, right_word)
+
+    def get_closest_match(self, symbol):
+        if symbol in spell_checks:
+            symbol = spell_checks[symbol]
+        if symbol in all_symbols:
+            return symbol
+        return symbol
+    
+    def get_instrument_name(self, symbol_from_tg):
+        try:
+            sym_strike_opt_list = symbol_from_tg.split(" ")
+            option_type = sym_strike_opt_list[-1]
+            strike = sym_strike_opt_list[-2]
+            sym = "".join(sym_strike_opt_list[:-2])
+            # print(f"{sym=}")
+            sym = self.get_closest_match(sym)
+            exch = "BFO" if sym in ["SENSEX", "BANKEX"] else "NFO"
+            logger.info(f"Exch: {exch}, Symbol: {sym}, Strike: {strike}, Option Type: {option_type}")
+            filtered_df = scrip_info_df[
+                (scrip_info_df["Exch"] == exch)
+                & (scrip_info_df["Symbol"] == sym)
+                & (scrip_info_df["Strike Price"] == float(strike))
+                & (scrip_info_df["Option Type"] == option_type)
+            ]
+            # print(f"{filtered_df=}")
+            sorted_df = filtered_df.sort_values(by="Expiry Date")
+            sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
+            sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
+            first_row = sorted_df.head(1)
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
+        except:
+            raise CustomError(traceback.format_exc())
+
+    def get_signal(self):
+        try:
+            statement = self.message
+            is_reply_msg = "$$$$" in statement
+            is_valid_msg = "ANGRY LION" in statement and "BUY" in statement
+            if not is_valid_msg:
+                failure_details = {
+                    "channel_name": "BankNiftyRani",
+                    "timestamp": self.msg_received_timestamp,
+                    "message": self.message,
+                    "exception": "is not a valid message. Does not have ANGRY LION in it",
+                }
+                logger.error(failure_details)
+                write_failure_to_csv(failure_details)
+                return
+            if is_reply_msg:
+                # is a reply message 
+                # duplicate or junk
+                failure_details = {
+                    "channel_name": "BankNiftyRani",
+                    "timestamp": self.msg_received_timestamp,
+                    "message": self.message,
+                    "exception": "is a reply message. Possible duplicate or junk",
+                }
+                logger.error(failure_details)
+                write_failure_to_csv(failure_details)
+                return
+            # self.message = self.message.repace("BUY ", "").strip()
+            self.message = self.message.split("ANGRY LION ")[1].strip()
+            sym_strike_opt = self.message.split("BUY ")[0].strip()
+            
+            
+            symbol_dict, sym = self.get_instrument_name(sym_strike_opt)
+            ltps = get_float_values(statement.lower(), start_val='above')
+            ltps = [float(ltp) for ltp in ltps]
+            ltps.sort()
+            if not ltps:
+                failure_details = {
+                    "channel_name": "BankNiftyRani",
+                    "timestamp": self.msg_received_timestamp,
+                    "message": self.message,
+                    "exception": "LTPs not found",
+                }
+                logger.error(failure_details)
+                write_failure_to_csv(failure_details)
+
+            targets = get_float_values(statement.lower(), start_val='targets')
+            if not targets:
+                targets = get_float_values(statement.lower(), start_val='target')
+
+            if not targets:
+                targets = [max(ltps) + float(BankNiftyRani.target_value)]
+            
+            sl = get_float_values(statement.lower(), start_val='sl')
+            if not sl:
+                sl = [min(ltps) - float(BankNiftyRani.sl_value)]
+            
+            __signal_details = {
+                "channel_name": "BankNiftyRani",
+                "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
+                "ltp_range": "|".join([str(int(ltp)) if ltp==int(ltp) else f"{ltp:.2f}" for ltp in ltps]),
+                "target_range": "|".join([str(int(target)) if target==int(target) else f"{target:.2f}" for target in targets]),
+                "sl": "|".join([str(int(sl_)) if sl_==int(sl_) else f"{sl_:.2f}" for sl_ in sl]),
+                "quantity": get_multiplier(
+                    symbol_dict["Trading Symbol"],
+                    BankNiftyRani.channel_details
+                ),
+                "action": "Buy",
+            }
+            if __signal_details in signals:
+                raise CustomError("Signal already exists")
+            else:
+                signals.append(__signal_details)
+            signal_details = __signal_details.copy()
+            signal_details["timestamp"] = (
+                f"{BankNiftyRani.channel_number}{self.msg_received_timestamp}"
+            )
+            write_signals_to_csv(signal_details)
+        except:
+            failure_details = {
+                "channel_name": "BankNiftyRani",
+                "timestamp": self.msg_received_timestamp,
+                "message": self.message,
+                "exception": traceback.format_exc().strip(),
+            }
+            logger.error(failure_details)
+            write_failure_to_csv(failure_details)
