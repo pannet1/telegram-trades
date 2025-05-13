@@ -2989,6 +2989,24 @@ class BankNiftyRani:
             return symbol
         return symbol
     
+    def adjust_list_by_hundreds(self, data_list):
+        if not data_list:
+            return [] 
+
+        max_value = max(data_list)
+        max_hundreds = max_value // 100 
+
+        adjusted_list = []
+        for num in data_list:
+            if abs(num - max_value) > 100:
+                target_hundreds = max_hundreds if num <= max_value else max_hundreds
+                adjusted_num = target_hundreds * 100 + (num % 100)
+                if adjusted_num == target_hundreds * 100:
+                    adjusted_num = adjusted_num + 100
+                adjusted_list.append(adjusted_num)
+            else:
+                adjusted_list.append(num)
+        return sorted(adjusted_list)
     def get_instrument_name(self, symbol_from_tg):
         try:
             sym_strike_opt_list = symbol_from_tg.split(" ")
@@ -3042,6 +3060,7 @@ class BankNiftyRani:
                 write_failure_to_csv(failure_details)
                 return
             # self.message = self.message.repace("BUY ", "").strip()
+            self.message = self.message.replace("STRATEGY ", "")
             self.message = self.message.split("ANGRY LION ")[1].strip()
             sym_strike_opt = self.message.split("BUY ")[0].strip()
             
@@ -3049,7 +3068,8 @@ class BankNiftyRani:
             symbol_dict, sym = self.get_instrument_name(sym_strike_opt)
             ltps = get_float_values(statement.lower(), start_val='above')
             ltps = [float(ltp) for ltp in ltps]
-            ltps.sort()
+            # ltps.sort()
+            ltps = self.adjust_list_by_hundreds(ltps)
             if not ltps:
                 failure_details = {
                     "channel_name": "BankNiftyRani",
@@ -3074,9 +3094,9 @@ class BankNiftyRani:
             __signal_details = {
                 "channel_name": "BankNiftyRani",
                 "symbol": symbol_dict["Exch"] + ":" + symbol_dict["Trading Symbol"],
-                "ltp_range": "|".join([str(int(ltp)) if ltp==int(ltp) else f"{ltp:.2f}" for ltp in ltps]),
-                "target_range": "|".join([str(int(target)) if target==int(target) else f"{target:.2f}" for target in targets]),
-                "sl": "|".join([str(int(sl_)) if sl_==int(sl_) else f"{sl_:.2f}" for sl_ in sl]),
+                "ltp_range": "|".join([str(int(ltp)) if ltp==int(ltp) else str(ltp) for ltp in ltps]),
+                "target_range": "|".join([str(int(target)) if target==int(target) else str(target) for target in targets]),
+                "sl": "|".join([str(int(sl_)) if sl_==int(sl_) else str(sl_) for sl_ in sl]),
                 "quantity": get_multiplier(
                     symbol_dict["Trading Symbol"],
                     BankNiftyRani.channel_details
