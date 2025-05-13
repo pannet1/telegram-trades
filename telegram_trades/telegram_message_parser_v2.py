@@ -3025,7 +3025,7 @@ class BankNiftyRani:
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
-            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
+            return first_row[["Exch", "Trading Symbol", "Instrument Name"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
 
