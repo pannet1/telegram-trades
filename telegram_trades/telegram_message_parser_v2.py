@@ -3105,7 +3105,8 @@ class BankNiftyRani:
                     logger.error(failure_details)
                     write_failure_to_csv(failure_details)
                     return
-                targets = [max(ltps) + float(target_value)]
+                target_val = str(target_value).split(",")
+                targets = [max(ltps) + float(val) for val in target_val]
             
             sl = get_float_values(statement.lower(), start_val='sl')
             if not sl:
@@ -3132,7 +3133,10 @@ class BankNiftyRani:
                     logger.error(failure_details)
                     write_failure_to_csv(failure_details)
                     return
-                sl = [min(ltps) - float(sl_value)]
+                sl_val = str(sl_value).split(",")
+                sl = [min(ltps) - float(val) for val in sl_val]
+                
+                # targets = [max(ltps) + float(val) for val in target_val]
             
             __signal_details = {
                 "channel_name": "BankNiftyRani",
