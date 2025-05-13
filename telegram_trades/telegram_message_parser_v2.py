@@ -2968,9 +2968,6 @@ class PlatinumMembers:
 class BankNiftyRani:
     channel_details = CHANNEL_DETAILS["BankNiftyRani"]
     channel_number = channel_details["channel_number"]
-    target_value = channel_details["target_value"]
-    sl_value = channel_details["sl_value"]
-    
 
     def __init__(self, msg_received_timestamp, telegram_msg):
         self.msg_received_timestamp = msg_received_timestamp
@@ -3085,11 +3082,57 @@ class BankNiftyRani:
                 targets = get_float_values(statement.lower(), start_val='target')
 
             if not targets:
-                targets = [max(ltps) + float(BankNiftyRani.target_value)]
+                target_value = 0.0
+                if symbol_dict['Instrument Name'] == 'NIFTY':
+                    target_value = BankNiftyRani.channel_details['NIFTY_TARGET_VALUE']
+                elif symbol_dict['Instrument Name'] == 'BANKNIFTY':
+                    target_value = BankNiftyRani.channel_details['BANKNIFTY_TARGET_VALUE']
+                elif symbol_dict['Instrument Name'] == 'FINNIFTY':
+                    target_value = BankNiftyRani.channel_details['FINNIFTY_TARGET_VALUE']
+                elif symbol_dict['Instrument Name'] == 'MIDCPNIFTY':
+                    target_value = BankNiftyRani.channel_details['MIDCPNIFTY_TARGET_VALUE']
+                elif symbol_dict['Instrument Name'] == 'SENSEX':
+                    target_value = BankNiftyRani.channel_details['SENSEX_TARGET_VALUE']
+                elif symbol_dict['Instrument Name'] == 'BANKEX':
+                    target_value = BankNiftyRani.channel_details['BANKEX_TARGET_VALUE']
+                else:
+                    failure_details = {
+                        "channel_name": "BankNiftyRani",
+                        "timestamp": self.msg_received_timestamp,
+                        "message": self.message,
+                        "exception": f"target value not found for symbol - {symbol_dict['Instrument Name']}",
+                    }
+                    logger.error(failure_details)
+                    write_failure_to_csv(failure_details)
+                    return
+                targets = [max(ltps) + float(target_value)]
             
             sl = get_float_values(statement.lower(), start_val='sl')
             if not sl:
-                sl = [min(ltps) - float(BankNiftyRani.sl_value)]
+                sl_value = 0.0
+                if symbol_dict['Instrument Name'] == 'NIFTY':
+                    sl_value = BankNiftyRani.channel_details['NIFTY_SL_VALUE']
+                elif symbol_dict['Instrument Name'] == 'BANKNIFTY':
+                    sl_value = BankNiftyRani.channel_details['BANKNIFTY_SL_VALUE']
+                elif symbol_dict['Instrument Name'] == 'FINNIFTY':
+                    sl_value = BankNiftyRani.channel_details['FINNIFTY_SL_VALUE']
+                elif symbol_dict['Instrument Name'] == 'MIDCPNIFTY':
+                    sl_value = BankNiftyRani.channel_details['MIDCPNIFTY_SL_VALUE']
+                elif symbol_dict['Instrument Name'] == 'SENSEX':
+                    sl_value = BankNiftyRani.channel_details['SENSEX_SL_VALUE']
+                elif symbol_dict['Instrument Name'] == 'BANKEX':
+                    sl_value = BankNiftyRani.channel_details['BANKEX_SL_VALUE']
+                else:
+                    failure_details = {
+                        "channel_name": "BankNiftyRani",
+                        "timestamp": self.msg_received_timestamp,
+                        "message": self.message,
+                        "exception": f"sl value not found for symbol - {symbol_dict['Instrument Name']}",
+                    }
+                    logger.error(failure_details)
+                    write_failure_to_csv(failure_details)
+                    return
+                sl = [min(ltps) - float(sl_value)]
             
             __signal_details = {
                 "channel_name": "BankNiftyRani",
