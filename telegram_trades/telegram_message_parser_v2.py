@@ -3025,7 +3025,7 @@ class BankNiftyRani:
             sorted_df['Expiry Date'] = pd.to_datetime(filtered_df['Expiry Date'], format='%Y-%m-%d')
             sorted_df = sorted_df[sorted_df['Expiry Date'] >= np.datetime64(datetime.now().date())]
             first_row = sorted_df.head(1)
-            return first_row[["Exch", "Trading Symbol", "Instrument Name"]].to_dict(orient="records")[0], sym
+            return first_row[["Exch", "Trading Symbol"]].to_dict(orient="records")[0], sym
         except:
             raise CustomError(traceback.format_exc())
 
@@ -3083,24 +3083,24 @@ class BankNiftyRani:
 
             if not targets:
                 target_value = 0.0
-                if symbol_dict['Instrument Name'] == 'NIFTY':
+                if symbol_dict['Symbol'] == 'NIFTY':
                     target_value = BankNiftyRani.channel_details['NIFTY_TARGET_VALUE']
-                elif symbol_dict['Instrument Name'] == 'BANKNIFTY':
+                elif symbol_dict['Symbol'] == 'BANKNIFTY':
                     target_value = BankNiftyRani.channel_details['BANKNIFTY_TARGET_VALUE']
-                elif symbol_dict['Instrument Name'] == 'FINNIFTY':
+                elif symbol_dict['Symbol'] == 'FINNIFTY':
                     target_value = BankNiftyRani.channel_details['FINNIFTY_TARGET_VALUE']
-                elif symbol_dict['Instrument Name'] == 'MIDCPNIFTY':
+                elif symbol_dict['Symbol'] == 'MIDCPNIFTY':
                     target_value = BankNiftyRani.channel_details['MIDCPNIFTY_TARGET_VALUE']
-                elif symbol_dict['Instrument Name'] == 'SENSEX':
+                elif symbol_dict['Symbol'] == 'SENSEX':
                     target_value = BankNiftyRani.channel_details['SENSEX_TARGET_VALUE']
-                elif symbol_dict['Instrument Name'] == 'BANKEX':
+                elif symbol_dict['Symbol'] == 'BANKEX':
                     target_value = BankNiftyRani.channel_details['BANKEX_TARGET_VALUE']
                 else:
                     failure_details = {
                         "channel_name": "BankNiftyRani",
                         "timestamp": self.msg_received_timestamp,
                         "message": self.message,
-                        "exception": f"target value not found for symbol - {symbol_dict['Instrument Name']}",
+                        "exception": f"target value not found for symbol - {symbol_dict['Symbol']}",
                     }
                     logger.error(failure_details)
                     write_failure_to_csv(failure_details)
@@ -3110,24 +3110,24 @@ class BankNiftyRani:
             sl = get_float_values(statement.lower(), start_val='sl')
             if not sl:
                 sl_value = 0.0
-                if symbol_dict['Instrument Name'] == 'NIFTY':
+                if symbol_dict['Symbol'] == 'NIFTY':
                     sl_value = BankNiftyRani.channel_details['NIFTY_SL_VALUE']
-                elif symbol_dict['Instrument Name'] == 'BANKNIFTY':
+                elif symbol_dict['Symbol'] == 'BANKNIFTY':
                     sl_value = BankNiftyRani.channel_details['BANKNIFTY_SL_VALUE']
-                elif symbol_dict['Instrument Name'] == 'FINNIFTY':
+                elif symbol_dict['Symbol'] == 'FINNIFTY':
                     sl_value = BankNiftyRani.channel_details['FINNIFTY_SL_VALUE']
-                elif symbol_dict['Instrument Name'] == 'MIDCPNIFTY':
+                elif symbol_dict['Symbol'] == 'MIDCPNIFTY':
                     sl_value = BankNiftyRani.channel_details['MIDCPNIFTY_SL_VALUE']
-                elif symbol_dict['Instrument Name'] == 'SENSEX':
+                elif symbol_dict['Symbol'] == 'SENSEX':
                     sl_value = BankNiftyRani.channel_details['SENSEX_SL_VALUE']
-                elif symbol_dict['Instrument Name'] == 'BANKEX':
+                elif symbol_dict['Symbol'] == 'BANKEX':
                     sl_value = BankNiftyRani.channel_details['BANKEX_SL_VALUE']
                 else:
                     failure_details = {
                         "channel_name": "BankNiftyRani",
                         "timestamp": self.msg_received_timestamp,
                         "message": self.message,
-                        "exception": f"sl value not found for symbol - {symbol_dict['Instrument Name']}",
+                        "exception": f"sl value not found for symbol - {symbol_dict['Symbol']}",
                     }
                     logger.error(failure_details)
                     write_failure_to_csv(failure_details)
