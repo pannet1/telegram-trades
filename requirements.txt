@@ -1,7 +1,7 @@
 git+https://github.com/pannet1/toolkit
 git+https://github.com/pannet1/omspy
 git+https://github.com/pannet1/omspy-brokers
-pya3
+pya3==1.0.29
 telethon
 pydantic==1.10.13
 pendulum
