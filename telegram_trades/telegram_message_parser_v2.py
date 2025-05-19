@@ -3033,7 +3033,7 @@ class BankNiftyRani:
         try:
             statement = self.message
             is_reply_msg = "$$$$" in statement
-            is_valid_msg = "ANGRY LION" in statement and "BUY" in statement
+            is_valid_msg =  "BUY" in statement
             if not is_valid_msg:
                 failure_details = {
                     "channel_name": "BankNiftyRani",
@@ -3058,7 +3058,8 @@ class BankNiftyRani:
                 return
             # self.message = self.message.repace("BUY ", "").strip()
             self.message = self.message.replace("STRATEGY ", "")
-            self.message = self.message.split("ANGRY LION ")[1].strip()
+            if "ANGRY LION " in self.message:
+                self.message = self.message.split("ANGRY LION ")[1].strip()
             sym_strike_opt = self.message.split("BUY ")[0].strip()
             
             
