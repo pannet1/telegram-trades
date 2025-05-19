@@ -8,3 +8,4 @@ pendulum
 rich
 prettytable
 pyyaml
+logzero
