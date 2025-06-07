@@ -203,6 +203,7 @@ class TaskFunc:
                     # check order status based on resp
                     logging.info(f"entry args: {args}")
                     resp = self.api.order_place(**args)
+                    logging.info(f"{resp=}")
                     if isinstance(resp, dict):
                         order_details = get_order_from_book(self.api, resp)
                         status = order_details["Status"]
